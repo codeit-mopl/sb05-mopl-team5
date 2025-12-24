@@ -1,3 +1,19 @@
+-- 0. Table Drop
+DROP TABLE IF EXISTS `reviews`;
+DROP TABLE IF EXISTS `playlist_contents`;
+DROP TABLE IF EXISTS `subscriptions`;
+DROP TABLE IF EXISTS `playlists`;
+DROP TABLE IF EXISTS `watching_sessions`;
+DROP TABLE IF EXISTS `contents`;
+DROP TABLE IF EXISTS `notifications`;
+DROP TABLE IF EXISTS `social_accounts`;
+DROP TABLE IF EXISTS `follows`;
+DROP TABLE IF EXISTS `conversation_participants`;
+DROP TABLE IF EXISTS `direct_messages`;
+DROP TABLE IF EXISTS `jwt_sessions`;
+DROP TABLE IF EXISTS `users`;
+DROP TABLE IF EXISTS `conversations`;
+
 -- 1. Users Table
 CREATE TABLE `users` (
                          `id`                BINARY(16)      NOT NULL COMMENT 'PK',
