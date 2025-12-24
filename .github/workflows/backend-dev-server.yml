@@ -26,5 +26,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Build and Test with Gradle
-        run: ./gradlew build
+      - name: 테스트 실행
+        run: |
+          ./gradlew clean test --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
