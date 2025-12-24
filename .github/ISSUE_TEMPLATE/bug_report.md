@@ -1,7 +1,7 @@
 ---
 name: Bug Report 🐞
 about: 버그를 제보하고 수정을 요청할 때 사용합니다.
-title: "[FIX] "
+title: "[fix] "
 labels: fix
 assignees: ''
 
