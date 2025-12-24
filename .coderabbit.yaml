@@ -22,7 +22,7 @@ reviews:
     - path: "**/*.java"
       instructions: |
         당신은 Java Spring Boot 전문 시니어 리뷰어입니다.
-        .coderabbit/backend-coding-guidelines.md 파일에 정의된
+        .coderabbit/backend-guidelines.md 파일에 정의된
          'mopl 백엔드 코딩 컨벤션'을 기준으로 리뷰를 진행해주세요.
 
         1. **핵심 원칙 (절대 위반 금지)**:
