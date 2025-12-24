@@ -43,6 +43,7 @@ CREATE TABLE `reviews` (
                            `text`       TEXT         NOT NULL,
                            `rating`     DECIMAL(2,1) NOT NULL COMMENT '(0.0 ~ 5.0)',
                            `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                           `updated_at`     DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                            `is_deleted` BOOLEAN      NOT NULL DEFAULT FALSE,
 
                            CONSTRAINT `PK_REVIEWS` PRIMARY KEY (`id`),
@@ -68,6 +69,7 @@ CREATE TABLE `social_accounts` (
                                    `provider`    VARCHAR(20)  NOT NULL COMMENT 'LOCAL, GOOGLE, KAKAO',
                                    `provider_id` VARCHAR(500) NOT NULL,
                                    `user_id`     BINARY(16)   NOT NULL COMMENT 'FK',
+                                   `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
                                    CONSTRAINT `PK_SOCIAL_ACCOUNTS` PRIMARY KEY (`id`),
                                    CONSTRAINT `CHK_SOCIAL_PROVIDER` CHECK (`provider` IN ('LOCAL', 'GOOGLE', 'KAKAO'))
@@ -89,39 +91,44 @@ CREATE TABLE `playlists` (
 
 -- 7. Playlist Contents Table (Many-to-Many)
 CREATE TABLE `playlist_contents` (
+                                     `id`               BINARY(16)   NOT NULL COMMENT 'PK',
                                      `playlist_id` BINARY(16) NOT NULL COMMENT 'PK, FK',
                                      `content_id`  BINARY(16) NOT NULL COMMENT 'PK, FK',
                                      `created_at`  DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                     `updated_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                      `is_deleted`  BOOLEAN    NOT NULL DEFAULT FALSE,
 
-                                     CONSTRAINT `PK_PLAYLIST_CONTENTS` PRIMARY KEY (`playlist_id`, `content_id`)
+                                     CONSTRAINT `PK_PLAYLIST_CONTENTS` PRIMARY KEY (`id`)
 );
 
 -- 8. Watching Sessions Table
 CREATE TABLE `watching_sessions` (
+                                     `id`               BINARY(16)   NOT NULL COMMENT 'PK',
                                      `watcher_id` BINARY(16) NOT NULL COMMENT 'PK, FK',
                                      `content_id` BINARY(16) NOT NULL COMMENT 'PK, FK',
                                      `created_at` DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-                                     CONSTRAINT `PK_WATCHING_SESSIONS` PRIMARY KEY (`watcher_id`, `content_id`)
+                                     CONSTRAINT `PK_WATCHING_SESSIONS` PRIMARY KEY (`id`)
 );
 
 -- 9. Subscriptions Table
 CREATE TABLE `subscriptions` (
+                                 `id`               BINARY(16)   NOT NULL COMMENT 'PK',
                                  `user_id`     BINARY(16) NOT NULL COMMENT 'PK, FK',
                                  `playlist_id` BINARY(16) NOT NULL COMMENT 'PK, FK',
                                  `created_at`  DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-                                 CONSTRAINT `PK_SUBSCRIPTIONS` PRIMARY KEY (`user_id`, `playlist_id`)
+                                 CONSTRAINT `PK_SUBSCRIPTIONS` PRIMARY KEY (`id`)
 );
 
 -- 10. Follows Table
 CREATE TABLE `follows` (
+                           `id`               BINARY(16)   NOT NULL COMMENT 'PK',
                            `followee_id` BINARY(16) NOT NULL COMMENT 'PK',
                            `follower_id` BINARY(16) NOT NULL COMMENT 'PK',
                            `created_at`  DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-                           CONSTRAINT `PK_FOLLOWS` PRIMARY KEY (`followee_id`, `follower_id`)
+                           CONSTRAINT `PK_FOLLOWS` PRIMARY KEY (`id`)
 );
 
 -- 11. Conversations Table
