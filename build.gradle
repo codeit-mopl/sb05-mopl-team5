@@ -49,7 +49,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-batch'
 
 	// 4. DB Migration & Drivers
-	runtimeOnly 'com.h2database:h2'
+	testImplementation 'com.h2database:h2'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 

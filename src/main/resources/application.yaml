@@ -3,34 +3,28 @@ spring:
     name: Mopl
 
   profiles:
-    active: local
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  config:
+    import: optional:file:.env[.properties]
 
   # 1. 데이터베이스 설정 (MySQL)
-  #datasource:
-    #driver-class-name: com.mysql.cj.jdbc.Driver
-    # rewriteBatchedStatements=true: 대량 Insert 성능 향상 (필수)
-    #url: jdbc:mysql://localhost:3306/mopl?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&rewriteBatchedStatements=true
-    #username: root          # TODO: 본인 DB 계정
-    #password: your_password # TODO: 본인 DB 비밀번호
-
-  # 2. 초기 스키마 로딩 (schema.sql 사용)
-  #sql:
-    #init:
-      #mode: always       # 서버 시작 시 항상 schema.sql 실행
-      #encoding: UTF-8
-      # platform: mysql  # 필요 시 명시 (보통 자동 감지됨)
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&rewriteBatchedStatements=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   # 3. JPA 설정
-  #jpa:
-    #open-in-view: false  # [성능] 트랜잭션 종료 시 DB 커넥션 즉시 반환 (대규모 트래픽 필수)
-    #defer-datasource-initialization: true # schema.sql 실행 후 Hibernate 초기화
-    #hibernate:
-      #ddl-auto: validate # [안전] schema.sql이 테이블을 생성하므로 JPA는 검사만 수행
-    #properties:
-      #hibernate:
-        #format_sql: true
-        #default_batch_fetch_size: 100 # N+1 문제 방지
-        #dialect: org.hibernate.dialect.MySQL8Dialect
+  jpa:
+    open-in-view: false  # [성능] 트랜잭션 종료 시 DB 커넥션 즉시 반환 (대규모 트래픽 필수)
+    hibernate:
+      ddl-auto: validate # [안전] schema.sql이 테이블을 생성하므로 JPA는 검사만 수행
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 100 # N+1 문제 방지
+        dialect: org.hibernate.dialect.MySQL8Dialect
 
   # 4. Redis 설정
   data:
@@ -79,18 +73,10 @@ management:
     health:
       show-details: always
 
-# 8. 로깅 설정
-logging:
-  level:
-    root: INFO
-    com.mopl: DEBUG       # 우리 프로젝트 로그
-    org.hibernate.SQL: DEBUG  # 실행되는 SQL 쿼리를 출력 (select ... from ...)
-    org.hibernate.orm.jdbc.bind: TRACE # SQL의 '?'에 들어가는 값을 출력 (P6Spy 대체)
-
 # 9. JWT 커스텀 설정
 custom:
   jwt:
     # 32바이트 이상 임의 문자열 (운영 시 환경변수로 교체 권장)
-    secret: "v3ryS3cretK3yF0rMoplProj3ctMustB3L0ng3rTh4n32Byt3s!!"
+    secret: ${JWT_SECRET:testJWTSecretForMopl1234!@#$12341234}
     access-token-expiration: 3600000      # 1시간
     refresh-token-expiration: 1209600000  # 14일
