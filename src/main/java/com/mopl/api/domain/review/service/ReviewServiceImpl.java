@@ -47,7 +47,8 @@ public class ReviewServiceImpl implements ReviewService {
             UUID.randomUUID(),
             request.text(),
             request.rating(),
-            LocalDateTime.now().minusDays(1),
+            LocalDateTime.now()
+                         .minusDays(1),
             LocalDateTime.now(),
             true
         );

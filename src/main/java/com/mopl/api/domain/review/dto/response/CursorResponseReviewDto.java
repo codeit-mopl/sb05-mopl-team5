@@ -12,4 +12,5 @@ public record CursorResponseReviewDto(
     String sortBy,
     String sortDirection
 ) {
+
 }

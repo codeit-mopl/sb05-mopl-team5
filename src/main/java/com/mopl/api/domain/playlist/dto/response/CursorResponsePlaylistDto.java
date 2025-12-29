@@ -12,4 +12,5 @@ public record CursorResponsePlaylistDto(
     String sortBy,
     String sortDirection
 ) {
+
 }

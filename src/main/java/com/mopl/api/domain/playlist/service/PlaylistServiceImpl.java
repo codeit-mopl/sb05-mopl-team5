@@ -54,7 +54,8 @@ public class PlaylistServiceImpl implements PlaylistService {
             0,
             false,
             true,
-            LocalDateTime.now().minusDays(1),
+            LocalDateTime.now()
+                         .minusDays(1),
             LocalDateTime.now()
         );
     }
@@ -73,7 +74,8 @@ public class PlaylistServiceImpl implements PlaylistService {
             0,
             false,
             false,
-            LocalDateTime.now().minusDays(1),
+            LocalDateTime.now()
+                         .minusDays(1),
             LocalDateTime.now()
         );
     }

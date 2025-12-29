@@ -22,4 +22,5 @@ public record ReviewCreateRequest(
     @Digits(integer = 1, fraction = 1, message = "Rating must have 1 decimal place")
     Double rating
 ) {
+
 }
