@@ -5,12 +5,16 @@
 -- USERS
 INSERT INTO users (id, name, email, password, profile_image_url,
                    role, locked, follower_count)
-VALUES (UUID_TO_BIN(UUID()), 'Alice', 'alice@test.com', 'password1', 'https://cdn.test/profiles/alice.jpg', 'USER', FALSE, 25),
-       (UUID_TO_BIN(UUID()), 'Bob', 'bob@test.com', 'password2', 'https://cdn.test/profiles/bob.jpg', 'USER', FALSE, 15),
+VALUES (UUID_TO_BIN(UUID()), 'Alice', 'alice@test.com', 'password1',
+        'https://cdn.test/profiles/alice.jpg', 'USER', FALSE, 25),
+       (UUID_TO_BIN(UUID()), 'Bob', 'bob@test.com', 'password2',
+        'https://cdn.test/profiles/bob.jpg', 'USER', FALSE, 15),
        (UUID_TO_BIN(UUID()), 'Charlie', 'charlie@test.com', 'password3', NULL, 'USER', FALSE, 8),
-       (UUID_TO_BIN(UUID()), 'Diana', 'diana@test.com', 'password4', 'https://cdn.test/profiles/diana.jpg', 'USER', FALSE, 42),
+       (UUID_TO_BIN(UUID()), 'Diana', 'diana@test.com', 'password4',
+        'https://cdn.test/profiles/diana.jpg', 'USER', FALSE, 42),
        (UUID_TO_BIN(UUID()), 'Eve', 'eve@test.com', 'password5', NULL, 'USER', TRUE, 3),
-       (UUID_TO_BIN(UUID()), 'Admin', 'admin@test.com', 'adminpass', 'https://cdn.test/profiles/admin.jpg', 'ADMIN', FALSE, 0);
+       (UUID_TO_BIN(UUID()), 'Admin', 'admin@test.com', 'adminpass',
+        'https://cdn.test/profiles/admin.jpg', 'ADMIN', FALSE, 0);
 
 -- CONTENTS
 INSERT INTO contents (id, type, api_id, title, description, thumbnail_url,
@@ -573,7 +577,6 @@ FROM follows f
          JOIN users u ON f.followee_id = u.id
          JOIN users follower ON f.follower_id = follower.id
 WHERE u.email = 'alice@test.com'
-    LIMIT 3
 UNION ALL
 SELECT UUID_TO_BIN(UUID()),
        u.id,
@@ -733,4 +736,5 @@ SELECT UUID_TO_BIN(UUID()),
        CONCAT('refresh_token_', u.email, '_', UUID()),
        DATE_ADD(NOW(), INTERVAL 30 DAY)
 FROM users u
-WHERE u.email IN ('alice@test.com', 'bob@test.com', 'charlie@test.com', 'diana@test.com', 'admin@test.com');
+WHERE u.email IN
+      ('alice@test.com', 'bob@test.com', 'charlie@test.com', 'diana@test.com', 'admin@test.com');
