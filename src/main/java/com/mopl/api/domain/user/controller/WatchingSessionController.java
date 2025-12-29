@@ -5,6 +5,7 @@ import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.service.WatchingSessionService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ public class WatchingSessionController {
 
     @GetMapping("/api/contents/{contentId}/watching-sessions")
     public ResponseEntity<CursorResponseWatchingSessionDto> getWatchingSessionByContent(@PathVariable UUID contentId,
-        WatchingSessionSearchRequest request) {
+        @Valid WatchingSessionSearchRequest request) {
 
         log.info("contentId : {}", contentId);
         log.info("request : {}", request);

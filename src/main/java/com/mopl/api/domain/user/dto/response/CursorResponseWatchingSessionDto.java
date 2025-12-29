@@ -1,15 +1,16 @@
 package com.mopl.api.domain.user.dto.response;
 
 import java.util.List;
+import java.util.UUID;
 import lombok.Builder;
 
 @Builder
 public record CursorResponseWatchingSessionDto(
     List<WatchingSessionDto> data,
     String nextCursor,
-    String nextIdAfter,
+    UUID nextIdAfter,
     boolean hasNext,
-    Integer totalCount,
+    Long totalCount,
     String sortBy,
     String sortDirection
 ) {

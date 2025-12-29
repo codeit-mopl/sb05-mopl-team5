@@ -3,7 +3,6 @@ package com.mopl.api.domain.user.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
-import org.hibernate.query.SortDirection;
 import org.springdoc.core.annotations.ParameterObject;
 
 @Builder
@@ -18,21 +17,12 @@ public record WatchingSessionSearchRequest(
     @NotNull SortBy sortBy
 ) {
 
-    public WatchingSessionSearchRequest {
-        if (limit == null) {
-            limit = 20;
-        }
-
-        if (sortDirection == null) {
-            sortDirection = SortDirection.DESCENDING;
-        }
-
-        if (sortBy == null) {
-            sortBy = SortBy.createAt;
-        }
+    public enum SortDirection {
+        ASCENDING,
+        DESCENDING
     }
 
     public enum SortBy {
-        createAt
+        createdAt
     }
 }
