@@ -13,9 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,10 +35,11 @@ public class PlaylistController {
         @Valid @RequestBody PlaylistCreateRequest request,
         @RequestHeader("X-User-Id") UUID userId
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(playlistService.addPlaylist(request, userId));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                             .body(playlistService.addPlaylist(request, userId));
     }
 
-    @PutMapping("/{playlistId}")
+    @PatchMapping("/{playlistId}")
     public ResponseEntity<PlaylistDto> playlistModify(
         @PathVariable UUID playlistId,
         @Valid @RequestBody PlaylistUpdateRequest request,
@@ -53,7 +54,8 @@ public class PlaylistController {
         @RequestHeader("X-User-Id") UUID userId
     ) {
         playlistService.removePlaylist(playlistId, userId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent()
+                             .build();
     }
 
     @GetMapping("/{playlistId}")
@@ -91,7 +93,8 @@ public class PlaylistController {
         @RequestHeader("X-User-Id") UUID userId
     ) {
         playlistService.addContentToPlaylist(playlistId, contentId, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                             .build();
     }
 
     @DeleteMapping("/{playlistId}/contents/{contentId}")
@@ -101,24 +104,27 @@ public class PlaylistController {
         @RequestHeader("X-User-Id") UUID userId
     ) {
         playlistService.removeContentFromPlaylist(playlistId, contentId, userId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent()
+                             .build();
     }
 
-    @PostMapping("/{playlistId}/subscribe")
+    @PostMapping("/{playlistId}/subscription")
     public ResponseEntity<Void> playlistSubscribe(
         @PathVariable UUID playlistId,
         @RequestHeader("X-User-Id") UUID userId
     ) {
         subscriptionService.subscribeToPlaylist(playlistId, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                             .build();
     }
 
-    @DeleteMapping("/{playlistId}/subscribe")
+    @DeleteMapping("/{playlistId}/subscription")
     public ResponseEntity<Void> playlistUnsubscribe(
         @PathVariable UUID playlistId,
         @RequestHeader("X-User-Id") UUID userId
     ) {
         subscriptionService.unsubscribeFromPlaylist(playlistId, userId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent()
+                             .build();
     }
 }
