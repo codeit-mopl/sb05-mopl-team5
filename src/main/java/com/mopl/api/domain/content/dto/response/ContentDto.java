@@ -3,7 +3,9 @@ package com.mopl.api.domain.content.dto.response;
 import com.mopl.api.domain.content.entity.ContentType;
 import java.util.List;
 import java.util.UUID;
+import lombok.Builder;
 
+@Builder
 public record ContentDto(
     UUID id,
     ContentType type,

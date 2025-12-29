@@ -2,7 +2,9 @@ package com.mopl.api.domain.content.dto.response;
 
 import java.util.List;
 import java.util.UUID;
+import lombok.Builder;
 
+@Builder
 public record CursorResponseContentDto(
     List<ContentDto> data,
     String nextCursor,
