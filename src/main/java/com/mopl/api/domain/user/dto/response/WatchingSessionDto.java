@@ -1,4 +1,4 @@
-package com.mopl.api.domain.user.dto;
+package com.mopl.api.domain.user.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
