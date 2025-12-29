@@ -9,7 +9,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -22,7 +21,6 @@ import lombok.NoArgsConstructor;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 public class Subscription extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -32,4 +30,11 @@ public class Subscription extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "playlist_id", nullable = false)
     private Playlist playlist;
+
+    public static Subscription create(User user, Playlist playlist) {
+        Subscription subscription = new Subscription();
+        subscription.user = user;
+        subscription.playlist = playlist;
+        return subscription;
+    }
 }
