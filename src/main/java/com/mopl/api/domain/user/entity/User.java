@@ -29,7 +29,8 @@ public class User extends BaseUpdatableEntity {
     private String profileImageUrl;
 
     @Enumerated(value = EnumType.STRING)
-    private UserRole role;
+    @Column(length = 20, nullable = false)
+    private UserRole role = UserRole.USER;
 
     @Column(nullable = false)
     private Boolean locked = false;

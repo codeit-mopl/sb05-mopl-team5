@@ -6,17 +6,29 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "contents")
+@Table(
+    name = "contents",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "UK_CONTENTS_TYPE_API_ID", columnNames = {"type", "api_id"})
+    }
+)
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Content extends BaseDeletableEntity {
+
     @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private ContentType type;
+
+    @Column(name = "api_id")
+    private Long apiId;
 
     @Column(nullable = false, length = 255)
     private String title;

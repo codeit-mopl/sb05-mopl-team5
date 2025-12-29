@@ -29,5 +29,4 @@ public class DirectMessage extends BaseEntity {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
-
 }

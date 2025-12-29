@@ -16,13 +16,14 @@ import lombok.Getter;
 @Getter
 public class SocialAccount extends BaseEntity {
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private SocialAccountProvider provider;
 
     @Column(nullable = false, length = 500)
     private String providerId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
 }

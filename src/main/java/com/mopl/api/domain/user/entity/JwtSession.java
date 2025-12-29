@@ -1,6 +1,7 @@
 package com.mopl.api.domain.user.entity;
 
 import com.mopl.api.global.common.entity.BaseEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -15,10 +16,12 @@ import lombok.Getter;
 public class JwtSession extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false, length = 500)
     private String refreshToken;
 
+    @Column(nullable = false)
     private LocalDateTime expiredAt;
 }
