@@ -1,15 +1,22 @@
 package com.mopl.api.global.config.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
 @Profile("!test")
 public class SecurityConfig {
+
+//    private final AuthenticationManager authenticationManager;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -19,10 +26,14 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             // 모든 요청 허용
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**").permitAll()
                 .anyRequest().permitAll()
             )
-            // 로그인 관련 기능 전부 비활성화
-            .formLogin(form -> form.disable())
+            .formLogin(form -> form
+                .loginProcessingUrl("/api/auth/sign-in")
+//                .successHandler(LoginSuccessHandler)
+//                .failureHandler(LoginFailureHandler)
+                )
             .oauth2Login(oauth -> oauth.disable())
             .httpBasic(basic -> basic.disable());
 
