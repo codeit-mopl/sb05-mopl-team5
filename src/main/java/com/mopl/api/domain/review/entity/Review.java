@@ -11,7 +11,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -19,7 +18,6 @@ import lombok.NoArgsConstructor;
 @Table(name = "reviews")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 public class Review extends BaseDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -35,4 +33,18 @@ public class Review extends BaseDeletableEntity {
 
     @Column(nullable = false, precision = 2, scale = 1)
     private BigDecimal rating;
+
+    public static Review create(Content content, User user, String text, BigDecimal rating) {
+        Review review = new Review();
+        review.content = content;
+        review.user = user;
+        review.text = text;
+        review.rating = rating;
+        return review;
+    }
+
+    public void update(String text, BigDecimal rating) {
+        this.text = text;
+        this.rating = rating;
+    }
 }
