@@ -28,30 +28,15 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewDto addReview(ReviewCreateRequest request, UUID userId) {
-        return new ReviewDto(
-            UUID.randomUUID(),
-            request.contentId(),
-            request.text(),
-            request.rating(),
-            LocalDateTime.now(),
-            LocalDateTime.now(),
-            true
-        );
+        return ReviewDto.builder()
+                        .build();
     }
 
     @Override
     @Transactional
     public ReviewDto modifyReview(UUID reviewId, ReviewUpdateRequest request, UUID userId) {
-        return new ReviewDto(
-            reviewId,
-            UUID.randomUUID(),
-            request.text(),
-            request.rating(),
-            LocalDateTime.now()
-                         .minusDays(1),
-            LocalDateTime.now(),
-            true
-        );
+        return ReviewDto.builder()
+                        .build();
     }
 
     @Override

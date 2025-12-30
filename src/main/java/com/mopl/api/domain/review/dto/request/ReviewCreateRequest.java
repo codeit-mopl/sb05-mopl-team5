@@ -7,7 +7,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
+import lombok.Builder;
 
+@Builder
 public record ReviewCreateRequest(
     @NotNull(message = "Content ID is required")
     UUID contentId,
