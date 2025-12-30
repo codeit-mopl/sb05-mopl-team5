@@ -2,7 +2,9 @@ package com.mopl.api.domain.playlist.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 
+@Builder
 public record PlaylistUpdateRequest(
     @NotBlank(message = "Playlist title is required")
     @Size(max = 255, message = "Title must not exceed 255 characters")

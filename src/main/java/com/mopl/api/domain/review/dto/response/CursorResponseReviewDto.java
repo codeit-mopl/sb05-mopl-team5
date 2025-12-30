@@ -2,7 +2,9 @@ package com.mopl.api.domain.review.dto.response;
 
 import java.util.List;
 import java.util.UUID;
+import lombok.Builder;
 
+@Builder
 public record CursorResponseReviewDto(
     List<ReviewDto> reviews,
     String nextCursor,
