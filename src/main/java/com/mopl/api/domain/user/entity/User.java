@@ -21,7 +21,7 @@ public class User extends BaseUpdatableEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 255, unique = true)
+    @Column(nullable = false, length = 255)
     private String email;
 
     @Column(nullable = false, length = 100)

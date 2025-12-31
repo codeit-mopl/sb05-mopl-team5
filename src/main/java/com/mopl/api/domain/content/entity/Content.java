@@ -8,13 +8,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(
@@ -38,15 +35,14 @@ public class Content extends BaseDeletableEntity {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, length = 1000)
     private String description;
 
     @Column(nullable = false, length = 255)
     private String thumbnailUrl;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false, columnDefinition = "JSON")
-    private List<String> tags;
+    @Column(nullable = false, length = 500)
+    private String tags;
 
     @Column(nullable = false, precision = 2, scale = 1)
     private BigDecimal averageRating = BigDecimal.ZERO;
