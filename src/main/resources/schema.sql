@@ -46,7 +46,7 @@ CREATE TABLE `contents`
     `title`          VARCHAR(255)  NOT NULL,
     `description`    VARCHAR(1000) NOT NULL,
     `thumbnail_url`  VARCHAR(255)  NOT NULL,
-    `tags`           VARCHAR(1000) NOT NULL,
+    `tags`           VARCHAR(500) NOT NULL,
     `average_rating` DECIMAL(2, 1) NOT NULL DEFAULT 0.0,
     `review_count`   BIGINT        NOT NULL DEFAULT 0,
     `watcher_count`  BIGINT        NOT NULL DEFAULT 0,
