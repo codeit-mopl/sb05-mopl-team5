@@ -35,7 +35,7 @@ public class FollowController {
     return ResponseEntity.status(HttpStatus.CREATED).body(followDto);
   }
 
-  @GetMapping("/followed-by-me}")
+  @GetMapping("/followed-by-me")
   public ResponseEntity<FollowResponseByMeDto> checkFollow(@RequestParam UUID followeeId) {
     FollowResponseByMeDto followResponseByMeDto = service.checkFollow(followeeId);
     return ResponseEntity.status(HttpStatus.OK).body(followResponseByMeDto);
