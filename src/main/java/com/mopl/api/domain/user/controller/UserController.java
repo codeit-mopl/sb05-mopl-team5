@@ -69,6 +69,14 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
+    //프로필 변경
+    @PatchMapping("/{userId}")
+    public ResponseEntity<UserDto> profileChange( @PathVariable UUID userId, @RequestBody String image){
+        UserDto userDto = userService.profileChange(userId, image);
+        return  ResponseEntity.status(HttpStatus.OK).body(userDto);
+
+    }
+
 
 
 }
