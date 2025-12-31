@@ -8,12 +8,11 @@ import java.util.UUID;
 
 public interface FollowService {
 
-  FollowDto setFollow(FollowRequest request);
+    FollowDto addFollow(FollowRequest request);
 
-  FollowResponseByMeDto checkFollow(UUID followeeId);
+    FollowResponseByMeDto checkFollow(UUID followeeId);
 
-  FollowResponseCountDto countFollow(UUID followeeId);
+    FollowResponseCountDto countFollow(UUID followeeId);
 
-  void cancelFollow(UUID followeeId);
-
+    void followRemove(UUID followeeId);
 }

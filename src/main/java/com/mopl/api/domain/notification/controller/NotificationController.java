@@ -27,14 +27,14 @@ DELETE
 public class NotificationController {
 
     @GetMapping
-    public ResponseEntity<NotificationDto> getNotification(UUID userI) {
+    public ResponseEntity<NotificationDto> notificationDetail(UUID userI) {
         // TODO ...
         return ResponseEntity.ok(NotificationDto.builder()
                                                 .build());
     }
 
     @DeleteMapping("/{NotificationId}")
-    public ResponseEntity<NotificationDto> deleteNotification(UUID notificationId) {
+    public ResponseEntity<NotificationDto> notificationRemove(UUID notificationId) {
         // TODO ...
         return ResponseEntity.noContent()
                              .build();

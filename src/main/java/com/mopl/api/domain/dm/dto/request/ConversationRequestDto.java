@@ -5,8 +5,6 @@ import java.util.UUID;
 import lombok.Builder;
 
 @Builder
-public record ConversationRequestDto(
-    UUID withUserId
-) {
+public record ConversationRequestDto(UUID withUserId) {
 
 }
