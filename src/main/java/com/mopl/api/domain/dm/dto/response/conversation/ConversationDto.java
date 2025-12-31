@@ -7,7 +7,7 @@ import lombok.Builder;
 public record ConversationDto(
     UUID id,
     ConversationWith with,
-    ConversationLastestMessage lastestMessage,
+    ConversationLatestMessage latestMessage,
     boolean hasUnread
 ) {
 

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -35,13 +36,13 @@ public class FollowController {
   }
 
   @GetMapping("/followed-by-me}")
-  public ResponseEntity<FollowResponseByMeDto> checkFollow(@PathVariable UUID followeeId) {
+  public ResponseEntity<FollowResponseByMeDto> checkFollow(@RequestParam UUID followeeId) {
     FollowResponseByMeDto followResponseByMeDto = service.checkFollow(followeeId);
     return ResponseEntity.status(HttpStatus.OK).body(followResponseByMeDto);
   }
 
   @GetMapping("/count")
-  public ResponseEntity<FollowResponseCountDto> countFollow(@PathVariable UUID followeeId) {
+  public ResponseEntity<FollowResponseCountDto> countFollow(@RequestParam UUID followeeId) {
     FollowResponseCountDto followResponseCountDto = service.countFollow(followeeId);
     return ResponseEntity.status(HttpStatus.OK).body(followResponseCountDto);
   }

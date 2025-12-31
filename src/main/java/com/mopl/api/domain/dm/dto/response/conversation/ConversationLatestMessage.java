@@ -5,7 +5,7 @@ import java.util.UUID;
 import lombok.Builder;
 
 @Builder
-public record ConversationLastestMessage(
+public record ConversationLatestMessage(
 
     UUID id,
     UUID conversationsId,

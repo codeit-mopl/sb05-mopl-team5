@@ -7,6 +7,7 @@ import com.mopl.api.domain.dm.dto.response.conversation.ConversationResponseDto;
 import com.mopl.api.domain.dm.dto.response.direct.DirectMessageResponseDto;
 import com.mopl.api.domain.dm.dto.response.direct.DirectMessageWithDto;
 import com.mopl.api.domain.dm.service.ConversationService;
+import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -41,7 +42,7 @@ public class ConversationController {
   }
 
   @PostMapping
-  public ResponseEntity<ConversationDto> createConversation(@RequestBody ConversationRequestDto requestDto) {
+  public ResponseEntity<ConversationDto> createConversation(@Valid @RequestBody ConversationRequestDto requestDto) {
     ConversationDto conversationDto = service.createConversation(requestDto);
     return ResponseEntity.status(HttpStatus.OK).body(conversationDto);
   }
@@ -61,7 +62,7 @@ public class ConversationController {
 
   @GetMapping("/{conversationId}/direct-message")
   public ResponseEntity<DirectMessageResponseDto> getDirectMessageList(
-      @RequestParam UUID conversationId,
+      @PathVariable UUID conversationId,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) UUID idAfter,
       @RequestParam(defaultValue = "32") int limit,
