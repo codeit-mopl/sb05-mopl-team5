@@ -8,6 +8,6 @@ public record DetailMessage(
     String additionalProp1,
     String additionalProp2,
     String additionalProp3
-){
-  
+) {
+
 }

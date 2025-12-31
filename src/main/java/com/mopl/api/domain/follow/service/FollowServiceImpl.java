@@ -16,23 +16,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class FollowServiceImpl implements FollowService {
 
-  @Override
-  public FollowDto setFollow(FollowRequest request) {
-    return null;
-  }
+    @Override
+    public FollowDto addFollow(FollowRequest request) {
+        return null;
+    }
 
-  @Override
-  public FollowResponseByMeDto checkFollow(UUID followeeId) {
-    return null;
-  }
+    @Override
+    public FollowResponseByMeDto checkFollow(UUID followeeId) {
+        return null;
+    }
 
-  @Override
-  public FollowResponseCountDto countFollow(UUID followeeId) {
-    return null;
-  }
+    @Override
+    public FollowResponseCountDto countFollow(UUID followeeId) {
+        return null;
+    }
 
-  @Override
-  public void cancelFollow(UUID followeeId) {
+    @Override
+    public void followRemove(UUID followeeId) {
 
-  }
+    }
 }

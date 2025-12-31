@@ -10,23 +10,23 @@ import java.util.UUID;
 public interface ConversationService {
 
 
-  ConversationDto createConversation(ConversationRequestDto withUserId);
+    ConversationDto createConversation(ConversationRequestDto withUserId);
 
-  ConversationResponseDto getConversationList(
-      String keywordLike, String cursor, UUID String, int limit, String sortDirection, String sortBy
-  );
-
-
-  void conversationRead(UUID conversationId, UUID directMessageId);
-
-  ConversationDto conversationCheck(UUID conversationId);
+    ConversationResponseDto getConversationList(
+        String keywordLike, String cursor, UUID String, int limit, String sortDirection, String sortBy
+    );
 
 
-  DirectMessageResponseDto getDirectMessageList(
-      UUID conversationId, String cursor, UUID idAfter, int limit, String sortDirection, String sortBy
-  );
+    void conversationRead(UUID conversationId, UUID directMessageId);
 
-  DirectMessageWithDto getDirectMessageWith(UUID userId);
+    ConversationDto conversationCheck(UUID conversationId);
+
+
+    DirectMessageResponseDto getDirectMessageList(
+        UUID conversationId, String cursor, UUID idAfter, int limit, String sortDirection, String sortBy
+    );
+
+    DirectMessageWithDto getDirectMessageWith(UUID userId);
 
 
 }

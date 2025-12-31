@@ -16,37 +16,37 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional
 @Slf4j
-public class ConversationServiceImpl implements  ConversationService {
+public class ConversationServiceImpl implements ConversationService {
 
-  @Override
-  public ConversationDto createConversation(ConversationRequestDto withUserId) {
-    return null;
-  }
+    @Override
+    public ConversationDto createConversation(ConversationRequestDto withUserId) {
+        return null;
+    }
 
-  @Override
-  public ConversationResponseDto getConversationList(String keywordLike, String cursor, UUID String, int limit,
-      String sortDirection, String sortBy) {
-    return null;
-  }
+    @Override
+    public ConversationResponseDto getConversationList(String keywordLike, String cursor, UUID String, int limit,
+        String sortDirection, String sortBy) {
+        return null;
+    }
 
-  @Override
-  public void conversationRead(UUID conversationId, UUID directMessageId) {
+    @Override
+    public void conversationRead(UUID conversationId, UUID directMessageId) {
 
-  }
+    }
 
-  @Override
-  public ConversationDto conversationCheck(UUID conversationId) {
-    return null;
-  }
+    @Override
+    public ConversationDto conversationCheck(UUID conversationId) {
+        return null;
+    }
 
-  @Override
-  public DirectMessageResponseDto getDirectMessageList(UUID conversationId, String cursor, UUID idAfter, int limit,
-      String sortDirection, String sortBy) {
-    return null;
-  }
+    @Override
+    public DirectMessageResponseDto getDirectMessageList(UUID conversationId, String cursor, UUID idAfter, int limit,
+        String sortDirection, String sortBy) {
+        return null;
+    }
 
-  @Override
-  public DirectMessageWithDto getDirectMessageWith(UUID userId) {
-    return null;
-  }
+    @Override
+    public DirectMessageWithDto getDirectMessageWith(UUID userId) {
+        return null;
+    }
 }

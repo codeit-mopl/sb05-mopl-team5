@@ -25,60 +25,62 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ConversationController {
 
-  private final ConversationService service;
+    private final ConversationService service;
 
 
-  @GetMapping
-  public ResponseEntity<ConversationResponseDto> getConversationList(
-      @RequestParam(required = false) String keywordLike,
-      @RequestParam(required = false) String cursor,
-      @RequestParam(required = false) UUID idAfter,
-      @RequestParam(defaultValue = "32") int limit,
-      @RequestParam(defaultValue = "ASCENDING") String sortDirection,
-      @RequestParam(defaultValue = "createdAt") String sortBy) {
-    ConversationResponseDto conversationResponseDto = service.getConversationList(
-        keywordLike, cursor, idAfter, limit, sortDirection, sortBy);
-    return ResponseEntity.status(HttpStatus.OK).body(conversationResponseDto);
-  }
+    @GetMapping
+    public ResponseEntity<ConversationResponseDto> getConversationList(
+        @RequestParam(required = false) String keywordLike, @RequestParam(required = false) String cursor,
+        @RequestParam(required = false) UUID idAfter, @RequestParam(defaultValue = "32") int limit,
+        @RequestParam(defaultValue = "ASCENDING") String sortDirection,
+        @RequestParam(defaultValue = "createdAt") String sortBy) {
+        ConversationResponseDto conversationResponseDto = service.getConversationList(keywordLike, cursor, idAfter,
+            limit, sortDirection, sortBy);
+        return ResponseEntity.status(HttpStatus.OK)
+                             .body(conversationResponseDto);
+    }
 
-  @PostMapping
-  public ResponseEntity<ConversationDto> createConversation(@Valid @RequestBody ConversationRequestDto requestDto) {
-    ConversationDto conversationDto = service.createConversation(requestDto);
-    return ResponseEntity.status(HttpStatus.OK).body(conversationDto);
-  }
+    @PostMapping
+    public ResponseEntity<ConversationDto> createConversation(@Valid @RequestBody ConversationRequestDto requestDto) {
+        ConversationDto conversationDto = service.createConversation(requestDto);
+        return ResponseEntity.status(HttpStatus.OK)
+                             .body(conversationDto);
+    }
 
 
-  @PostMapping("/{conversationId}/direct-messages/{directMessageId}/read")
-  public ResponseEntity<Void> directMessageRead(@PathVariable UUID conversationId, @PathVariable UUID directMessageId) {
-    service.conversationRead(conversationId, directMessageId);
-    return ResponseEntity.status(HttpStatus.OK).build();
-  }
+    @PostMapping("/{conversationId}/direct-messages/{directMessageId}/read")
+    public ResponseEntity<Void> directMessageRead(@PathVariable UUID conversationId,
+        @PathVariable UUID directMessageId) {
+        service.conversationRead(conversationId, directMessageId);
+        return ResponseEntity.status(HttpStatus.OK)
+                             .build();
+    }
 
-  @GetMapping("/{conversationId}")
-  public ResponseEntity<ConversationDto> conversationCheck(@PathVariable UUID conversationId) {
-    ConversationDto conversationDto = service.conversationCheck(conversationId);
-    return ResponseEntity.status(HttpStatus.OK).body(conversationDto);
-  }
+    @GetMapping("/{conversationId}")
+    public ResponseEntity<ConversationDto> conversationCheck(@PathVariable UUID conversationId) {
+        ConversationDto conversationDto = service.conversationCheck(conversationId);
+        return ResponseEntity.status(HttpStatus.OK)
+                             .body(conversationDto);
+    }
 
-  @GetMapping("/{conversationId}/direct-message")
-  public ResponseEntity<DirectMessageResponseDto> getDirectMessageList(
-      @PathVariable UUID conversationId,
-      @RequestParam(required = false) String cursor,
-      @RequestParam(required = false) UUID idAfter,
-      @RequestParam(defaultValue = "32") int limit,
-      @RequestParam(defaultValue = "ASCENDING") String sortDirection,
-      @RequestParam(defaultValue = "createdAt") String sortBy) {
+    @GetMapping("/{conversationId}/direct-message")
+    public ResponseEntity<DirectMessageResponseDto> getDirectMessageList(@PathVariable UUID conversationId,
+        @RequestParam(required = false) String cursor, @RequestParam(required = false) UUID idAfter,
+        @RequestParam(defaultValue = "32") int limit, @RequestParam(defaultValue = "ASCENDING") String sortDirection,
+        @RequestParam(defaultValue = "createdAt") String sortBy) {
 
-    DirectMessageResponseDto responseDto = service.getDirectMessageList(conversationId, cursor, idAfter, limit,
-        sortDirection, sortBy);
-    return ResponseEntity.status(HttpStatus.OK).body(responseDto);
+        DirectMessageResponseDto responseDto = service.getDirectMessageList(conversationId, cursor, idAfter, limit,
+            sortDirection, sortBy);
+        return ResponseEntity.status(HttpStatus.OK)
+                             .body(responseDto);
 
-  }
+    }
 
-  @GetMapping("/with")
-  public ResponseEntity<DirectMessageWithDto> getDirectMessageWith(@RequestParam UUID userId) {
-    DirectMessageWithDto directMessageWithDto = service.getDirectMessageWith(userId);
-    return ResponseEntity.status(HttpStatus.OK).body(directMessageWithDto);
-  }
+    @GetMapping("/with")
+    public ResponseEntity<DirectMessageWithDto> getDirectMessageWith(@RequestParam UUID userId) {
+        DirectMessageWithDto directMessageWithDto = service.getDirectMessageWith(userId);
+        return ResponseEntity.status(HttpStatus.OK)
+                             .body(directMessageWithDto);
+    }
 
 }
