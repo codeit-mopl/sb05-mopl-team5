@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -13,7 +14,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "contents")
+@Table(
+    name = "contents",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "UK_CONTENTS_TYPE_API_ID", columnNames = {"type", "api_id"})
+    }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
