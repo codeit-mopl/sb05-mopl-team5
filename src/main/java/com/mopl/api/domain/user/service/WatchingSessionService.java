@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public interface WatchingSessionService {
 
-    WatchingSessionDto getWatchingSessionByUser(UUID watcherId);
+    WatchingSessionDto getWatchingSession(UUID watcherId);
 
-    CursorResponseWatchingSessionDto getWatchingSessionByContent(UUID contentId, WatchingSessionSearchRequest request);
+    CursorResponseWatchingSessionDto getWatchingSession(UUID contentId, WatchingSessionSearchRequest request);
 }

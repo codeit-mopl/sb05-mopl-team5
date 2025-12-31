@@ -10,12 +10,12 @@ import org.springframework.stereotype.Service;
 public class WatchingSessionServiceImpl implements WatchingSessionService {
 
     @Override
-    public WatchingSessionDto getWatchingSessionByUser(UUID watcherId) {
+    public WatchingSessionDto getWatchingSession(UUID watcherId) {
         return null;
     }
 
     @Override
-    public CursorResponseWatchingSessionDto getWatchingSessionByContent(UUID contentId,
+    public CursorResponseWatchingSessionDto getWatchingSession(UUID contentId,
         WatchingSessionSearchRequest request) {
         return null;
     }
