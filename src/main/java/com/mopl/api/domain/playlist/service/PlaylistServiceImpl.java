@@ -32,32 +32,15 @@ public class PlaylistServiceImpl implements PlaylistService {
     @Override
     @Transactional
     public PlaylistDto addPlaylist(PlaylistCreateRequest request, UUID userId) {
-        return new PlaylistDto(
-            UUID.randomUUID(),
-            request.title(),
-            request.description(),
-            0,
-            false,
-            true,
-            LocalDateTime.now(),
-            LocalDateTime.now()
-        );
+        return PlaylistDto.builder()
+                          .build();
     }
 
     @Override
     @Transactional
     public PlaylistDto modifyPlaylist(UUID playlistId, PlaylistUpdateRequest request, UUID userId) {
-        return new PlaylistDto(
-            playlistId,
-            request.title(),
-            request.description(),
-            0,
-            false,
-            true,
-            LocalDateTime.now()
-                         .minusDays(1),
-            LocalDateTime.now()
-        );
+        return PlaylistDto.builder()
+                          .build();
     }
 
     @Override
@@ -67,17 +50,8 @@ public class PlaylistServiceImpl implements PlaylistService {
 
     @Override
     public PlaylistDto getPlaylist(UUID playlistId, UUID currentUserId) {
-        return new PlaylistDto(
-            playlistId,
-            "Stub Playlist Title",
-            "Stub playlist description",
-            0,
-            false,
-            false,
-            LocalDateTime.now()
-                         .minusDays(1),
-            LocalDateTime.now()
-        );
+        return PlaylistDto.builder()
+                          .build();
     }
 
     @Override
