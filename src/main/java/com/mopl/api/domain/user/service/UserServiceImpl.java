@@ -81,4 +81,9 @@ public class UserServiceImpl implements UserService {
     public void resetPassword(ResetPasswordRequest request) {
 
     }
+
+    @Override
+    public UserDto profileChange(UUID userId, String image) {
+        return null;
+    }
 }
