@@ -40,10 +40,8 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     public WatchingSessionDto getWatchingSession(UUID watcherId) {
 
         // TODO REDIS에 세션 정보가 있다면 가져오기
-        // TODO DB에 세션 정보가 제대로 있는지 검증하기
-
-        // TODO REDIS O, DB X 인 경우 REDIS 만료시키기
-        // TODO REDIS X, DB X 예외
+        // Redis 신뢰 > REDIS만 조회
+        // Redis 신뢰 x > DB 무결성 검증 or DB만 조회
 
         throw new UnsupportedOperationException("조회 정책 결정 후 구현");
     }
@@ -53,9 +51,6 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         WatchingSessionSearchRequest request) {
 
         // TODO REDIS에 세션 정보가 있다면 가져오기
-        // TODO 필요하다면 DB에 세션 정보가 제대로 있는지 검증, 아니라면 생략
-
-        // TODO REDIS O, DB X 인 경우 REDIS 만료시키기
 
         throw new UnsupportedOperationException("조회 정책 결정 후 구현");
     }
@@ -68,7 +63,6 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         Content content = contentRepository.getReferenceById(command.contentId());
 
         WatchingSession session = new WatchingSession(watcher, content);
-
         WatchingSession saved = watchingSessionRepository.save(session);
 
         watchingSessionCacheRepository.save(saved);
