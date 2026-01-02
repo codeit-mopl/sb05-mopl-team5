@@ -19,10 +19,8 @@ public class WatchingSessionExceptionHandler {
 
         // TODO error URI 처리
         pd.setType(URI.create("/errors/" + errorCode.getCode()));
-        pd.setTitle(errorCode.name());
+        pd.setTitle(errorCode.getCode());
         pd.setProperty("code", errorCode.getCode());
-        pd.setDetail(errorCode.getMessage());
-        pd.setStatus(errorCode.getHttpStatus());
 
         return pd;
     }
