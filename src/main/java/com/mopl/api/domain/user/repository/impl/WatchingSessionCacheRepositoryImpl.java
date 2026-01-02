@@ -13,4 +13,14 @@ public class WatchingSessionCacheRepositoryImpl implements WatchingSessionCacheR
     public Optional<WatchingSession> findSessionByUserId(UUID userId) {
         return Optional.empty();
     }
+
+    @Override
+    public void deleteById(UUID sessionId) {
+
+    }
+
+    @Override
+    public WatchingSession save(WatchingSession watchingSession) {
+        return null;
+    }
 }

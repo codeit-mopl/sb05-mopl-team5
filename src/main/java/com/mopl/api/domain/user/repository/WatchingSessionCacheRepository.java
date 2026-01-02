@@ -7,4 +7,8 @@ import java.util.UUID;
 public interface WatchingSessionCacheRepository {
 
     Optional<WatchingSession> findSessionByUserId(UUID userId);
+
+    void deleteById(UUID sessionId);
+
+    WatchingSession save(WatchingSession watchingSession);
 }
