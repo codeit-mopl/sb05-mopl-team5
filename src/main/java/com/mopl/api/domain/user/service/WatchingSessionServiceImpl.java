@@ -17,6 +17,10 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     private final WatchingSessionRepository watchingSessionRepository;
     private final WatchingSessionCacheRepository watchingSessionCacheRepository;
 
+    // TODO 캐시 만료 처리를 서비스 로직에서 할 필요가 있을까?
+    // TODO 세션 정보 가져올 때 DB 조회가 꼭 필요할까? (EDIS만 조회, 무결성 처리는 batch or linstenr?
+
+
     @Override
     public WatchingSessionDto getWatchingSession(UUID watcherId) {
 

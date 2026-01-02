@@ -2,6 +2,7 @@ package com.mopl.api.domain.user.repository.impl;
 
 import com.mopl.api.domain.user.entity.WatchingSession;
 import com.mopl.api.domain.user.repository.WatchingSessionCacheRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -15,12 +16,17 @@ public class WatchingSessionCacheRepositoryImpl implements WatchingSessionCacheR
     }
 
     @Override
-    public void deleteById(UUID sessionId) {
+    public void deleteBySessionId(UUID sessionId) {
 
     }
 
     @Override
     public WatchingSession save(WatchingSession watchingSession) {
         return null;
+    }
+
+    @Override
+    public List<WatchingSession> findSessionsByContentId(UUID contentId) {
+        return List.of();
     }
 }
