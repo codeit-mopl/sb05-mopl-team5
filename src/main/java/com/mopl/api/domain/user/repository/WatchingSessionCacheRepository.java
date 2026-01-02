@@ -11,7 +11,7 @@ public interface WatchingSessionCacheRepository {
 
     void deleteBySessionId(UUID sessionId);
 
-    WatchingSession save(WatchingSession watchingSession);
+    void save(WatchingSession watchingSession);
 
     List<WatchingSession> findSessionsByContentId(UUID contentId);
 }

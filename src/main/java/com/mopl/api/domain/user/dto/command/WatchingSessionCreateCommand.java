@@ -5,7 +5,7 @@ import lombok.Builder;
 
 @Builder
 public record WatchingSessionCreateCommand(
-    UUID userId,
+    UUID watcherId,
     UUID contentId
 ) {
 

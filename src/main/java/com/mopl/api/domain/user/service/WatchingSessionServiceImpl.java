@@ -1,26 +1,41 @@
 package com.mopl.api.domain.user.service;
 
+import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.user.dto.command.WatchingSessionCreateCommand;
 import com.mopl.api.domain.user.dto.request.WatchingSessionSearchRequest;
 import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
+import com.mopl.api.domain.user.entity.User;
+import com.mopl.api.domain.user.entity.WatchingSession;
+import com.mopl.api.domain.user.mapper.WatchingSessionMapper;
+import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionCacheRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class WatchingSessionServiceImpl implements WatchingSessionService {
 
+    private final UserRepository userRepository;
+    private final ContentRepository contentRepository;
     private final WatchingSessionRepository watchingSessionRepository;
     private final WatchingSessionCacheRepository watchingSessionCacheRepository;
+    private final WatchingSessionMapper watchingSessionMapper;
 
-    // TODO 캐시 만료 처리를 서비스 로직에서 할 필요가 있을까?
-    // TODO 세션 정보 가져올 때 DB 조회가 꼭 필요할까? (EDIS만 조회, 무결성 처리는 batch or linstenr?
-
-
+    /**
+     * 세션 조회 정책 고민 및 결정 필요
+     *
+     * 결정 포인트:
+     * 1. Redis 단일 신뢰 모델로 갈 것인가?
+     * 2. Redis 조회 후 DB 무결성 검증을 할 것인가?
+     *    - 즉시 검증
+     *    - 배치 / 리스너 기반 보정
+     */
     @Override
     public WatchingSessionDto getWatchingSession(UUID watcherId) {
 
@@ -30,8 +45,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         // TODO REDIS O, DB X 인 경우 REDIS 만료시키기
         // TODO REDIS X, DB X 예외
 
-        return WatchingSessionDto.builder()
-                                 .build();
+        throw new UnsupportedOperationException("조회 정책 결정 후 구현");
     }
 
     @Override
@@ -43,18 +57,30 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
 
         // TODO REDIS O, DB X 인 경우 REDIS 만료시키기
 
-        return CursorResponseWatchingSessionDto.builder()
-                                               .build();
+        throw new UnsupportedOperationException("조회 정책 결정 후 구현");
     }
 
     @Override
+    @Transactional
     public WatchingSessionDto addWatchingSession(WatchingSessionCreateCommand command) {
-        // TODO Websocket 연결 시 DB, REDIS에 session 만들기
-        return null;
+
+        User watcher = userRepository.getReferenceById(command.watcherId());
+        Content content = contentRepository.getReferenceById(command.contentId());
+
+        WatchingSession session = new WatchingSession(watcher, content);
+
+        WatchingSession saved = watchingSessionRepository.save(session);
+
+        watchingSessionCacheRepository.save(saved);
+
+        return watchingSessionMapper.toDto(saved);
     }
 
     @Override
+    @Transactional
     public void removeWatchingSession(UUID sessionId) {
-        // TODO Websocket 연결 해제 시 혹은 필요 시 session 제거(물리)
+
+        watchingSessionRepository.deleteById(sessionId);
+        watchingSessionCacheRepository.deleteBySessionId(sessionId);
     }
 }

@@ -21,8 +21,7 @@ public class WatchingSessionCacheRepositoryImpl implements WatchingSessionCacheR
     }
 
     @Override
-    public WatchingSession save(WatchingSession watchingSession) {
-        return null;
+    public void save(WatchingSession watchingSession) {
     }
 
     @Override
