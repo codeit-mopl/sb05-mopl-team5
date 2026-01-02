@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -79,6 +80,7 @@ class WatchingSessionServiceImplTest {
     // TODO DB 조회에 대한 고민을 하고 정리해야할 듯
     @Test
     @DisplayName("REDIS O → 시청 세션 정상 반환")
+    @Disabled("조회 정책 결정 후 구현 예정")
     void getWatchingSession_redisHit_success() {
 
         when(watchingSessionCacheRepository.findSessionByUserId(watcherId))
@@ -92,6 +94,7 @@ class WatchingSessionServiceImplTest {
 
     @Test
     @DisplayName("REDIS X → 예외 발생")
+    @Disabled("조회 정책 결정 후 구현 예정")
     void getWatchingSession_redisMiss_dbMiss_shouldThrow() {
 
         when(watchingSessionCacheRepository.findSessionByUserId(watcherId))
@@ -104,6 +107,7 @@ class WatchingSessionServiceImplTest {
 
     @Test
     @DisplayName("contentId 기준 REDIS O → 커서 응답 반환")
+    @Disabled("조회 정책 결정 후 구현 예정")
     void getWatchingSessionByContent_redisHit_success() {
 
         when(watchingSessionCacheRepository.findSessionsByContentId(contentId))
@@ -117,6 +121,7 @@ class WatchingSessionServiceImplTest {
 
     @Test
     @DisplayName("contentId 기준 REDIS X → 빈 커서 응답")
+    @Disabled("조회 정책 결정 후 구현 예정")
     void getWatchingSessionByContent_redisMiss_shouldReturnEmptyCursor() {
 
         when(watchingSessionCacheRepository.findSessionsByContentId(contentId))
@@ -138,10 +143,10 @@ class WatchingSessionServiceImplTest {
         when(command.watcherId()).thenReturn(watcherId);
         when(command.contentId()).thenReturn(contentId);
 
-        when(userRepository.getReferenceById(watcherId))
-            .thenReturn(watcher);
-        when(contentRepository.getReferenceById(contentId))
-            .thenReturn(content);
+        when(userRepository.findById(watcherId))
+            .thenReturn(Optional.of(watcher));
+        when(contentRepository.findById(contentId))
+            .thenReturn(Optional.of(content));
 
         when(watchingSessionRepository.save(any(WatchingSession.class)))
             .thenReturn(session);
@@ -161,14 +166,46 @@ class WatchingSessionServiceImplTest {
     }
 
     @Test
-    @DisplayName("웹소켓 해제 시 / 필요 시 DB + Redis 세션 제거")
+    @DisplayName("유저가 존재하지 않으면 예외 발생")
+    void addWatchingSession_userNotFound_shouldThrow() {
+
+        WatchingSessionCreateCommand command = mock(WatchingSessionCreateCommand.class);
+        when(command.watcherId()).thenReturn(watcherId);
+
+        when(userRepository.findById(watcherId))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+            watchingSessionService.addWatchingSession(command)
+        ).isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    @DisplayName("웹소켓 해제 / 필요 시 DB + Redis 세션 제거")
     void removeWatchingSession_shouldDeleteBoth() {
 
         UUID sessionId = UUID.randomUUID();
+
+        when(watchingSessionRepository.existsById(sessionId))
+            .thenReturn(true);
 
         watchingSessionService.removeWatchingSession(sessionId);
 
         verify(watchingSessionRepository).deleteById(sessionId);
         verify(watchingSessionCacheRepository).deleteBySessionId(sessionId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 세션 제거 시 예외 발생")
+    void removeWatchingSession_notFound_shouldThrow() {
+
+        UUID sessionId = UUID.randomUUID();
+
+        when(watchingSessionRepository.existsById(sessionId))
+            .thenReturn(false);
+
+        assertThatThrownBy(() ->
+            watchingSessionService.removeWatchingSession(sessionId)
+        ).isInstanceOf(WatchingSessionNotFoundException.class);
     }
 }

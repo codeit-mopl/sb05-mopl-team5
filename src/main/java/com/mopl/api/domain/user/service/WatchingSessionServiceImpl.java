@@ -8,15 +8,18 @@ import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.WatchingSession;
+import com.mopl.api.domain.user.exception.detail.WatchingSessionNotFoundException;
 import com.mopl.api.domain.user.mapper.WatchingSessionMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionCacheRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WatchingSessionServiceImpl implements WatchingSessionService {
@@ -29,12 +32,8 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
 
     /**
      * 세션 조회 정책 고민 및 결정 필요
-     *
-     * 결정 포인트:
-     * 1. Redis 단일 신뢰 모델로 갈 것인가?
-     * 2. Redis 조회 후 DB 무결성 검증을 할 것인가?
-     *    - 즉시 검증
-     *    - 배치 / 리스너 기반 보정
+     * <p>
+     * 결정 포인트: 1. Redis 단일 신뢰 모델로 갈 것인가? 2. Redis 조회 후 DB 무결성 검증을 할 것인가? - 즉시 검증 - 배치 / 리스너 기반 보정
      */
     @Override
     public WatchingSessionDto getWatchingSession(UUID watcherId) {
@@ -59,13 +58,21 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     @Transactional
     public WatchingSessionDto addWatchingSession(WatchingSessionCreateCommand command) {
 
-        User watcher = userRepository.getReferenceById(command.watcherId());
-        Content content = contentRepository.getReferenceById(command.contentId());
+        User watcher = userRepository.findById(command.watcherId())
+                                     .orElseThrow(() -> new RuntimeException("존재하지 않는 유저"));
+        Content content = contentRepository.findById(command.contentId())
+                                           .orElseThrow(() -> new RuntimeException("존재하지 않는 콘텐츠"));
+
+        log.debug("세션 생성 시작 command : {}", command);
 
         WatchingSession session = new WatchingSession(watcher, content);
         WatchingSession saved = watchingSessionRepository.save(session);
+        log.debug("DB 저장 완료");
 
         watchingSessionCacheRepository.save(saved);
+        log.debug("Redis 저장 완료");
+
+        log.debug("세션 생성 완료");
 
         return watchingSessionMapper.toDto(saved);
     }
@@ -74,7 +81,13 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     @Transactional
     public void removeWatchingSession(UUID sessionId) {
 
+        if (!watchingSessionRepository.existsById(sessionId)) {
+            throw WatchingSessionNotFoundException.withSessionId(sessionId);
+        }
+
         watchingSessionRepository.deleteById(sessionId);
+        log.debug("DB 삭제 완료");
         watchingSessionCacheRepository.deleteBySessionId(sessionId);
+        log.debug("Redis 삭제 완료");
     }
 }

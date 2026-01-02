@@ -25,7 +25,7 @@ public class WatchingSessionController {
     @GetMapping("/api/users/{watcherId}/watching-sessions")
     public ResponseEntity<WatchingSessionDto> watchingSessionDetail(@PathVariable UUID watcherId) {
 
-        log.info("watcherId : {}", watcherId);
+        log.debug("watcherId : {}", watcherId);
 
         return ResponseEntity.ok(watchingSessionService.getWatchingSession(watcherId));
     }
@@ -35,8 +35,8 @@ public class WatchingSessionController {
     public ResponseEntity<CursorResponseWatchingSessionDto> watchingSessionList(@PathVariable UUID contentId,
         @Valid WatchingSessionSearchRequest request) {
 
-        log.info("contentId : {}", contentId);
-        log.info("request : {}", request);
+        log.debug("contentId : {}", contentId);
+        log.debug("request : {}", request);
 
         return ResponseEntity.ok(watchingSessionService.getWatchingSession(contentId, request));
     }
