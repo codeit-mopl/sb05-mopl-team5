@@ -1,5 +1,6 @@
 package com.mopl.api.domain.user.exception;
 
+import com.mopl.api.global.config.exception.ErrorCode;
 import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ProblemDetail;
@@ -12,7 +13,7 @@ public class WatchingSessionExceptionHandler {
 
     @ExceptionHandler(WatchingSessionException.class)
     public ProblemDetail handleWatchingSessionException(WatchingSessionException e) {
-        WatchingSessionErrorCode errorCode = (WatchingSessionErrorCode) e.getErrorCode();
+        ErrorCode errorCode = e.getErrorCode();
         log.error(e.getMessage(), e);
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(errorCode.getHttpStatus(), errorCode.getMessage());
 
