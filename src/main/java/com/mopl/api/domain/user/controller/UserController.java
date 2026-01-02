@@ -12,6 +12,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,22 +49,22 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    // 어드민 : 모든 사용자 목록 조회
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CursorResponseUserDto<UserDto>> userList(CursorRequestUserDto request){
         CursorResponseUserDto<UserDto> response = userService.getAllUsers(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    // 어드민 권한 수정
     @PatchMapping("/{userId}/role")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> userRoleModify(@PathVariable UUID userId, @RequestBody UserRoleUpdateRequest request){
         userService.updateUserRole(userId, request);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    // 어드민 계정 잠금 상태 변경
     @PatchMapping("/{userId}/locked")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> userLockModify(@PathVariable UUID userId, @RequestBody UserLockUpdateRequest request){
         userService.updateUserLock(userId, request);
         return ResponseEntity.status(HttpStatus.OK).build();
