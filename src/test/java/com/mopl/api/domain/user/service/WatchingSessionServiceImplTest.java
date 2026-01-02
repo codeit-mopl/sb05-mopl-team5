@@ -1,15 +1,14 @@
 package com.mopl.api.domain.user.service;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.user.dto.command.WatchingSessionCreateCommand;
 import com.mopl.api.domain.user.dto.request.WatchingSessionSearchRequest;
 import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
@@ -17,6 +16,8 @@ import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.WatchingSession;
 import com.mopl.api.domain.user.exception.detail.WatchingSessionNotFoundException;
+import com.mopl.api.domain.user.mapper.WatchingSessionMapper;
+import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionCacheRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRepository;
 import java.util.List;
@@ -34,10 +35,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class WatchingSessionServiceImplTest {
 
     @Mock
+    ContentRepository contentRepository;
+    @Mock
+    UserRepository userRepository;
+    @Mock
     WatchingSessionRepository watchingSessionRepository;
-
     @Mock
     WatchingSessionCacheRepository watchingSessionCacheRepository;
+    @Mock
+    WatchingSessionMapper watchingSessionMapper;
 
     @InjectMocks
     WatchingSessionServiceImpl watchingSessionService;
@@ -72,57 +78,10 @@ class WatchingSessionServiceImplTest {
 
     // TODO DB 조회에 대한 고민을 하고 정리해야할 듯
     @Test
-    @DisplayName("REDIS O, DB O → 정상 반환")
-    void getWatchingSession_redisHit_dbHit_success() {
-
-        WatchingSession spySession = spy(session);
-        UUID sessionId = UUID.randomUUID();
-        doReturn(sessionId).when(spySession)
-                           .getId();
+    @DisplayName("REDIS O → 시청 세션 정상 반환")
+    void getWatchingSession_redisHit_success() {
 
         when(watchingSessionCacheRepository.findSessionByUserId(watcherId))
-            .thenReturn(Optional.of(spySession));
-
-        when(watchingSessionRepository.existsById(sessionId))
-            .thenReturn(true);
-
-        WatchingSessionDto result =
-            watchingSessionService.getWatchingSession(watcherId);
-
-        assertThat(result).isNotNull();
-    }
-
-    @Test
-    @DisplayName("REDIS O, DB X → Redis 세션 제거 후 예외")
-    void getWatchingSession_redisHit_dbMiss_shouldExpireAndThrow() {
-
-        WatchingSession spySession = spy(session);
-        UUID sessionId = UUID.randomUUID();
-        doReturn(sessionId).when(spySession)
-                           .getId();
-
-        when(watchingSessionCacheRepository.findSessionByUserId(watcherId))
-            .thenReturn(Optional.of(spySession));
-
-        when(watchingSessionRepository.existsById(sessionId))
-            .thenReturn(false);
-
-        assertThatThrownBy(() ->
-            watchingSessionService.getWatchingSession(watcherId)
-        ).isInstanceOf(WatchingSessionNotFoundException.class);
-
-        verify(watchingSessionCacheRepository)
-            .deleteBySessionId(sessionId);
-    }
-
-    @Test
-    @DisplayName("REDIS X, DB O → DB 조회 성공")
-    void getWatchingSession_redisMiss_dbHit_success() {
-
-        when(watchingSessionCacheRepository.findSessionByUserId(watcherId))
-            .thenReturn(Optional.empty());
-
-        when(watchingSessionRepository.findByWatcherId(watcherId))
             .thenReturn(Optional.of(session));
 
         WatchingSessionDto result =
@@ -132,13 +91,10 @@ class WatchingSessionServiceImplTest {
     }
 
     @Test
-    @DisplayName("REDIS X, DB X → 예외 발생")
+    @DisplayName("REDIS X → 예외 발생")
     void getWatchingSession_redisMiss_dbMiss_shouldThrow() {
 
         when(watchingSessionCacheRepository.findSessionByUserId(watcherId))
-            .thenReturn(Optional.empty());
-
-        when(watchingSessionRepository.findByWatcherId(watcherId))
             .thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
@@ -147,19 +103,59 @@ class WatchingSessionServiceImplTest {
     }
 
     @Test
+    @DisplayName("contentId 기준 REDIS O → 커서 응답 반환")
+    void getWatchingSessionByContent_redisHit_success() {
+
+        when(watchingSessionCacheRepository.findSessionsByContentId(contentId))
+            .thenReturn(List.of(session));
+
+        CursorResponseWatchingSessionDto result =
+            watchingSessionService.getWatchingSession(contentId, request);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("contentId 기준 REDIS X → 빈 커서 응답")
+    void getWatchingSessionByContent_redisMiss_shouldReturnEmptyCursor() {
+
+        when(watchingSessionCacheRepository.findSessionsByContentId(contentId))
+            .thenReturn(List.of());
+
+        CursorResponseWatchingSessionDto result =
+            watchingSessionService.getWatchingSession(contentId, request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.data()).isEmpty();
+    }
+
+    @Test
     @DisplayName("웹소켓 연결 시 DB + Redis 세션 생성")
     void addWatchingSession_shouldSaveDbAndRedis() {
 
         WatchingSessionCreateCommand command = mock(WatchingSessionCreateCommand.class);
 
+        when(command.watcherId()).thenReturn(watcherId);
+        when(command.contentId()).thenReturn(contentId);
+
+        when(userRepository.getReferenceById(watcherId))
+            .thenReturn(watcher);
+        when(contentRepository.getReferenceById(contentId))
+            .thenReturn(content);
+
         when(watchingSessionRepository.save(any(WatchingSession.class)))
             .thenReturn(session);
+
+        WatchingSessionDto mappedDto = WatchingSessionDto.builder().build();
+        when(watchingSessionMapper.toDto(session))
+            .thenReturn(mappedDto);
 
         WatchingSessionDto result =
             watchingSessionService.addWatchingSession(command);
 
         verify(watchingSessionRepository).save(any(WatchingSession.class));
-        verify(watchingSessionCacheRepository).save(any(WatchingSession.class));
+        verify(watchingSessionCacheRepository).save(session);
+        verify(watchingSessionMapper).toDto(session);
 
         assertThat(result).isNotNull();
     }
@@ -174,35 +170,5 @@ class WatchingSessionServiceImplTest {
 
         verify(watchingSessionRepository).deleteById(sessionId);
         verify(watchingSessionCacheRepository).deleteBySessionId(sessionId);
-    }
-
-    @Test
-    @DisplayName("contentId 기준 REDIS O → 커서 응답 반환")
-    void getWatchingSessionByContent_redisHit_success() {
-
-        when(watchingSessionCacheRepository.findSessionsByContentId(
-            contentId)
-        ).thenReturn(List.of(session));
-
-        CursorResponseWatchingSessionDto result =
-            watchingSessionService.getWatchingSession(contentId, request);
-
-        assertThat(result).isNotNull();
-    }
-
-    @Test
-    @DisplayName("contentId 기준 REDIS X, DB X → 빈 커서 응답")
-    void getWatchingSessionByContent_redisMiss_dbMiss_shouldReturnEmptyCursor() {
-
-        when(watchingSessionCacheRepository.findSessionsByContentId(
-            contentId)
-        ).thenReturn(List.of());
-
-        CursorResponseWatchingSessionDto result =
-            watchingSessionService.getWatchingSession(contentId, request);
-
-        assertThat(result).isNotNull();
-        assertThat(result.data()
-                         .size()).isEqualTo(0);
     }
 }
