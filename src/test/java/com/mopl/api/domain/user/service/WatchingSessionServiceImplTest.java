@@ -11,11 +11,15 @@ import static org.mockito.Mockito.when;
 
 import com.mopl.api.domain.content.entity.Content;
 import com.mopl.api.domain.user.dto.command.WatchingSessionCreateCommand;
+import com.mopl.api.domain.user.dto.request.WatchingSessionSearchRequest;
+import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.WatchingSession;
+import com.mopl.api.domain.user.exception.detail.WatchingSessionNotFoundException;
 import com.mopl.api.domain.user.repository.WatchingSessionCacheRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,26 +44,36 @@ class WatchingSessionServiceImplTest {
 
     UUID watcherId;
     User watcher;
+    UUID contentId;
     Content content;
     WatchingSession session;
+    WatchingSessionSearchRequest request;
 
     @BeforeEach
     void setUp() {
         // TODO 테스트에 필요한 세팅
         watcherId = UUID.randomUUID();
+        contentId = UUID.randomUUID();
 
         watcher = mock(User.class);
         content = mock(Content.class);
 
         session = new WatchingSession(watcher, content);
+
+        request = WatchingSessionSearchRequest.builder()
+                                              .limit(10)
+                                              .sortBy(WatchingSessionSearchRequest.SortBy.createdAt)
+                                              .sortDirection(WatchingSessionSearchRequest.SortDirection.DESCENDING)
+                                              .cursor(null)
+                                              .idAfter(null)
+                                              .watcherNameLike(null)
+                                              .build();
     }
 
+    // TODO DB 조회에 대한 고민을 하고 정리해야할 듯
     @Test
     @DisplayName("REDIS O, DB O → 정상 반환")
     void getWatchingSession_redisHit_dbHit_success() {
-
-        when(watchingSessionCacheRepository.findSessionByUserId(watcherId))
-            .thenReturn(Optional.of(session));
 
         WatchingSession spySession = spy(session);
         UUID sessionId = UUID.randomUUID();
@@ -95,10 +109,10 @@ class WatchingSessionServiceImplTest {
 
         assertThatThrownBy(() ->
             watchingSessionService.getWatchingSession(watcherId)
-        ).isInstanceOf(RuntimeException.class);
+        ).isInstanceOf(WatchingSessionNotFoundException.class);
 
         verify(watchingSessionCacheRepository)
-            .deleteById(sessionId);
+            .deleteBySessionId(sessionId);
     }
 
     @Test
@@ -129,7 +143,7 @@ class WatchingSessionServiceImplTest {
 
         assertThatThrownBy(() ->
             watchingSessionService.getWatchingSession(watcherId)
-        ).isInstanceOf(RuntimeException.class);
+        ).isInstanceOf(WatchingSessionNotFoundException.class);
     }
 
     @Test
@@ -159,6 +173,36 @@ class WatchingSessionServiceImplTest {
         watchingSessionService.removeWatchingSession(sessionId);
 
         verify(watchingSessionRepository).deleteById(sessionId);
-        verify(watchingSessionCacheRepository).deleteById(sessionId);
+        verify(watchingSessionCacheRepository).deleteBySessionId(sessionId);
+    }
+
+    @Test
+    @DisplayName("contentId 기준 REDIS O → 커서 응답 반환")
+    void getWatchingSessionByContent_redisHit_success() {
+
+        when(watchingSessionCacheRepository.findSessionsByContentId(
+            contentId)
+        ).thenReturn(List.of(session));
+
+        CursorResponseWatchingSessionDto result =
+            watchingSessionService.getWatchingSession(contentId, request);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("contentId 기준 REDIS X, DB X → 빈 커서 응답")
+    void getWatchingSessionByContent_redisMiss_dbMiss_shouldReturnEmptyCursor() {
+
+        when(watchingSessionCacheRepository.findSessionsByContentId(
+            contentId)
+        ).thenReturn(List.of());
+
+        CursorResponseWatchingSessionDto result =
+            watchingSessionService.getWatchingSession(contentId, request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.data()
+                         .size()).isEqualTo(0);
     }
 }
