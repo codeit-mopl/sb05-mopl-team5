@@ -22,6 +22,8 @@ public interface UserService {
     void resetPassword(ResetPasswordRequest request);
 
 
+    UserDto profileChange(UUID userId , String image);
+
 
 
 }
