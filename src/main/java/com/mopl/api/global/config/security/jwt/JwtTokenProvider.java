@@ -64,7 +64,7 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + accessTokenExpirationMs);
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
-            .subject(userDto.name())
+            .subject(userDto.email())
             .jwtID(tokenId)
             .claim("userId", userDto.id().toString())
             .claim("type", "access")
@@ -97,7 +97,7 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + refreshTokenExpirationMs);
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
-            .subject(userDto.name())
+            .subject(userDto.email())
             .jwtID(tokenId)
             .claim("userId", userDto.id().toString())
             .claim("type", "refresh")
