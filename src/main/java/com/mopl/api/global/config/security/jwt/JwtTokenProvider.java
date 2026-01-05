@@ -182,14 +182,14 @@ public class JwtTokenProvider {
     }
 
     // 토큰에서 userId 출력
-    public Long getUserIdFromToken(String token) {
+    public UUID getUserIdFromToken(String token) {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
             String userId = (String) signedJWT.getJWTClaimsSet().getClaim("userId");
             if(userId == null){
                 throw new IllegalArgumentException("User Id claim not found in JWT");
             }
-            return Long.parseLong(userId);
+            return UUID.fromString(userId);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid token");
         }
