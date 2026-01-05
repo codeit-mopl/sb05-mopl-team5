@@ -1,30 +1,19 @@
 package com.mopl.api.global.config.exception.auth;
 
 import com.mopl.api.global.config.exception.ErrorCode;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
-@RequiredArgsConstructor
+@Getter
+@AllArgsConstructor
 public enum AuthErrorCode implements ErrorCode {
 
-    TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "Invalid Token"),
-    JWT_INFORMATION_NOT_FOUND(HttpStatus.UNAUTHORIZED, "JWTInformation not found");
+    TOKEN_INVALID("A001", "Invalid Token", HttpStatus.UNAUTHORIZED),
+    JWT_INFORMATION_NOT_FOUND("A002", "JWTInformation not found", HttpStatus.UNAUTHORIZED);
 
-    private final HttpStatus status;
+    private final String code;
     private final String message;
-
-    @Override
-    public String getName() {
-        return this.name();
-    }
-
-    @Override
-    public String getMessage() {
-        return message;
-    }
-
-    @Override
-    public HttpStatus getHttpStatus() {
-        return status;
-    }
+    private final HttpStatus httpStatus;
 }
