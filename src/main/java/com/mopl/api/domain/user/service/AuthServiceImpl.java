@@ -1,6 +1,7 @@
 package com.mopl.api.domain.user.service;
 
 import com.mopl.api.domain.user.dto.request.JwtInformation;
+import com.mopl.api.domain.user.dto.request.ResetPasswordRequest;
 import com.mopl.api.domain.user.dto.response.JwtDto;
 import com.mopl.api.global.config.security.CustomUserDetails;
 import com.mopl.api.global.config.security.jwt.JwtRegistry;
@@ -12,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
@@ -23,6 +25,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtProvider;
     private final JwtRegistry jwtRegistry;
 
+    @Transactional
     @Override
     public JwtInformation refreshToken(String refreshToken) {
         // 토큰 유효성 검증, JWT 세션에서도 유효한지 검증
@@ -56,5 +59,10 @@ public class AuthServiceImpl implements AuthService {
             log.error("Failed to generate new token for user : {}", username,e);
             throw new RuntimeException("INTERNAL_SERVER_ERROR");
         }
+    }
+
+    @Transactional
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
     }
 }

@@ -9,6 +9,7 @@ import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
@@ -30,7 +32,7 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
-        userService.resetPassword(request);
+        authService.resetPassword(request);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
@@ -48,9 +50,9 @@ public class AuthController {
     }
 
     @GetMapping("/csrf-token")
-    public ResponseEntity<Void> csrfTokenDetails(CsrfToken csrfToken, HttpServletResponse response) {
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    public ResponseEntity<Void> csrfTokenDetails(CsrfToken csrfToken) {
+        String tokenDetail = csrfToken.getToken();
+        log.debug("CSRF TOKEN: {}", tokenDetail);
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
-
-
 }
