@@ -1,50 +1,69 @@
 package com.mopl.api.domain.user.service;
 
+import com.mopl.api.domain.user.dto.request.JwtInformation;
+import com.mopl.api.domain.user.dto.request.ResetPasswordRequest;
 import com.mopl.api.domain.user.dto.response.JwtDto;
-import com.mopl.api.domain.user.dto.response.UserDto;
-import com.mopl.api.domain.user.entity.UserRole;
+import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
-import java.time.LocalDate;
-import java.util.UUID;
+import com.nimbusds.jose.JOSEException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class AuthServiceImpl implements AuthService {
 
-//    private final UserDetailsService userDetailsService;
+    private final UserDetailsService userDetailsService;
     private final JwtTokenProvider jwtProvider;
+    private final JwtRegistry jwtRegistry;
 
+    @Transactional
     @Override
-    public JwtDto refreshToken(String refreshToken) {
+    public JwtInformation refreshToken(String refreshToken) {
+        // 토큰 유효성 검증, JWT 세션에서도 유효한지 검증
+        if(!jwtProvider.validateRefreshToken(refreshToken)
+            || !jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
+            log.info("Invalid refresh token");
+            throw new RuntimeException("Invalid refresh token");
+        }
 
-        JwtDto dummy = JwtDto.builder()
-            .userDto(
-                UserDto.builder()
-                    .id(UUID.randomUUID())
-                    .createdAt(LocalDate.now()
-                                        .atStartOfDay())
-                    .email("alice@test.com")
-                    .name("alice")
-                    .profileImageUrl(null)
-                    .role(UserRole.USER)
-                    .locked(true)
-                    .build()
-            )
-        .accessToken("dkaldkfjaldkfas").build();
+        String username = jwtProvider.getUsernameFromToken(refreshToken);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-        return dummy;
+        if(userDetails == null) {
+            throw new UsernameNotFoundException("Invalid username or password.");
+        }
 
+        try {
+            // 토큰 재발급하는 로직
+            CustomUserDetails customDetails =  (CustomUserDetails) userDetails;
+            String newAccessToken = jwtProvider.generateAccessToken(customDetails);
+            String newRefreshToken = jwtProvider.generateRefreshToken(customDetails);
+            log.info("Refresh Token : {}", newAccessToken);
+
+            JwtInformation jwtInformation = new JwtInformation(
+                customDetails.getUserDto(), newAccessToken, newRefreshToken
+            );
+
+            // JWT 세션의 기존 세션을 rotate 하는 메서드 호출 -> token 갱신용!
+            jwtRegistry.rotateJwtInformation(refreshToken, jwtInformation);
+            return jwtInformation;
+        } catch (JOSEException e) {
+            log.error("Failed to generate new token for user : {}", username,e);
+            throw new RuntimeException("INTERNAL_SERVER_ERROR");
+        }
     }
 
+    @Transactional
     @Override
-    public JwtDto signIn(String username, String password) {
-        return null;
+    public void resetPassword(ResetPasswordRequest request) {
     }
 }

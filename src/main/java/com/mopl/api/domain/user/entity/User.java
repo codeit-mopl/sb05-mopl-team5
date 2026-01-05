@@ -39,4 +39,14 @@ public class User extends BaseUpdatableEntity {
 
     @Column(nullable = false)
     private Long followerCount = 0L;
+
+    public User(String email, String password, String name) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+    }
+
+    public void updateUserRole(UserRole role) {
+        this.role = role;
+    }
 }

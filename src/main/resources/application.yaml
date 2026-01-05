@@ -76,7 +76,10 @@ management:
 # 9. JWT 커스텀 설정
 custom:
   jwt:
-    # 32바이트 이상 임의 문자열 (운영 시 환경변수로 교체 권장)
-    secret: ${JWT_SECRET:testJWTSecretForMopl1234!@#$12341234}
-    access-token-expiration: 3600000      # 1시간
-    refresh-token-expiration: 1209600000  # 14일
+    access-token:
+      # 32바이트 이상 임의 문자열 (운영 시 환경변수로 교체 권장)
+      secret: ${JWT_ACCESS_SECRET:access-secret-key-very-long-and-random}
+      expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:3600000} # 1시간
+    refresh-token:
+      secret: ${JWT_REFRESH_SECRET:refresh-secret-key-even-longer-and-more-random}
+      expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:1209600000}  # 14일
