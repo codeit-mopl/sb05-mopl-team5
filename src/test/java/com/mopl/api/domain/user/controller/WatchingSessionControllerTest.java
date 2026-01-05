@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.service.WatchingSessionService;
+import com.mopl.api.global.config.security.filter.JwtAuthenticationFilter;
+import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -27,10 +29,12 @@ class WatchingSessionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
     @MockitoBean
     private WatchingSessionService watchingSessionService;
-
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
     @MockitoBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
