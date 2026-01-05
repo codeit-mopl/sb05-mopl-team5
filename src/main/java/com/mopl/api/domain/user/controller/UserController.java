@@ -45,7 +45,7 @@ public class UserController {
         @PathVariable UUID userId,
         @RequestBody ChangePasswordRequest request
     ){
-        userService.updatePassword(userId, request.password());
+        userService.updatePassword(userId, request);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
