@@ -1,7 +1,7 @@
 package com.mopl.api.domain.dm.controller;
 
 
-import com.mopl.api.domain.conversation.dto.requset.DirectMessageSendRequest;
+import com.mopl.api.domain.conversation.dto.request.DirectMessageSendRequest;
 import com.mopl.api.domain.conversation.service.DirectMessageCommandService;
 import com.mopl.api.domain.dm.dto.response.direct.DirectMessageDto;
 import jakarta.validation.Valid;
@@ -13,7 +13,6 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 @RequiredArgsConstructor

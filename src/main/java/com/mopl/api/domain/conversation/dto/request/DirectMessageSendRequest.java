@@ -1,4 +1,4 @@
-package com.mopl.api.domain.conversation.dto.requset;
+package com.mopl.api.domain.conversation.dto.request;
 
 
 import jakarta.validation.constraints.NotBlank;

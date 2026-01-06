@@ -113,7 +113,7 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
     private DirectMessageDto toDirectMessageDto(DirectMessage msg) {
         return DirectMessageDto.builder()
                                .id(msg.getId())
-                               .ConversationId(msg.getConversation().getId())
+                               .conversationId(msg.getConversation().getId())
                                .createdAt(msg.getCreatedAt())
                                .send(DirectMessageSend.builder()
                                                       .userId(msg.getSender().getId())
@@ -121,7 +121,7 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
                                                       .profileImageUrl(msg.getSender().getProfileImageUrl())
                                                       .build())
                                .receiver(DirectMessageReceiver.builder()
-                                                              .userid(msg.getReceiver().getId())
+                                                              .userId(msg.getReceiver().getId())
                                                               .name(msg.getReceiver().getName())
                                                               .profileImageUrl(msg.getReceiver().getProfileImageUrl())
                                                               .build())

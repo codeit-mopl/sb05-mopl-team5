@@ -18,7 +18,7 @@ public class Conversation extends BaseEntity {
 
 
     // [추가] 역정규화 컬럼 매핑
-    @Column(name = "last_message_content", length = 1000)
+    @Column(name = "last_message_content", length = 2000)
     private String lastMessageContent;
 
     @Column(name = "last_message_created_at")

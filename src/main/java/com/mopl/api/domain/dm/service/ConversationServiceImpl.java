@@ -26,6 +26,7 @@ import com.mopl.api.domain.dm.dto.response.direct.DirectMessageWith;
 import com.mopl.api.domain.dm.dto.response.direct.DirectMessageWithDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
+import com.mopl.api.global.config.security.CustomUserDetails;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
@@ -64,9 +65,9 @@ public class ConversationServiceImpl implements ConversationService {
     // 현재 로그인한 사용자 ID 추출
     private UUID currentUserId() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        // CustomUserDetails 사용 시 해당 객체에서 ID 추출 로직으로 변경 필요
-        if (principal instanceof String s) {
-            return UUID.fromString(s);
+
+        if (principal instanceof CustomUserDetails userDetails) {
+            return userDetails.getUserDto().id();
         }
         throw new IllegalStateException("인증 정보가 올바르지 않습니다.");
     }
@@ -111,7 +112,7 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public ConversationResponseDto getConversationList(
         String keywordLike,
         String cursor,
@@ -241,7 +242,10 @@ public class ConversationServiceImpl implements ConversationService {
         String lastMessageContent,
         LocalDateTime lastMessageCreatedAt,
         LocalDateTime myLastReadAt
-    ) {}
+    ) {
+
+    }
+
     @Override
     @Transactional(readOnly = true)
     public void conversationRead(UUID conversationId, UUID directMessageId) {
@@ -382,8 +386,12 @@ public class ConversationServiceImpl implements ConversationService {
         UUID me = currentUserId();
         UUID other = userId;
 
-        if (other == null) throw new IllegalArgumentException("userId는 필수입니다.");
-        if (me.equals(other)) throw new IllegalArgumentException("자기 자신과의 대화는 조회할 수 없습니다.");
+        if (other == null) {
+            throw new IllegalArgumentException("userId는 필수입니다.");
+        }
+        if (me.equals(other)) {
+            throw new IllegalArgumentException("자기 자신과의 대화는 조회할 수 없습니다.");
+        }
 
         User otherUser = userRepository.findById(other)
                                        .orElseThrow(() -> new IllegalArgumentException("상대 유저가 존재하지 않습니다."));
@@ -443,7 +451,6 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
 
-
     private DirectMessageLastestMessage toDirectMessageLastestMessage(DirectMessage msg) {
         return DirectMessageLastestMessage.builder()
                                           .id(msg.getId())
@@ -452,17 +459,18 @@ public class ConversationServiceImpl implements ConversationService {
                                           .sender(DirectMessageSend.builder()
                                                                    .userId(msg.getSender().getId())
                                                                    .name(msg.getSender().getName())
-                                                                   .profileImageUrl(msg.getSender().getProfileImageUrl())
+                                                                   .profileImageUrl(
+                                                                       msg.getSender().getProfileImageUrl())
                                                                    .build())
                                           .receiver(DirectMessageReceiver.builder()
-                                                                         .userid(msg.getReceiver().getId())
+                                                                         .userId(msg.getReceiver().getId())
                                                                          .name(msg.getReceiver().getName())
-                                                                         .profileImageUrl(msg.getReceiver().getProfileImageUrl())
+                                                                         .profileImageUrl(
+                                                                             msg.getReceiver().getProfileImageUrl())
                                                                          .build())
                                           .content(msg.getContent())
                                           .build();
     }
-
 
 
     private UUID findOneToOneConversationId(UUID me, UUID other) {
@@ -490,7 +498,7 @@ public class ConversationServiceImpl implements ConversationService {
     private DirectMessageDto toDirectMessageDto(DirectMessage msg) {
         return DirectMessageDto.builder()
                                .id(msg.getId())
-                               .ConversationId(msg.getConversation().getId())
+                               .conversationId(msg.getConversation().getId())
                                .createdAt(msg.getCreatedAt())
                                .send(DirectMessageSend.builder()
                                                       .userId(msg.getSender().getId())
@@ -498,7 +506,7 @@ public class ConversationServiceImpl implements ConversationService {
                                                       .profileImageUrl(msg.getSender().getProfileImageUrl())
                                                       .build())
                                .receiver(DirectMessageReceiver.builder()
-                                                              .userid(msg.getReceiver().getId())
+                                                              .userId(msg.getReceiver().getId())
                                                               .name(msg.getReceiver().getName())
                                                               .profileImageUrl(msg.getReceiver().getProfileImageUrl())
                                                               .build())

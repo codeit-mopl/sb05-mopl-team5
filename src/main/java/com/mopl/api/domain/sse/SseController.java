@@ -1,6 +1,7 @@
 package com.mopl.api.domain.sse;
 
 
+import com.mopl.api.global.config.security.CustomUserDetails;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -46,12 +47,18 @@ public class SseController {
         }
 
         Object principal = auth.getPrincipal();
-        if (principal instanceof UUID uuid) return uuid;
+        if (principal instanceof CustomUserDetails cud) {
+            return cud.getUserDto().id();
+        }
 
         // CustomUserDetails를 쓰는 구조면 여기에서 꺼내도록 확장 가능
         // 예: if (principal instanceof CustomUserDetails cud) return cud.getUserDto().id();
 
-        return UUID.fromString(principal.toString());
+        try {
+            return UUID.fromString(principal.toString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("잘못된 사용자 ID 형식입니다.", e);
+        }
     }
 
 }

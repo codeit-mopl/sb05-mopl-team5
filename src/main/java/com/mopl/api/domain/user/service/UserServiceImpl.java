@@ -83,6 +83,8 @@ public class UserServiceImpl implements UserService {
 
 
     //프로필 변경
+    @Transactional
+    @Override
     public UserDto profileChange(UUID userId, UUID requesterId, UserUpdateRequest request, MultipartFile image) {
         if (requesterId == null || !requesterId.equals(userId)) {
             // 프로젝트에 권한 예외 커스텀이 있으면 그걸로 교체 추천

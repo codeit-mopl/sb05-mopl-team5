@@ -9,6 +9,7 @@ import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.dto.request.UserLockUpdateRequest;
 import com.mopl.api.domain.user.dto.request.UserRoleUpdateRequest;
 import com.mopl.api.domain.user.service.UserService;
+import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,13 +34,13 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<UserDto> userAdd(@RequestBody UserCreateRequest request){
+    public ResponseEntity<UserDto> userAdd(@RequestBody UserCreateRequest request) {
         UserDto response = userService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<UserDto> userDetails(@PathVariable UUID userId){
+    public ResponseEntity<UserDto> userDetails(@PathVariable UUID userId) {
         UserDto response = userService.getUser(userId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
@@ -48,43 +49,43 @@ public class UserController {
     public ResponseEntity<Void> passwordModify(
         @PathVariable UUID userId,
         @RequestBody ChangePasswordRequest request
-    ){
+    ) {
         userService.updatePassword(userId, request);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CursorResponseUserDto<UserDto>> userList(CursorRequestUserDto request){
+    public ResponseEntity<CursorResponseUserDto<UserDto>> userList(CursorRequestUserDto request) {
         CursorResponseUserDto<UserDto> response = userService.getAllUsers(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PatchMapping("/{userId}/role")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> userRoleModify(@PathVariable UUID userId, @RequestBody UserRoleUpdateRequest request){
+    public ResponseEntity<Void> userRoleModify(@PathVariable UUID userId, @RequestBody UserRoleUpdateRequest request) {
         userService.updateUserRole(userId, request);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     @PatchMapping("/{userId}/locked")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> userLockModify(@PathVariable UUID userId, @RequestBody UserLockUpdateRequest request){
+    public ResponseEntity<Void> userLockModify(@PathVariable UUID userId, @RequestBody UserLockUpdateRequest request) {
         userService.updateUserLock(userId, request);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     //프로필 변경
     @PatchMapping("/{userId}")
-    public ResponseEntity<UserDto> profileChange(  @PathVariable UUID userId,
+    public ResponseEntity<UserDto> profileChange(
+        @PathVariable UUID userId,
         @RequestHeader("X-User-Id") UUID requesterId,
-        @RequestPart("request") UserUpdateRequest request,
-        @RequestPart(value = "image", required = false) MultipartFile image){
+        @RequestPart("request") @Valid UserUpdateRequest request,
+        @RequestPart(value = "image", required = false) MultipartFile image) {
         UserDto userDto = userService.profileChange(userId, requesterId, request, image);
-        return  ResponseEntity.status(HttpStatus.OK).body(userDto);
+        return ResponseEntity.status(HttpStatus.OK).body(userDto);
 
     }
-
 
 
 }
