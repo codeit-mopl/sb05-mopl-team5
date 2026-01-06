@@ -1,20 +1,20 @@
 package com.mopl.api.domain.review.service;
 
 import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.review.dto.request.ReviewCreateRequest;
 import com.mopl.api.domain.review.dto.request.ReviewUpdateRequest;
 import com.mopl.api.domain.review.dto.response.CursorResponseReviewDto;
 import com.mopl.api.domain.review.dto.response.ReviewDto;
 import com.mopl.api.domain.review.entity.Review;
-import com.mopl.api.domain.review.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.review.exception.detail.ReviewAlreadyExistsException;
 import com.mopl.api.domain.review.exception.detail.ReviewNotFoundException;
 import com.mopl.api.domain.review.exception.detail.ReviewUnauthorizedException;
-import com.mopl.api.domain.review.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.review.mapper.ReviewMapper;
 import com.mopl.api.domain.review.repository.ReviewRepository;
 import com.mopl.api.domain.user.entity.User;
+import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

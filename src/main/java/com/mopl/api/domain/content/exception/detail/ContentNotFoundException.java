@@ -1,13 +1,13 @@
-package com.mopl.api.domain.review.exception.detail;
+package com.mopl.api.domain.content.exception.detail;
 
-import com.mopl.api.domain.review.exception.ReviewErrorCode;
-import com.mopl.api.domain.review.exception.ReviewErrorException;
+import com.mopl.api.domain.content.exception.ContentErrorCode;
+import com.mopl.api.domain.content.exception.ContentErrorException;
 import java.util.UUID;
 
-public class ContentNotFoundException extends ReviewErrorException {
+public class ContentNotFoundException extends ContentErrorException {
 
     public ContentNotFoundException() {
-        super(ReviewErrorCode.CONTENT_NOT_FOUND);
+        super(ContentErrorCode.CONTENT_NOT_FOUND);
     }
 
     public static ContentNotFoundException withContentId(UUID contentId) {
