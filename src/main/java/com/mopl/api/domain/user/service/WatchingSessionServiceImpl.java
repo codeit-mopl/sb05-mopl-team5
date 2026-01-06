@@ -32,7 +32,6 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
 
     /**
      * 세션 조회 정책 고민 및 결정 필요
-     * <p>
      * 결정 포인트: 1. Redis 단일 신뢰 모델로 갈 것인가? 2. Redis 조회 후 DB 무결성 검증을 할 것인가? - 즉시 검증 - 배치 / 리스너 기반 보정
      */
     @Override
