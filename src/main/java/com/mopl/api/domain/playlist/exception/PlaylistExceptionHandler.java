@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class PlaylistExceptionHandler {
 
     @ExceptionHandler(PlaylistErrorException.class)
-    public ProblemDetail handleWatchingSessionException(PlaylistErrorException e) {
+    public ProblemDetail handlePlaylistErrorException(PlaylistErrorException e) {
         ErrorCode errorCode = e.getErrorCode();
         log.error(e.getMessage(), e);
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(errorCode.getHttpStatus(), errorCode.getMessage());
