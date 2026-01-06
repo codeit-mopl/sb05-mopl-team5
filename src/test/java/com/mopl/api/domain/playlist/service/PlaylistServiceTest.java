@@ -5,6 +5,9 @@ import com.mopl.api.domain.playlist.dto.request.PlaylistCreateRequest;
 import com.mopl.api.domain.playlist.dto.request.PlaylistUpdateRequest;
 import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
 import com.mopl.api.domain.playlist.entity.Playlist;
+import com.mopl.api.domain.playlist.exception.detail.PlaylistNotFoundException;
+import com.mopl.api.domain.playlist.exception.detail.PlaylistUnauthorizedException;
+import com.mopl.api.domain.playlist.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.playlist.mapper.PlaylistMapper;
 import com.mopl.api.domain.playlist.repository.PlaylistContentRepository;
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
@@ -106,8 +109,7 @@ class PlaylistServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.addPlaylist(request, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("User not found");
+            .isInstanceOf(UserNotFoundException.class);
 
         verify(userRepository).findById(userId);
         verify(playlistRepository, never()).save(any());
@@ -144,8 +146,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.modifyPlaylist(playlistId, request, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Playlist not found");
+            .isInstanceOf(PlaylistNotFoundException.class);
 
         verify(playlistRepository).findById(playlistId);
         verify(playlistRepository, never()).save(any());
@@ -164,8 +165,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
 
         assertThatThrownBy(() -> playlistService.modifyPlaylist(playlistId, request, differentUserId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("not authorized");
+            .isInstanceOf(PlaylistUnauthorizedException.class);
 
         verify(playlistRepository).findById(playlistId);
         verify(playlistRepository, never()).save(any());
@@ -195,8 +195,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.removePlaylist(playlistId, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Playlist not found");
+            .isInstanceOf(PlaylistNotFoundException.class);
 
         verify(playlistRepository).findById(playlistId);
         verify(playlistRepository, never()).save(any());
@@ -214,8 +213,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
 
         assertThatThrownBy(() -> playlistService.removePlaylist(playlistId, differentUserId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("not authorized");
+            .isInstanceOf(PlaylistUnauthorizedException.class);
 
         verify(playlistRepository).findById(playlistId);
         verify(mockPlaylist, never()).softDelete();
@@ -251,8 +249,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.getPlaylist(playlistId, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Playlist not found");
+            .isInstanceOf(PlaylistNotFoundException.class);
 
         verify(playlistRepository).findById(playlistId);
     }
@@ -266,8 +263,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
 
         assertThatThrownBy(() -> playlistService.getPlaylist(playlistId, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Playlist not found");
+            .isInstanceOf(PlaylistNotFoundException.class);
 
         verify(playlistRepository).findById(playlistId);
     }
