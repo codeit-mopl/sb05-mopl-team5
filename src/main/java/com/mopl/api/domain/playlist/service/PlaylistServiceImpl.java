@@ -1,5 +1,6 @@
 package com.mopl.api.domain.playlist.service;
 
+import com.mopl.api.domain.content.entity.Content;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.playlist.dto.request.PlaylistCreateRequest;
 import com.mopl.api.domain.playlist.dto.request.PlaylistUpdateRequest;
@@ -7,6 +8,12 @@ import com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto;
 import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
 import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.playlist.entity.PlaylistContent;
+import com.mopl.api.domain.playlist.exception.detail.ContentAlreadyExistsException;
+import com.mopl.api.domain.playlist.exception.detail.ContentNotFoundException;
+import com.mopl.api.domain.playlist.exception.detail.ContentNotInPlaylistException;
+import com.mopl.api.domain.playlist.exception.detail.PlaylistNotFoundException;
+import com.mopl.api.domain.playlist.exception.detail.PlaylistUnauthorizedException;
+import com.mopl.api.domain.playlist.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.playlist.mapper.PlaylistMapper;
 import com.mopl.api.domain.playlist.repository.PlaylistContentRepository;
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
@@ -37,8 +44,7 @@ public class PlaylistServiceImpl implements PlaylistService {
     public PlaylistDto addPlaylist(PlaylistCreateRequest request, UUID userId) {
 
         User user = userRepository.findById(userId)
-                                  .orElseThrow(
-                                      () -> new RuntimeException("User not found with id: " + userId));
+                                  .orElseThrow(() -> UserNotFoundException.withUserId(userId));
 
         Playlist playlist = Playlist.create(user, request.title(), request.description());
         playlistRepository.save(playlist);
@@ -54,13 +60,12 @@ public class PlaylistServiceImpl implements PlaylistService {
     @Transactional
     public PlaylistDto modifyPlaylist(UUID playlistId, PlaylistUpdateRequest request, UUID userId) {
         Playlist playlist = playlistRepository.findById(playlistId)
-                                              .orElseThrow(() -> new RuntimeException(
-                                                  "Playlist not found with id: " + playlistId));
+                                              .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
 
         if (!playlist.getOwner()
                      .getId()
                      .equals(userId)) {
-            throw new RuntimeException("User is not authorized to modify this playlist");
+            throw PlaylistUnauthorizedException.withDetails(playlistId, userId);
         }
 
         playlist.update(request.title(), request.description());
@@ -77,13 +82,12 @@ public class PlaylistServiceImpl implements PlaylistService {
     @Transactional
     public void removePlaylist(UUID playlistId, UUID userId) {
         Playlist playlist = playlistRepository.findById(playlistId)
-                                              .orElseThrow(() -> new RuntimeException(
-                                                  "Playlist not found with id: " + playlistId));
+                                              .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
 
         if (!playlist.getOwner()
                      .getId()
                      .equals(userId)) {
-            throw new RuntimeException("User is not authorized to delete this playlist");
+            throw PlaylistUnauthorizedException.withDetails(playlistId, userId);
         }
 
         playlist.softDelete();
@@ -93,11 +97,10 @@ public class PlaylistServiceImpl implements PlaylistService {
     @Override
     public PlaylistDto getPlaylist(UUID playlistId, UUID currentUserId) {
         Playlist playlist = playlistRepository.findById(playlistId)
-                                              .orElseThrow(() -> new RuntimeException(
-                                                  "Playlist not found with id: " + playlistId));
+                                              .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
 
         if (playlist.getIsDeleted()) {
-            throw new RuntimeException("Playlist not found with id: " + playlistId);
+            throw PlaylistNotFoundException.withPlaylistId(playlistId);
         }
 
         List<PlaylistContent> playlistContents = playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(
@@ -136,10 +139,42 @@ public class PlaylistServiceImpl implements PlaylistService {
     @Override
     @Transactional
     public void addContentToPlaylist(UUID playlistId, UUID contentId, UUID userId) {
+        Playlist playlist = playlistRepository.findById(playlistId)
+                                              .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
+
+        if (!playlist.getOwner()
+                     .getId()
+                     .equals(userId)) {
+            throw PlaylistUnauthorizedException.withDetails(playlistId, userId);
+        }
+
+        Content content = contentRepository.findById(contentId)
+                                           .orElseThrow(() -> ContentNotFoundException.withContentId(contentId));
+
+        if (playlistContentRepository.existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)) {
+            throw ContentAlreadyExistsException.withDetails(playlistId, contentId);
+        }
+
+        PlaylistContent playlistContent = PlaylistContent.create(playlist, content);
+        playlistContentRepository.save(playlistContent);
     }
 
     @Override
     @Transactional
     public void removeContentFromPlaylist(UUID playlistId, UUID contentId, UUID userId) {
+        Playlist playlist = playlistRepository.findById(playlistId)
+                                              .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
+
+        if (!playlist.getOwner()
+                     .getId()
+                     .equals(userId)) {
+            throw PlaylistUnauthorizedException.withDetails(playlistId, userId);
+        }
+
+        PlaylistContent playlistContent = playlistContentRepository.findByPlaylistIdAndContentId(playlistId, contentId)
+                                                                   .orElseThrow(() -> ContentNotInPlaylistException.withDetails(playlistId, contentId));
+
+        playlistContent.softDelete();
+        playlistContentRepository.save(playlistContent);
     }
 }
