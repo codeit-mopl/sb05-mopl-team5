@@ -78,7 +78,7 @@ public class SecurityConfig {
                 .loginProcessingUrl("/api/auth/sign-in")
                 .successHandler(loginSuccessHandler)
                 .failureHandler(loginFailureHandler)
-                )
+            )
             .logout(logout -> logout
                 .logoutUrl("/api/auth/sign-out")
                 .addLogoutHandler(logoutHandler)

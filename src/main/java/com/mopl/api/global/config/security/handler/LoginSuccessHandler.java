@@ -30,8 +30,8 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        Authentication authentication)
+        HttpServletResponse response,
+        Authentication authentication)
         throws IOException, ServletException {
         log.info("Login success! username = {}", authentication.getName());
 

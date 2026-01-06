@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PlaylistContentRepository extends JpaRepository<PlaylistContent, UUID> {
 
-    Optional<PlaylistContent> findByPlaylistIdAndContentId(UUID playlistId, UUID contentId);
+    Optional<PlaylistContent> findByPlaylistIdAndContentIdAndIsDeletedFalse(UUID playlistId, UUID contentId);
 
     boolean existsByPlaylistIdAndContentIdAndIsDeletedFalse(UUID playlistId, UUID contentId);
 

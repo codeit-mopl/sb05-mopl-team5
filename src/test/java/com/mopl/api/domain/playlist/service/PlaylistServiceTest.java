@@ -375,12 +375,12 @@ class PlaylistServiceTest {
         when(mockUser.getId()).thenReturn(userId);
         when(mockPlaylist.getOwner()).thenReturn(mockUser);
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(playlistContentRepository.findByPlaylistIdAndContentId(playlistId, contentId)).thenReturn(Optional.of(mockPlaylistContent));
+        when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(Optional.of(mockPlaylistContent));
 
         playlistService.removeContentFromPlaylist(playlistId, contentId, userId);
 
         verify(playlistRepository).findById(playlistId);
-        verify(playlistContentRepository).findByPlaylistIdAndContentId(playlistId, contentId);
+        verify(playlistContentRepository).findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId);
         verify(mockPlaylistContent).softDelete();
         verify(playlistContentRepository).save(mockPlaylistContent);
     }
@@ -394,7 +394,7 @@ class PlaylistServiceTest {
             .isInstanceOf(PlaylistNotFoundException.class);
 
         verify(playlistRepository).findById(playlistId);
-        verify(playlistContentRepository, never()).findByPlaylistIdAndContentId(any(), any());
+        verify(playlistContentRepository, never()).findByPlaylistIdAndContentIdAndIsDeletedFalse(any(), any());
         verify(playlistContentRepository, never()).save(any());
     }
 
@@ -413,7 +413,7 @@ class PlaylistServiceTest {
             .isInstanceOf(PlaylistUnauthorizedException.class);
 
         verify(playlistRepository).findById(playlistId);
-        verify(playlistContentRepository, never()).findByPlaylistIdAndContentId(any(), any());
+        verify(playlistContentRepository, never()).findByPlaylistIdAndContentIdAndIsDeletedFalse(any(), any());
         verify(playlistContentRepository, never()).save(any());
     }
 
@@ -426,13 +426,13 @@ class PlaylistServiceTest {
         when(mockUser.getId()).thenReturn(userId);
         when(mockPlaylist.getOwner()).thenReturn(mockUser);
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(playlistContentRepository.findByPlaylistIdAndContentId(playlistId, contentId)).thenReturn(Optional.empty());
+        when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.removeContentFromPlaylist(playlistId, contentId, userId))
             .isInstanceOf(ContentNotInPlaylistException.class);
 
         verify(playlistRepository).findById(playlistId);
-        verify(playlistContentRepository).findByPlaylistIdAndContentId(playlistId, contentId);
+        verify(playlistContentRepository).findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId);
         verify(playlistContentRepository, never()).save(any());
     }
 }

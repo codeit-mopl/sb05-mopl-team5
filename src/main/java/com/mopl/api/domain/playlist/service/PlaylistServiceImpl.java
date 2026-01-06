@@ -171,7 +171,7 @@ public class PlaylistServiceImpl implements PlaylistService {
             throw PlaylistUnauthorizedException.withDetails(playlistId, userId);
         }
 
-        PlaylistContent playlistContent = playlistContentRepository.findByPlaylistIdAndContentId(playlistId, contentId)
+        PlaylistContent playlistContent = playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)
                                                                    .orElseThrow(() -> ContentNotInPlaylistException.withDetails(playlistId, contentId));
 
         playlistContent.softDelete();
