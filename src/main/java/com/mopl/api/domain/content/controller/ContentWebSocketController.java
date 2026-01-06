@@ -15,7 +15,7 @@ import org.springframework.stereotype.Controller;
 
 @Controller
 @RequiredArgsConstructor
-public class ContentWebSocketController {
+public class ContentWebSocketController {   // TODO WatchingSessionWebsocketController 등으로 네이밍, 패키지 변경 고려해보자
 
     private final ContentChatService contentChatService;
     private final WatchingSessionService watchingSessionService;
