@@ -32,9 +32,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 //    private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
-
-    private final UserRepository userRepository;
-
     private final ProfileImageStorageService profileImageStorageService;
 
     @Transactional
