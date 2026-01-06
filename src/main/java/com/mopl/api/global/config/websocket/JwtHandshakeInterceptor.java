@@ -2,6 +2,7 @@ package com.mopl.api.global.config.websocket;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -12,10 +13,10 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
     public boolean beforeHandshake(
-        ServerHttpRequest request,
-        ServerHttpResponse response,
-        WebSocketHandler wsHandler,
-        Map<String, Object> attributes
+        @NotNull ServerHttpRequest request,
+        @NotNull ServerHttpResponse response,
+        @NotNull WebSocketHandler wsHandler,
+        @NotNull Map<String, Object> attributes
     ) {
         if (!(request instanceof ServletServerHttpRequest servletRequest)) {
             return false;
@@ -29,11 +30,11 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
     public void afterHandshake(
-        ServerHttpRequest request,
-        ServerHttpResponse response,
-        WebSocketHandler wsHandler,
+        @NotNull ServerHttpRequest request,
+        @NotNull ServerHttpResponse response,
+        @NotNull WebSocketHandler wsHandler,
         Exception exception
     ) {
+        // TODO 필요하면 로깅 / 메트릭 전송 추가
     }
 }
-
