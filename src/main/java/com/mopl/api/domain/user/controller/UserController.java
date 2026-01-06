@@ -2,6 +2,7 @@ package com.mopl.api.domain.user.controller;
 
 import com.mopl.api.domain.user.dto.request.ChangePasswordRequest;
 import com.mopl.api.domain.user.dto.request.CursorRequestUserDto;
+import com.mopl.api.domain.user.dto.request.UserUpdateRequest;
 import com.mopl.api.domain.user.dto.response.CursorResponseUserDto;
 import com.mopl.api.domain.user.dto.request.UserCreateRequest;
 import com.mopl.api.domain.user.dto.response.UserDto;
@@ -17,8 +18,11 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -71,8 +75,11 @@ public class UserController {
 
     //프로필 변경
     @PatchMapping("/{userId}")
-    public ResponseEntity<UserDto> profileChange( @PathVariable UUID userId, @RequestBody String image){
-        UserDto userDto = userService.profileChange(userId, image);
+    public ResponseEntity<UserDto> profileChange(  @PathVariable UUID userId,
+        @RequestHeader("X-User-Id") UUID requesterId,
+        @RequestPart("request") UserUpdateRequest request,
+        @RequestPart(value = "image", required = false) MultipartFile image){
+        UserDto userDto = userService.profileChange(userId, requesterId, request, image);
         return  ResponseEntity.status(HttpStatus.OK).body(userDto);
 
     }

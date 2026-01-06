@@ -1,5 +1,7 @@
 package com.mopl.api.domain.user.dto.response;
 
+import com.mopl.api.domain.content.dto.response.ContentDto;
+import com.mopl.api.domain.user.entity.WatchingSession;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
@@ -14,5 +16,7 @@ public record CursorResponseWatchingSessionDto(
     String sortBy,
     String sortDirection
 ) {
+
+
 
 }

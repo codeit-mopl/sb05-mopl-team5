@@ -9,6 +9,7 @@ import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.dto.request.UserLockUpdateRequest;
 import com.mopl.api.domain.user.dto.request.UserUpdateRequest;
 import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
 
@@ -22,8 +23,7 @@ public interface UserService {
     void resetPassword(ResetPasswordRequest request);
 
 
-    UserDto profileChange(UUID userId , String image);
-
+    UserDto profileChange(UUID userId, UUID requesterId, UserUpdateRequest request, MultipartFile image);
 
 
 }

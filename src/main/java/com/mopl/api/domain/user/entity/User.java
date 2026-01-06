@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+
 public class User extends BaseUpdatableEntity {
 
     @Column(nullable = false, length = 100)
@@ -39,4 +40,27 @@ public class User extends BaseUpdatableEntity {
 
     @Column(nullable = false)
     private Long followerCount = 0L;
+
+
+    public void changeName(String name) {
+        if (name == null || name.isBlank()) {
+            return;
+        }
+        this.name = name;
+    }
+
+    public void changeProfileImageUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return;
+        }
+        this.profileImageUrl = url;
+    }
+
+    public User(String email, String name, UserRole role) {
+        this.email = email;
+        this.name = name;
+        this.role = role;
+        this.locked = false;
+    }
 }
+
