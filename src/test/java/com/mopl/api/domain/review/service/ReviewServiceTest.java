@@ -6,6 +6,11 @@ import com.mopl.api.domain.review.dto.request.ReviewCreateRequest;
 import com.mopl.api.domain.review.dto.request.ReviewUpdateRequest;
 import com.mopl.api.domain.review.dto.response.ReviewDto;
 import com.mopl.api.domain.review.entity.Review;
+import com.mopl.api.domain.review.exception.detail.ContentNotFoundException;
+import com.mopl.api.domain.review.exception.detail.ReviewAlreadyExistsException;
+import com.mopl.api.domain.review.exception.detail.ReviewNotFoundException;
+import com.mopl.api.domain.review.exception.detail.ReviewUnauthorizedException;
+import com.mopl.api.domain.review.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.review.mapper.ReviewMapper;
 import com.mopl.api.domain.review.repository.ReviewRepository;
 import com.mopl.api.domain.user.dto.response.UserDto;
@@ -106,8 +111,8 @@ class ReviewServiceTest {
         when(contentRepository.findById(contentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reviewService.addReview(request, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Content not found");
+            .isInstanceOf(ContentNotFoundException.class)
+            .hasMessageContaining("존재하지 않는 콘텐츠입니다");
 
         verify(contentRepository).findById(contentId);
         verify(reviewRepository, never()).save(any());
@@ -123,8 +128,8 @@ class ReviewServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reviewService.addReview(request, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("User not found");
+            .isInstanceOf(UserNotFoundException.class)
+            .hasMessageContaining("존재하지 않는 사용자입니다");
 
         verify(userRepository).findById(userId);
         verify(reviewRepository, never()).save(any());
@@ -143,8 +148,8 @@ class ReviewServiceTest {
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(true);
 
         assertThatThrownBy(() -> reviewService.addReview(request, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("already reviewed");
+            .isInstanceOf(ReviewAlreadyExistsException.class)
+            .hasMessageContaining("이미 리뷰를 작성한 콘텐츠입니다");
 
         verify(reviewRepository).existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId);
         verify(reviewRepository, never()).save(any());
@@ -183,8 +188,8 @@ class ReviewServiceTest {
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reviewService.modifyReview(reviewId, request, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Review not found");
+            .isInstanceOf(ReviewNotFoundException.class)
+            .hasMessageContaining("존재하지 않는 리뷰입니다");
 
         verify(reviewRepository).findById(reviewId);
         verify(reviewRepository, never()).save(any());
@@ -204,8 +209,8 @@ class ReviewServiceTest {
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
 
         assertThatThrownBy(() -> reviewService.modifyReview(reviewId, request, differentUserId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("not authorized");
+            .isInstanceOf(ReviewUnauthorizedException.class)
+            .hasMessageContaining("리뷰에 대한 권한이 없습니다");
 
         verify(reviewRepository).findById(reviewId);
         verify(reviewRepository, never()).save(any());
@@ -236,8 +241,8 @@ class ReviewServiceTest {
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reviewService.removeReview(reviewId, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Review not found");
+            .isInstanceOf(ReviewNotFoundException.class)
+            .hasMessageContaining("존재하지 않는 리뷰입니다");
 
         verify(reviewRepository).findById(reviewId);
         verify(reviewRepository, never()).save(any());
@@ -256,8 +261,8 @@ class ReviewServiceTest {
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
 
         assertThatThrownBy(() -> reviewService.removeReview(reviewId, differentUserId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("not authorized");
+            .isInstanceOf(ReviewUnauthorizedException.class)
+            .hasMessageContaining("리뷰에 대한 권한이 없습니다");
 
         verify(reviewRepository).findById(reviewId);
         verify(mockReview, never()).softDelete();
