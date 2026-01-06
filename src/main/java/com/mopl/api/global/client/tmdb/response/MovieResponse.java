@@ -8,7 +8,7 @@ public record MovieResponse(
     @JsonProperty("id")
     Long apiId,
 
-    @JsonProperty("original_name")
+    @JsonProperty("original_title")
     String title,
 
     @JsonProperty("overview")
