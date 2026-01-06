@@ -35,5 +35,7 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
         ));
     }
 
-    private record FailureBody(String code, String message){}
+    private record FailureBody(String code, String message) {
+
+    }
 }

@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (StringUtils.hasText(token)) {
                 if (jwtProvider.validateAccessToken(token)
-                    && jwtRegistry.hasActiveJwtInformationByAccessToken(token)){
+                    && jwtRegistry.hasActiveJwtInformationByAccessToken(token)) {
                     String username = jwtProvider.getUsernameFromToken(token);
 
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
@@ -60,7 +60,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         new WebAuthenticationDetailsSource().buildDetails(request)
                     );
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    SecurityContextHolder.getContext()
+                                         .setAuthentication(authentication);
                     log.debug("Set authentication for user: {}", username);
                 } else {
                     log.debug("Invalid JWT token");
@@ -95,6 +96,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setCharacterEncoding("UTF-8");
 
         String jsonResponse = objectMapper.writeValueAsString(errorResponse);
-        response.getWriter().write(jsonResponse);
+        response.getWriter()
+                .write(jsonResponse);
     }
 }

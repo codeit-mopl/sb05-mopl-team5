@@ -59,20 +59,29 @@ public class SecurityConfig {
                 .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/csrf-token").permitAll()
-                .requestMatchers("/api/auth/sign-in").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
-                .requestMatchers("/api/auth/refresh").permitAll()
-                .requestMatchers("/api/auth/reset-password").permitAll()
-                .requestMatchers( "*", "/swagger-resource/**"
+                .requestMatchers("/api/auth/csrf-token")
+                .permitAll()
+                .requestMatchers("/api/auth/sign-in")
+                .permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/users")
+                .permitAll()
+                .requestMatchers("/api/auth/refresh")
+                .permitAll()
+                .requestMatchers("/api/auth/reset-password")
+                .permitAll()
+                .requestMatchers("*", "/swagger-resource/**"
                     , "/swagger-ui.html", "/swagger-ui/**", "/v3/**",
-                    "/assets/**","/h2/**").permitAll()
+                    "/assets/**", "/h2/**")
+                .permitAll()
 
                 // 어드민 권한
-                .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/users")
+                .hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/users/{userId}/role",
-                    "/api/users/{userId}/locked").hasRole("ADMIN")
-                .anyRequest().authenticated()
+                    "/api/users/{userId}/locked")
+                .hasRole("ADMIN")
+                .anyRequest()
+                .authenticated()
             )
             .formLogin(form -> form
                 .loginProcessingUrl("/api/auth/sign-in")
