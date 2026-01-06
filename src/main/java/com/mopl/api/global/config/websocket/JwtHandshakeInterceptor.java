@@ -24,7 +24,6 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
         HttpServletRequest httpRequest = servletRequest.getServletRequest();
         String authHeader = httpRequest.getHeader("Authorization");
 
-        // 토큰 없으면 연결 차단
         return authHeader != null && authHeader.startsWith("Bearer ");
     }
 

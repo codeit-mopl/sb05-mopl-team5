@@ -34,13 +34,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(
-            new WebSocketAuthChannelInterceptor(jwtTokenProvider)
-        );
+        registration.interceptors(webSocketAuthChannelInterceptor());
     }
 
     @Bean
     public HandshakeInterceptor jwtHandshakeInterceptor() {
         return new JwtHandshakeInterceptor();
+    }
+
+    @Bean
+    public WebSocketAuthChannelInterceptor webSocketAuthChannelInterceptor() {
+        return new WebSocketAuthChannelInterceptor(jwtTokenProvider);
     }
 }
