@@ -1,24 +1,26 @@
 package com.mopl.api.domain.user.controller;
 
+import com.mopl.api.domain.user.dto.request.JwtInformation;
 import com.mopl.api.domain.user.dto.response.JwtDto;
 import com.mopl.api.domain.user.dto.request.ResetPasswordRequest;
-import com.mopl.api.domain.user.dto.request.SignInRequest;
-import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.service.AuthService;
 import com.mopl.api.domain.user.service.UserService;
+import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
@@ -26,23 +28,11 @@ public class AuthController {
 
     private final UserService userService;
     private final AuthService authService;
-
-    // SecurityFilterChain에서 처리! -> 일단 Swagger 명세용!(삭제 무방)
-    @PostMapping("/sign-in")
-    public ResponseEntity<JwtDto> signIn(@ModelAttribute SignInRequest request) {
-        JwtDto response = authService.signIn(request.username(), request.password());
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }
-
-    // SecurityFilterChain에서 처리! -> 일단 Swagger 명세용!(삭제 무방)
-    @PostMapping("/sign-out")
-    public ResponseEntity<Void> signOut() {
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }
+    private final JwtTokenProvider jwtProvider;
 
     @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
-        userService.resetPassword(request);
+        authService.resetPassword(request);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
@@ -51,14 +41,18 @@ public class AuthController {
         @CookieValue(name = "REFRESH_TOKEN", required = true) String refreshToken,
         HttpServletResponse response
     ) {
-        JwtDto body = authService.refreshToken(refreshToken);
+        JwtInformation jwtInformation = authService.refreshToken(refreshToken);
+        Cookie cookie = jwtProvider.genereateRefreshTokenCookie(jwtInformation.getRefreshToken());
+        response.addCookie(cookie);
+
+        JwtDto body = new JwtDto(jwtInformation.getUserDto(), jwtInformation.getAccessToken());
         return ResponseEntity.status(HttpStatus.OK).body(body);
     }
 
     @GetMapping("/csrf-token")
-    public ResponseEntity<Void> csrfTokenDetails(CsrfToken csrfToken, HttpServletResponse response) {
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    public ResponseEntity<Void> csrfTokenDetails(CsrfToken csrfToken) {
+        String tokenDetail = csrfToken.getToken();
+        log.debug("CSRF TOKEN: {}", tokenDetail);
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
-
-
 }

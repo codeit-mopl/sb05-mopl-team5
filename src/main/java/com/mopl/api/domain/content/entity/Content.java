@@ -52,4 +52,23 @@ public class Content extends BaseDeletableEntity {
 
     @Column(nullable = false)
     private Long watcherCount = 0L;
+
+    public void update(String title, String description, String tags, String thumbnailUrl) {
+        if (title != null && !title.isBlank()) {
+            this.title = title;
+        }
+        if (description != null && !description.isBlank()) {
+            this.description = description;
+        }
+        if (tags != null && !tags.isBlank()) {
+            this.tags = tags;
+        }
+        if (thumbnailUrl != null && !thumbnailUrl.isBlank()) {
+            this.thumbnailUrl = thumbnailUrl;
+        }
+    }
+
+    public void isDelete() {
+        this.isDeleted = true;
+    }
 }
