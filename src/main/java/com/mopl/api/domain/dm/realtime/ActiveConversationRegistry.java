@@ -27,6 +27,10 @@ public class ActiveConversationRegistry {
             return;
         }
         set.remove(conversationId);
+
+        if (set.isEmpty()) {
+            registry.remove(userId);
+        }
     }
 
 
@@ -36,9 +40,6 @@ public class ActiveConversationRegistry {
     }
 
 
-    public void clear(UUID userId) {
-        registry.remove(userId);
-    }
-
+    
 
 }

@@ -56,12 +56,7 @@ public class User extends BaseUpdatableEntity {
         this.profileImageUrl = url;
     }
 
-    public User(String email, String name, UserRole role) {
-        this.email = email;
-        this.name = name;
-        this.role = role;
-        this.locked = false;
-    }
+
 
     public User(String email, String password, String name) {
         this.email = email;

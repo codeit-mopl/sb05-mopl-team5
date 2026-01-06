@@ -1,4 +1,4 @@
-package com.mopl.api;
+package com.mopl.api.domain.user.profile;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

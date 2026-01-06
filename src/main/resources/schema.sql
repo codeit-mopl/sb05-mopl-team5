@@ -187,6 +187,8 @@ CREATE TABLE `conversations`
     `last_message_content`    VARCHAR(2000) NULL,
     `last_message_created_at` DATETIME      NULL,
 
+
+
     CONSTRAINT `PK_CONVERSATIONS` PRIMARY KEY (`id`)
 );
 

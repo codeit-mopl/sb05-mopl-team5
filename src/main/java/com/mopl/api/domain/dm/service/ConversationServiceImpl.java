@@ -98,7 +98,7 @@ public class ConversationServiceImpl implements ConversationService {
                                            .orElseThrow(() -> new IllegalArgumentException("상대 유저가 존재하지 않습니다."));
 
             // [수정] Conversation 생성자 문제 해결됨 (Entity 수정 덕분)
-            Conversation newConversation = conversationRepository.save(new Conversation());
+            Conversation newConversation = conversationRepository.save(Conversation.create());
 
             conversationParticipantRepository.save(new ConversationParticipant(newConversation, meUser));
             conversationParticipantRepository.save(new ConversationParticipant(newConversation, otherUser));
@@ -226,7 +226,7 @@ public class ConversationServiceImpl implements ConversationService {
                                       .nextIdAfter(nextIdAfter)
                                       .hasNext(hasNext)
                                       .totalCount(0) // ✅ 무한스크롤 최적화: Count 쿼리 제거
-                                      .sorBy(sortBy)
+                                      .sortBy(sortBy)
                                       .sortDirection(sortDirection)
                                       .build();
     }

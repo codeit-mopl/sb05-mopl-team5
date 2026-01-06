@@ -30,12 +30,17 @@ public class SseController {
         sseEmitterRegistry.add(me, emitter);
 
         // (선택) 연결 확인용 ping: 클라이언트가 즉시 연결 성공을 알 수 있음
-        sseEmitterRegistry.send(
-            me,
-            "notifications",                    // name
-            "sse-connect-" + System.currentTimeMillis(), // id
-            "connected"                         // data
-        );
+        try {
+            sseEmitterRegistry.send(
+                me,
+                "notifications",
+                "sse-connect-" + System.currentTimeMillis(),
+                "connected"
+            );
+        } catch (Exception e) {
+            emitter.completeWithError(e);
+            throw new IllegalStateException("SSE 연결 초기화 실패", e);
+        }
 
         return emitter;
     }

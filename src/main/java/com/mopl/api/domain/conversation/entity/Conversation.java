@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "conversations")
 @Getter
-@NoArgsConstructor()
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Conversation extends BaseEntity {
 
 
@@ -24,9 +24,16 @@ public class Conversation extends BaseEntity {
     @Column(name = "last_message_created_at")
     private LocalDateTime lastMessageCreatedAt;
 
+
+    public  static  Conversation create() {
+        return new Conversation();
+    }
+
     // [추가] 메시지 전송 시 호출하여 대화방 정보를 갱신하는 메서드
     public void updateLastMessage(String content, LocalDateTime createdAt) {
         this.lastMessageContent = content;
         this.lastMessageCreatedAt = createdAt;
     }
+
+
 }

@@ -9,7 +9,7 @@ import java.time.ZoneId;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.ReportingPolicy;
+
 
 @Mapper(componentModel = "spring")
     //, unmappedTargetPolicy = ReportingPolicy.IGNORE) // 테스트 코드 사용할때 에러 무시

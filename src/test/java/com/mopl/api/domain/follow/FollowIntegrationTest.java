@@ -1,4 +1,4 @@
-package com.mopl.api;
+package com.mopl.api.domain.follow;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -9,6 +9,7 @@ import com.mopl.api.domain.user.entity.UserRole;
 import com.mopl.api.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import java.lang.reflect.Field;
+import java.util.Random;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,15 +23,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class FollowIntegrationTest {
 
-    @Autowired FollowService followService;
-    @Autowired UserRepository userRepository;
-    @Autowired EntityManager em;
+    @Autowired
+    FollowService followService;
+    @Autowired
+    UserRepository userRepository;
+    @Autowired
+    EntityManager em;
 
     /**
-     * ✅ 스키마 제약조건(특히 users.password NOT NULL)을 100% 만족하는 테스트 유저 생성
-     * - 프로젝트마다 User 생성/세터가 다를 수 있어서,
-     *   "세터가 있으면 세터", 없으면 "reflection"으로 필수 필드를 채움.
-     * - 저장 직후 flush로 제약 위반을 즉시 터뜨려 원인 추적이 쉬움.
+     * ✅ 스키마 제약조건(특히 users.password NOT NULL)을 100% 만족하는 테스트 유저 생성 - 프로젝트마다 User 생성/세터가 다를 수 있어서, "세터가 있으면 세터", 없으면
+     * "reflection"으로 필수 필드를 채움. - 저장 직후 flush로 제약 위반을 즉시 터뜨려 원인 추적이 쉬움.
      */
     private User saveUser(String prefix) {
         User user;
@@ -42,8 +44,9 @@ class FollowIntegrationTest {
             // 2) 기본 생성자가 없으면 네가 쓰던 생성자 사용 (email, name, role)
             user = new User(
                 UUID.randomUUID() + "@test.com",
-                prefix + "-" + UUID.randomUUID(),
-                UserRole.USER
+                "123456789",
+                prefix + "-" + UUID.randomUUID()
+
             );
         }
 
