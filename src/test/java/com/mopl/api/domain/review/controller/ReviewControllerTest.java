@@ -1,6 +1,7 @@
 package com.mopl.api.domain.review.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mopl.api.config.WithMockCustomUser;
 import com.mopl.api.domain.review.dto.request.ReviewCreateRequest;
 import com.mopl.api.domain.review.dto.request.ReviewUpdateRequest;
 import com.mopl.api.domain.review.dto.response.CursorResponseReviewDto;
@@ -15,7 +16,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@WithMockUser
+@WithMockCustomUser
 @DisplayName("ReviewController 통합 테스트")
 class ReviewControllerTest {
 
@@ -57,7 +57,7 @@ class ReviewControllerTest {
 
     @BeforeEach
     void setUp() {
-        userId = UUID.randomUUID();
+        userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
         reviewId = UUID.randomUUID();
         contentId = UUID.randomUUID();
 
@@ -95,7 +95,6 @@ class ReviewControllerTest {
 
         mockMvc.perform(post("/api/reviews")
                    .with(csrf())
-                   .header("X-User-Id", userId.toString())
                    .contentType(MediaType.APPLICATION_JSON)
                    .content(objectMapper.writeValueAsString(createRequest)))
                .andExpect(status().isCreated())
@@ -112,7 +111,6 @@ class ReviewControllerTest {
 
         mockMvc.perform(post("/api/reviews")
                    .with(csrf())
-                   .header("X-User-Id", userId.toString())
                    .contentType(MediaType.APPLICATION_JSON)
                    .content(objectMapper.writeValueAsString(createRequest)))
                .andExpect(status().isBadRequest());
@@ -125,7 +123,6 @@ class ReviewControllerTest {
 
         mockMvc.perform(post("/api/reviews")
                    .with(csrf())
-                   .header("X-User-Id", userId.toString())
                    .contentType(MediaType.APPLICATION_JSON)
                    .content(objectMapper.writeValueAsString(invalidRequest)))
                .andExpect(status().isBadRequest());
@@ -150,7 +147,6 @@ class ReviewControllerTest {
 
         mockMvc.perform(patch("/api/reviews/{reviewId}", reviewId)
                    .with(csrf())
-                   .header("X-User-Id", userId.toString())
                    .contentType(MediaType.APPLICATION_JSON)
                    .content(objectMapper.writeValueAsString(updateRequest)))
                .andExpect(status().isOk())
@@ -166,7 +162,6 @@ class ReviewControllerTest {
 
         mockMvc.perform(patch("/api/reviews/{reviewId}", reviewId)
                    .with(csrf())
-                   .header("X-User-Id", userId.toString())
                    .contentType(MediaType.APPLICATION_JSON)
                    .content(objectMapper.writeValueAsString(updateRequest)))
                .andExpect(status().isBadRequest());
@@ -180,7 +175,6 @@ class ReviewControllerTest {
 
         mockMvc.perform(patch("/api/reviews/{reviewId}", reviewId)
                    .with(csrf())
-                   .header("X-User-Id", userId.toString())
                    .contentType(MediaType.APPLICATION_JSON)
                    .content(objectMapper.writeValueAsString(updateRequest)))
                .andExpect(status().isBadRequest());
@@ -193,8 +187,7 @@ class ReviewControllerTest {
                    .removeReview(eq(reviewId), eq(userId));
 
         mockMvc.perform(delete("/api/reviews/{reviewId}", reviewId)
-                   .with(csrf())
-                   .header("X-User-Id", userId.toString()))
+                   .with(csrf()))
                .andExpect(status().isNoContent());
     }
 
@@ -206,8 +199,7 @@ class ReviewControllerTest {
             .removeReview(eq(reviewId), eq(userId));
 
         mockMvc.perform(delete("/api/reviews/{reviewId}", reviewId)
-                   .with(csrf())
-                   .header("X-User-Id", userId.toString()))
+                   .with(csrf()))
                .andExpect(status().isBadRequest());
     }
 
@@ -219,8 +211,7 @@ class ReviewControllerTest {
             .removeReview(eq(reviewId), eq(userId));
 
         mockMvc.perform(delete("/api/reviews/{reviewId}", reviewId)
-                   .with(csrf())
-                   .header("X-User-Id", userId.toString()))
+                   .with(csrf()))
                .andExpect(status().isBadRequest());
     }
 
@@ -251,8 +242,7 @@ class ReviewControllerTest {
                    .param("contentId", contentId.toString())
                    .param("limit", "20")
                    .param("sortBy", "createdAt")
-                   .param("sortDirection", "DESC")
-                   .header("X-User-Id", userId.toString()))
+                   .param("sortDirection", "DESC"))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.reviews").isArray())
                .andExpect(jsonPath("$.reviews[0].id").value(reviewId.toString()))
@@ -292,8 +282,7 @@ class ReviewControllerTest {
                    .param("idAfter", idAfter.toString())
                    .param("limit", "10")
                    .param("sortBy", "createdAt")
-                   .param("sortDirection", "DESC")
-                   .header("X-User-Id", userId.toString()))
+                   .param("sortDirection", "DESC"))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.hasNext").value(true))
                .andExpect(jsonPath("$.nextCursor").value("2024-01-01T09:00:00"));
