@@ -1,9 +1,13 @@
 package com.mopl.api.domain.notification.repository.impl;
 
+import com.mopl.api.domain.notification.dto.request.NotificationCursorPageRequest;
 import com.mopl.api.domain.notification.entity.Notification;
-import java.util.List;
+import java.util.UUID;
+import org.springframework.data.domain.Slice;
 
 public interface NotificationRepositoryCustom {
 
-    List<Notification> tempNotificationPage(String var);
+    Slice<Notification> findAllByReceiverId(UUID receiverId, NotificationCursorPageRequest request);
+
+    long countByReceiverId(UUID receiverId);
 }
