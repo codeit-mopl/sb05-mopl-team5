@@ -1,8 +1,15 @@
-package com.mopl.api.domain.playlist.exception.detail;
+package com.mopl.api.domain.playlist.exception;
 
-public class PlaylistErrorException extends RuntimeException {
+import com.mopl.api.global.config.exception.ErrorCode;
+import com.mopl.api.global.config.exception.MoplException;
 
-    public PlaylistErrorException(String message) {
-        super(message);
+public class PlaylistErrorException extends MoplException {
+
+    public PlaylistErrorException(ErrorCode errorCode) {
+        super(errorCode);
+    }
+
+    public PlaylistErrorException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode, cause);
     }
 }
