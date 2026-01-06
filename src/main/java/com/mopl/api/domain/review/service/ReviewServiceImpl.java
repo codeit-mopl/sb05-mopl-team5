@@ -38,7 +38,8 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewDto addReview(ReviewCreateRequest request, UUID userId) {
         Content content = contentRepository.findById(request.contentId())
-                                           .orElseThrow(() -> ContentNotFoundException.withContentId(request.contentId()));
+                                           .orElseThrow(
+                                               () -> ContentNotFoundException.withContentId(request.contentId()));
 
         User user = userRepository.findById(userId)
                                   .orElseThrow(() -> UserNotFoundException.withUserId(userId));
@@ -53,6 +54,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviewRepository.save(review);
 
+        //TODO: 콘텐츠 평점 재계산(콘텐츠의 평균 평점과 리뷰 개수를 업데이트)
         return reviewMapper.toDto(review, true);
     }
 
@@ -74,6 +76,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviewRepository.save(review);
 
+        //TODO: 콘텐츠 평점 재계산(콘텐츠의 평균 평점과 리뷰 개수를 업데이트)
         return reviewMapper.toDto(review, true);
     }
 
@@ -92,6 +95,8 @@ public class ReviewServiceImpl implements ReviewService {
         review.softDelete();
 
         reviewRepository.save(review);
+
+        //TODO: 콘텐츠 평점 재계산(콘텐츠의 평균 평점과 리뷰 개수를 업데이트)
     }
 
     @Override
