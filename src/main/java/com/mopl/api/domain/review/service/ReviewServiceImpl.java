@@ -7,6 +7,11 @@ import com.mopl.api.domain.review.dto.request.ReviewUpdateRequest;
 import com.mopl.api.domain.review.dto.response.CursorResponseReviewDto;
 import com.mopl.api.domain.review.dto.response.ReviewDto;
 import com.mopl.api.domain.review.entity.Review;
+import com.mopl.api.domain.review.exception.detail.ContentNotFoundException;
+import com.mopl.api.domain.review.exception.detail.ReviewAlreadyExistsException;
+import com.mopl.api.domain.review.exception.detail.ReviewNotFoundException;
+import com.mopl.api.domain.review.exception.detail.ReviewUnauthorizedException;
+import com.mopl.api.domain.review.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.review.mapper.ReviewMapper;
 import com.mopl.api.domain.review.repository.ReviewRepository;
 import com.mopl.api.domain.user.entity.User;
@@ -33,14 +38,13 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewDto addReview(ReviewCreateRequest request, UUID userId) {
         Content content = contentRepository.findById(request.contentId())
-                                           .orElseThrow(() -> new RuntimeException(
-                                               "Content not found with id: " + request.contentId()));
+                                           .orElseThrow(() -> ContentNotFoundException.withContentId(request.contentId()));
 
         User user = userRepository.findById(userId)
-                                  .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                                  .orElseThrow(() -> UserNotFoundException.withUserId(userId));
 
         if (reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(content.getId(), userId)) {
-            throw new RuntimeException("User already reviewed this content");
+            throw ReviewAlreadyExistsException.withDetails(content.getId(), userId);
         }
 
         BigDecimal rating = BigDecimal.valueOf(request.rating());
@@ -49,8 +53,6 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviewRepository.save(review);
 
-        //TODO: 콘텐츠 평점 재계산(콘텐츠 생성 기능 완성 된 이후 진행)
-
         return reviewMapper.toDto(review, true);
     }
 
@@ -58,13 +60,12 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewDto modifyReview(UUID reviewId, ReviewUpdateRequest request, UUID userId) {
         Review review = reviewRepository.findById(reviewId)
-                                        .orElseThrow(
-                                            () -> new RuntimeException("Review not found with id: " + reviewId));
+                                        .orElseThrow(() -> ReviewNotFoundException.withReviewId(reviewId));
 
         if (!review.getUser()
                    .getId()
                    .equals(userId)) {
-            throw new RuntimeException("User is not authorized to modify this review");
+            throw ReviewUnauthorizedException.withDetails(reviewId, userId);
         }
 
         BigDecimal rating = BigDecimal.valueOf(request.rating());
@@ -73,8 +74,6 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviewRepository.save(review);
 
-        //TODO: 콘텐츠 평점 재계산(콘텐츠 생성 기능 완성 된 이후 진행)
-
         return reviewMapper.toDto(review, true);
     }
 
@@ -82,20 +81,17 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public void removeReview(UUID reviewId, UUID userId) {
         Review review = reviewRepository.findById(reviewId)
-                                        .orElseThrow(
-                                            () -> new RuntimeException("Review not found with id: " + reviewId));
+                                        .orElseThrow(() -> ReviewNotFoundException.withReviewId(reviewId));
 
         if (!review.getUser()
                    .getId()
                    .equals(userId)) {
-            throw new RuntimeException("User is not authorized to delete this review");
+            throw ReviewUnauthorizedException.withDetails(reviewId, userId);
         }
 
         review.softDelete();
 
         reviewRepository.save(review);
-
-        //TODO: 콘텐츠 평점 재계산(콘텐츠 생성 기능 완성 된 이후 진행)
     }
 
     @Override
