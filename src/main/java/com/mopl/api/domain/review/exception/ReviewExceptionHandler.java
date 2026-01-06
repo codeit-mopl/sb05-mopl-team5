@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class ReviewExceptionHandler {
 
     @ExceptionHandler(ReviewErrorException.class)
-    public ProblemDetail handleWatchingSessionException(ReviewErrorException e) {
+    public ProblemDetail handleReviewErrorException(ReviewErrorException e) {
         ErrorCode errorCode = e.getErrorCode();
         log.error(e.getMessage(), e);
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(errorCode.getHttpStatus(), errorCode.getMessage());
