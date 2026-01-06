@@ -40,7 +40,7 @@ public class ContentWebSocketController {
      * Client: SEND /pub/contents/{contentId}/chat
      */
     @MessageMapping("/contents/{contentId}/chat")
-    public void sendChat(
+    public void chatSend(
         @DestinationVariable UUID contentId,
         @Payload @Valid ContentChatSendRequest request,
         Principal principal
@@ -53,7 +53,7 @@ public class ContentWebSocketController {
      * Client: SEND /pub/contents/{contentId}/watch/join
      */
     @MessageMapping("/contents/{contentId}/watch/join")
-    public void joinWatchingSession(
+    public void watchingSessionJoin(
         @DestinationVariable UUID contentId,
         Principal principal
     ) {
@@ -70,7 +70,7 @@ public class ContentWebSocketController {
      * Client: SEND /pub/contents/{contentId}/watch/leave
      */
     @MessageMapping("/contents/{contentId}/watch/leave")
-    public void leaveWatchingSession(
+    public void watchingSessionLeave(
         @DestinationVariable UUID contentId,
         Principal principal
     ) {
