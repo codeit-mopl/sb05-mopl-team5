@@ -15,14 +15,12 @@ import org.springframework.stereotype.Controller;
 
 @Controller
 @RequiredArgsConstructor
-public class ContentWebSocketController {   // TODO WatchingSessionWebsocketController 등으로 네이밍, 패키지 변경 고려해보자
+public class ContentWebSocketController {
+    // TODO WatchingSessionWebsocketController 등으로 네이밍, 패키지 변경 고려해보자
 
     private final ContentChatService contentChatService;
     private final WatchingSessionService watchingSessionService;
 
-    /**
-     * 콘텐츠 채팅 전송 Client: SEND /pub/contents/{contentId}/chat
-     */
     @MessageMapping("/contents/{contentId}/chat")
     public void chatSend(
         @DestinationVariable UUID contentId,
@@ -32,9 +30,6 @@ public class ContentWebSocketController {   // TODO WatchingSessionWebsocketCont
         contentChatService.sendChat();
     }
 
-    /**
-     * 시청 세션 입장 (JOIN) Client: SEND /pub/contents/{contentId}/watch/join
-     */
     @MessageMapping("/contents/{contentId}/watch/join")
     public void watchingSessionJoin(
         @DestinationVariable UUID contentId,
@@ -48,9 +43,6 @@ public class ContentWebSocketController {   // TODO WatchingSessionWebsocketCont
         );
     }
 
-    /**
-     * 시청 세션 퇴장 (LEAVE) Client: SEND /pub/contents/{contentId}/watch/leave
-     */
     @MessageMapping("/contents/{contentId}/watch/leave")
     public void watchingSessionLeave(
         @DestinationVariable UUID contentId,
