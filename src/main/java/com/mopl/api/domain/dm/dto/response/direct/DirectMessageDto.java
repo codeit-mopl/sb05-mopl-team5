@@ -9,7 +9,7 @@ import lombok.Builder;
 public record DirectMessageDto(
 
     UUID id,
-    UUID ConversationId,
+    UUID conversationId,
     LocalDateTime createdAt,
     DirectMessageSend send,
     DirectMessageReceiver receiver,

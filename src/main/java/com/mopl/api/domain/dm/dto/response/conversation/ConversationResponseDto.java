@@ -12,7 +12,7 @@ public record ConversationResponseDto(
     UUID nextIdAfter,
     boolean hasNext,
     int totalCount,
-    String sorBy,
+    String sortBy,
     String sortDirection
 ) {
 

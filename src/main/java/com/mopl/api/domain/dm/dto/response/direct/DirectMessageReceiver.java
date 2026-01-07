@@ -6,7 +6,7 @@ import lombok.Builder;
 
 @Builder
 public record DirectMessageReceiver(
-    UUID userid,
+    UUID userId,
     String name,
     String profileImageUrl
 ) {
