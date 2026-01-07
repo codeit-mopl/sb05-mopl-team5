@@ -103,7 +103,8 @@ class WatchingSessionRepositoryTest {
     @DisplayName("생성일이 같을 경우 ID를 비교하여 다음 데이터를 가져온다")
     void searchSessions_TieBreaker_Success() {
 
-        LocalDateTime sameTime = LocalDateTime.now().withNano(0);
+        LocalDateTime sameTime = LocalDateTime.now()
+                                              .withNano(0);
         User user1 = createUser("A 유저", "auser@test.com");
         User user2 = createUser("B 유저", "buser@test.com");
 
@@ -117,6 +118,8 @@ class WatchingSessionRepositoryTest {
 
         WatchingSessionSearchRequest request = WatchingSessionSearchRequest.builder()
                                                                            .cursor(firstInList.getCreatedAt()
+                                                                                              .truncatedTo(
+                                                                                                  ChronoUnit.SECONDS)
                                                                                               .format(
                                                                                                   DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                                                                            .idAfter(firstInList.getId()
@@ -148,6 +151,7 @@ class WatchingSessionRepositoryTest {
         em.flush();
         em.clear();
 
-        return watchingSessionRepository.findById(session.getId()).get();
+        return watchingSessionRepository.findById(session.getId())
+                                        .get();
     }
 }
