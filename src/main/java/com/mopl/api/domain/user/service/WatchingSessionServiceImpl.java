@@ -71,7 +71,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         long totalCount = watchingSessionCacheRepository.countWatchers(contentId);
 
         return CursorResponseWatchingSessionDto.builder()
-                                               .data(watchingSessionMapper.toDtoList(resultData)) // List<WatchingSession> -> List<WatchingSessionDto>
+                                               .data(watchingSessionMapper.toDtoList(resultData))
                                                .nextCursor(nextCursor)
                                                .nextIdAfter(nextIdAfter)
                                                .hasNext(hasNext)

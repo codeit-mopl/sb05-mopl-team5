@@ -46,7 +46,7 @@ class WatchingSessionRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        content = new Content(ContentType.movie, 1L, "test content", "td",
+        content = new Content(ContentType.MOVIE, 1L, "test content", "td",
             "", "", new BigDecimal("0.0"), 0L, 0L);
         contentRepository.save(content);
         em.flush();

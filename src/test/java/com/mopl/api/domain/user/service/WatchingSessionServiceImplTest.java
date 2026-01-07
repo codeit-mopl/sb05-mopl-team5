@@ -3,13 +3,14 @@ package com.mopl.api.domain.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 import com.mopl.api.domain.content.entity.Content;
 import com.mopl.api.domain.content.repository.ContentRepository;
-import com.mopl.api.domain.user.dto.command.WatchingSessionCreateCommand;
+import com.mopl.api.domain.user.dto.event.WatchingSessionChangeEvent;
 import com.mopl.api.domain.user.dto.request.WatchingSessionSearchRequest;
 import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
@@ -20,32 +21,35 @@ import com.mopl.api.domain.user.mapper.WatchingSessionMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRedisRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRepository;
-import com.mopl.api.global.config.websocket.dto.WatchingSessionChange;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class WatchingSessionServiceImplTest {
 
     @Mock
-    ContentRepository contentRepository;
-    @Mock
     UserRepository userRepository;
+    @Mock
+    ContentRepository contentRepository;
     @Mock
     WatchingSessionRepository watchingSessionRepository;
     @Mock
     WatchingSessionRedisRepository watchingSessionCacheRepository;
     @Mock
     WatchingSessionMapper watchingSessionMapper;
+    @Mock
+    ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     WatchingSessionServiceImpl watchingSessionService;
@@ -55,158 +59,128 @@ class WatchingSessionServiceImplTest {
     UUID contentId;
     Content content;
     WatchingSession session;
-    WatchingSessionSearchRequest request;
 
     @BeforeEach
     void setUp() {
-        // TODO 테스트에 필요한 세팅
         watcherId = UUID.randomUUID();
         contentId = UUID.randomUUID();
-
         watcher = mock(User.class);
         content = mock(Content.class);
-
         session = new WatchingSession(watcher, content);
 
-        request = WatchingSessionSearchRequest.builder()
-                                              .limit(10)
-                                              .sortBy(WatchingSessionSearchRequest.SortBy.createdAt)
-                                              .sortDirection(WatchingSessionSearchRequest.SortDirection.DESCENDING)
-                                              .cursor(null)
-                                              .idAfter(null)
-                                              .watcherNameLike(null)
-                                              .build();
+        ReflectionTestUtils.setField(session, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(session, "createdAt", LocalDateTime.now());
     }
 
-    // TODO DB 조회에 대한 고민을 하고 정리해야할 듯
     @Test
-    @DisplayName("REDIS O → 시청 세션 정상 반환")
-    @Disabled("조회 정책 결정 후 구현 예정")
-    void getWatchingSession_redisHit_success() {
+    @DisplayName("단일 세션 조회 성공: DB에서 데이터를 가져온다")
+    void getWatchingSession_Success() {
+        given(watchingSessionRepository.findByWatcherId(watcherId)).willReturn(Optional.of(session));
+        given(watchingSessionMapper.toDto(session)).willReturn(mock(WatchingSessionDto.class));
 
-        when(watchingSessionCacheRepository.findSessionByUserId(watcherId))
-            .thenReturn(Optional.of(session));
-
-        WatchingSessionDto result =
-            watchingSessionService.getWatchingSession(watcherId);
+        WatchingSessionDto result = watchingSessionService.getWatchingSession(watcherId);
 
         assertThat(result).isNotNull();
+        then(watchingSessionRepository).should()
+                                       .findByWatcherId(watcherId);
     }
 
     @Test
-    @DisplayName("REDIS X → 예외 발생")
-    @Disabled("조회 정책 결정 후 구현 예정")
-    void getWatchingSession_redisMiss_dbMiss_shouldThrow() {
+    @DisplayName("커서 기반 목록 조회: 다음 페이지가 있는 경우")
+    void getWatchingSession_WithCursor_HasNext() {
+        int limit = 2;
+        WatchingSessionSearchRequest request = WatchingSessionSearchRequest.builder()
+                                                                           .limit(limit)
+                                                                           .sortBy(
+                                                                               WatchingSessionSearchRequest.SortBy.createdAt)
+                                                                           .sortDirection(
+                                                                               WatchingSessionSearchRequest.SortDirection.DESCENDING)
+                                                                           .build();
 
-        when(watchingSessionCacheRepository.findSessionByUserId(watcherId))
-            .thenReturn(Optional.empty());
+        List<WatchingSession> sessions = List.of(session, session, session);
+        given(watchingSessionRepository.searchSessions(contentId, request)).willReturn(sessions);
+        given(watchingSessionCacheRepository.countWatchers(contentId)).willReturn(10L);
 
-        assertThatThrownBy(() ->
-            watchingSessionService.getWatchingSession(watcherId)
-        ).isInstanceOf(WatchingSessionNotFoundException.class);
+        List<WatchingSessionDto> mockDtoList = List.of(mock(WatchingSessionDto.class), mock(WatchingSessionDto.class));
+        given(watchingSessionMapper.toDtoList(any())).willReturn(mockDtoList);
+
+        CursorResponseWatchingSessionDto result = watchingSessionService.getWatchingSession(contentId, request);
+
+        assertThat(result.hasNext()).isTrue();
+        assertThat(result.data()).hasSize(limit);
+        assertThat(result.totalCount()).isEqualTo(10L);
+        assertThat(result.nextCursor()).isNotNull();
     }
 
     @Test
-    @DisplayName("contentId 기준 REDIS O → 커서 응답 반환")
-    @Disabled("조회 정책 결정 후 구현 예정")
-    void getWatchingSessionByContent_redisHit_success() {
+    @DisplayName("세션 참여: 신규 유저인 경우 DB/Redis 저장 및 이벤트 발행")
+    void joinWatchingSession_NewUser_Success() {
 
-        when(watchingSessionCacheRepository.findSessionsByContentId(contentId))
-            .thenReturn(List.of(session));
+        given(userRepository.findById(watcherId)).willReturn(Optional.of(watcher));
+        given(contentRepository.findById(contentId)).willReturn(Optional.of(content));
+        given(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)).willReturn(Optional.empty());
+        given(watchingSessionRepository.save(any())).willReturn(session);
+        given(watchingSessionCacheRepository.countWatchers(contentId)).willReturn(1L);
 
-        CursorResponseWatchingSessionDto result =
-            watchingSessionService.getWatchingSession(contentId, request);
+        watchingSessionService.joinWatchingSession(contentId, watcherId);
 
-        assertThat(result).isNotNull();
+        then(watchingSessionRepository).should()
+                                       .save(any());
+        then(watchingSessionCacheRepository).should()
+                                            .addWatcher(contentId, watcherId);
+        then(eventPublisher).should()
+                            .publishEvent(any(WatchingSessionChangeEvent.class));
     }
 
     @Test
-    @DisplayName("contentId 기준 REDIS X → 빈 커서 응답")
-    @Disabled("조회 정책 결정 후 구현 예정")
-    void getWatchingSessionByContent_redisMiss_shouldReturnEmptyCursor() {
+    @DisplayName("세션 참여: 이미 참여 중인 유저인 경우 추가 저장 없이 기존 정보 반환")
+    void joinWatchingSession_ExistingUser_ReturnCurrent() {
 
-        when(watchingSessionCacheRepository.findSessionsByContentId(contentId))
-            .thenReturn(List.of());
+        given(userRepository.findById(watcherId)).willReturn(Optional.of(watcher));
+        given(contentRepository.findById(contentId)).willReturn(Optional.of(content));
+        given(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)).willReturn(
+            Optional.of(session));
 
-        CursorResponseWatchingSessionDto result =
-            watchingSessionService.getWatchingSession(contentId, request);
+        watchingSessionService.joinWatchingSession(contentId, watcherId);
 
-        assertThat(result).isNotNull();
-        assertThat(result.data()).isEmpty();
+        then(watchingSessionRepository).should(never())
+                                       .save(any());
+        then(watchingSessionCacheRepository).should(never())
+                                            .addWatcher(any(), any());
+        then(eventPublisher).should(never())
+                            .publishEvent(any());
     }
 
     @Test
-    @DisplayName("웹소켓 연결 시 DB + Redis 세션 생성")
-    void addWatchingSession_shouldSaveDbAndRedis() {
+    @DisplayName("세션 이탈: 정상 처리")
+    void leaveWatchingSession_Success() {
 
-        WatchingSessionCreateCommand command = mock(WatchingSessionCreateCommand.class);
+        given(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)).willReturn(
+            Optional.of(session));
+        given(watchingSessionCacheRepository.countWatchers(contentId)).willReturn(5L);
 
-        when(command.watcherId()).thenReturn(watcherId);
-        when(command.contentId()).thenReturn(contentId);
+        watchingSessionService.leaveWatchingSession(contentId, watcherId);
 
-        when(userRepository.findById(watcherId))
-            .thenReturn(Optional.of(watcher));
-        when(contentRepository.findById(contentId))
-            .thenReturn(Optional.of(content));
-
-        when(watchingSessionRepository.save(any(WatchingSession.class)))
-            .thenReturn(session);
-
-        WatchingSessionDto mappedDto = WatchingSessionDto.builder()
-                                                         .build();
-        when(watchingSessionMapper.toDto(session))
-            .thenReturn(mappedDto);
-
-        WatchingSessionChange result =
-            watchingSessionService.joinWatchingSession(contentId, watcherId);
-
-        verify(watchingSessionRepository).save(any(WatchingSession.class));
-        verify(watchingSessionCacheRepository).addWatcher(contentId, watcherId);
-        verify(watchingSessionMapper).toDto(session);
-
-        assertThat(result).isNotNull();
+        then(watchingSessionRepository).should()
+                                       .delete(session);
+        then(watchingSessionCacheRepository).should()
+                                            .removeWatcher(contentId, watcherId);
+        then(eventPublisher).should()
+                            .publishEvent(any(WatchingSessionChangeEvent.class));
     }
 
     @Test
-    @DisplayName("유저가 존재하지 않으면 예외 발생")
-    void addWatchingSession_userNotFound_shouldThrow() {
+    @DisplayName("세션 이탈: 존재하지 않는 세션일 경우 예외 발생")
+    void leaveWatchingSession_NotFound_ThrowsException() {
 
-        when(userRepository.findById(watcherId))
-            .thenReturn(Optional.empty());
+        given(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() ->
-            watchingSessionService.joinWatchingSession(contentId, watcherId)
-        ).isInstanceOf(RuntimeException.class);
-    }
+        assertThatThrownBy(() -> watchingSessionService.leaveWatchingSession(contentId, watcherId)).isInstanceOf(
+            WatchingSessionNotFoundException.class);
 
-    @Test
-    @DisplayName("웹소켓 해제 / 필요 시 DB + Redis 세션 제거")
-    void leaveWatchingSession_shouldDeleteBoth() {
-
-        UUID sessionId = UUID.randomUUID();
-
-        when(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId))
-            .thenReturn(Optional.of(session));
-
-        WatchingSessionChange result = watchingSessionService.leaveWatchingSession(contentId, watcherId);
-
-        verify(watchingSessionRepository).deleteById(sessionId);
-        verify(watchingSessionCacheRepository).removeWatcher(contentId, watcherId);
-
-        assertThat(result).isNotNull();
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 세션 제거 시 예외 발생")
-    void leaveWatchingSession_notFound_shouldThrow() {
-
-        UUID sessionId = UUID.randomUUID();
-
-        when(watchingSessionRepository.existsById(sessionId))
-            .thenReturn(false);
-
-        assertThatThrownBy(() ->
-            watchingSessionService.leaveWatchingSession(contentId, watcherId)
-        ).isInstanceOf(WatchingSessionNotFoundException.class);
+        then(watchingSessionRepository).should(never())
+                                       .delete(any());
+        then(watchingSessionCacheRepository).should(never())
+                                            .removeWatcher(any(), any());
     }
 }
