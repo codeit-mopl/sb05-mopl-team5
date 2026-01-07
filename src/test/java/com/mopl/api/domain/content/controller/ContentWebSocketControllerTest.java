@@ -1,12 +1,10 @@
 package com.mopl.api.domain.content.controller;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import com.mopl.api.domain.content.service.ContentChatService;
-import com.mopl.api.domain.user.service.WatchingSessionService;
 import com.mopl.api.global.config.websocket.dto.ContentChatSendRequest;
-import com.mopl.api.global.config.websocket.publisher.RedisWatchingSessionPublisher;
 import java.security.Principal;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -22,12 +20,6 @@ class ContentWebSocketControllerTest {
     @Mock
     ContentChatService contentChatService;
 
-    @Mock
-    WatchingSessionService watchingSessionService;
-
-    @Mock
-    RedisWatchingSessionPublisher publisher;
-
     @InjectMocks
     ContentWebSocketController controller;
 
@@ -39,13 +31,13 @@ class ContentWebSocketControllerTest {
     void sendChat_shouldDelegateToChatService() {
 
         UUID contentId = UUID.randomUUID();
-        UUID senderId = UUID.fromString(principal.getName());
+        UUID userId = UUID.randomUUID();
         ContentChatSendRequest request = new ContentChatSendRequest("hello");
 
-//        when(principal.getName()).thenReturn(UUID.randomUUID().toString());
+        given(principal.getName()).willReturn(userId.toString());
 
         controller.chatSend(contentId, request, principal);
 
-        verify(contentChatService).sendChat(contentId, senderId, request);
+        verify(contentChatService).sendChat(contentId, userId, request);
     }
 }
