@@ -3,3 +3,10 @@ logging:
     com.codeit.project.deokhugam: debug
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
+spring:
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: false
