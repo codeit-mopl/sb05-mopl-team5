@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface WatchingSessionRepository extends JpaRepository<WatchingSession, UUID> {
 
     Optional<WatchingSession> findByWatcherId(UUID watcherId);
+
+    Optional<WatchingSession> findByContentIdAndWatcherId(UUID contentId, UUID watcherId);
 }

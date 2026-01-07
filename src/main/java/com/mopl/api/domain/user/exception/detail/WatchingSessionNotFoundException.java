@@ -10,9 +10,10 @@ public class WatchingSessionNotFoundException extends WatchingSessionException {
         super(WatchingSessionErrorCode.SESSION_NOT_FOUND);
     }
 
-    public static WatchingSessionNotFoundException withSessionId(UUID sessionId) {
+    public static WatchingSessionNotFoundException withContentIdAndWatcherId(UUID contentId, UUID watcherId) {
         WatchingSessionNotFoundException exception = new WatchingSessionNotFoundException();
-        exception.addDetail("watchingSessionId", sessionId);
+        exception.addDetail("contentId", contentId);
+        exception.addDetail("watcherId", watcherId);
         return exception;
     }
 }
