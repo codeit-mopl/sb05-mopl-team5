@@ -56,7 +56,7 @@ class WatchingSessionRepositoryTest {
     @Test
     @DisplayName("생성일 내림차순(DESC) 커서 페이징이 정상 동작한다")
     void searchSessions_Desc_Cursor_Success() {
-        // given: 3명의 유저 생성 (각각 1분 간격)
+
         LocalDateTime now = LocalDateTime.now();
         User user1 = createUser("유저1", "test1@test.com");
         User user2 = createUser("유저2", "test2@test.com");
@@ -102,7 +102,7 @@ class WatchingSessionRepositoryTest {
     @DisplayName("생성일이 같을 경우 ID를 비교하여 다음 데이터를 가져온다")
     void searchSessions_TieBreaker_Success() {
 
-        LocalDateTime sameTime = LocalDateTime.of(2026, 1, 1, 12, 0);
+        LocalDateTime sameTime = LocalDateTime.of(2026, 1, 1, 12, 0, 0, 0);
         User user1 = createUser("A 유저", "auser@test.com");
         User user2 = createUser("B 유저", "buser@test.com");
 
@@ -138,10 +138,13 @@ class WatchingSessionRepositoryTest {
 
     private WatchingSession saveSession(User user, LocalDateTime createdAt) {
         WatchingSession session = new WatchingSession(user, content);
+        watchingSessionRepository.save(session);
+
         ReflectionTestUtils.setField(session, "createdAt", createdAt);
-        WatchingSession saved = watchingSessionRepository.save(session);
+
         em.flush();
         em.clear();
-        return saved;
+
+        return watchingSessionRepository.findById(session.getId()).get();
     }
 }
