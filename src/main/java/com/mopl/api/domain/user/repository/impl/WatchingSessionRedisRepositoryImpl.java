@@ -1,9 +1,8 @@
 package com.mopl.api.domain.user.repository.impl;
 
-import com.mopl.api.domain.user.entity.WatchingSession;
 import com.mopl.api.domain.user.repository.WatchingSessionRedisRepository;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,13 +17,17 @@ public class WatchingSessionRedisRepositoryImpl implements WatchingSessionRedisR
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
-    public Optional<WatchingSession> findSessionByUserId(UUID userId) {
-        return Optional.empty();
-    }
+    public List<UUID> findSessionsByContentId(UUID contentId) {
+        Set<Object> userIds = redisTemplate.opsForSet()
+                                           .members(key(contentId));
 
-    @Override
-    public List<WatchingSession> findSessionsByContentId(UUID contentId) {
-        return List.of();
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+
+        return userIds.stream()
+                      .map(id -> UUID.fromString(String.valueOf(id)))
+                      .toList();
     }
 
     @Override

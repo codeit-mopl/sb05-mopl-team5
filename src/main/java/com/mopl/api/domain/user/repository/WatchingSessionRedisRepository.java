@@ -7,9 +7,7 @@ import java.util.UUID;
 
 public interface WatchingSessionRedisRepository {
 
-    Optional<WatchingSession> findSessionByUserId(UUID userId);
-
-    List<WatchingSession> findSessionsByContentId(UUID contentId);
+    List<UUID> findSessionsByContentId(UUID contentId);
 
     void addWatcher(UUID contentId, UUID userId);
 

@@ -5,6 +5,7 @@ import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.entity.WatchingSession;
 import java.util.Arrays;
+import java.util.List;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -50,5 +51,11 @@ public abstract class WatchingSessionMapper {
                                                                         .getThumbnailUrl())
                                                     .build())   // TODO ContentMapper 연동
                                  .build();
+    }
+
+    public List<WatchingSessionDto> toDtoList(List<WatchingSession> entities) {
+        return entities.stream()
+                       .map(this::toDto)
+                       .toList();
     }
 }
