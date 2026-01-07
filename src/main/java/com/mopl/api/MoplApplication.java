@@ -10,8 +10,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableJpaAuditing
 @EnableScheduling
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = "com.mopl.api.domain")
-@EntityScan(basePackages = "com.mopl.api.domain")
 public class MoplApplication {
 
     public static void main(String[] args) {

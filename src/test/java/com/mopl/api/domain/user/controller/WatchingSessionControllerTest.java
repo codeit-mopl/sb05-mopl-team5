@@ -23,8 +23,6 @@ import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-
-@Disabled("WatchingSession API 미완성")
 @WebMvcTest(WatchingSessionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class WatchingSessionControllerTest {

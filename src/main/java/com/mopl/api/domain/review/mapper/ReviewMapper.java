@@ -8,10 +8,7 @@ import java.time.ZoneId;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-
-
 @Mapper(componentModel = "spring")
-    //, unmappedTargetPolicy =  ReportingPolicy.IGNORE) // 테스트  코드 빌드할때 무시하기위해
 public interface ReviewMapper {
 
     @Mapping(target = "id", source = "review.id")
