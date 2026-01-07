@@ -39,7 +39,8 @@ public class WatchingSessionRepositoryCustomImpl implements WatchingSessionRepos
             .orderBy(
                 request.sortDirection() == WatchingSessionSearchRequest.SortDirection.ASCENDING
                     ? watchingSession.createdAt.asc() : watchingSession.createdAt.desc(),
-                watchingSession.id.asc()
+                request.sortDirection() == WatchingSessionSearchRequest.SortDirection.ASCENDING
+                    ? watchingSession.id.asc() : watchingSession.id.desc()
             )
             .limit(request.limit() + 1L)
             .fetch();

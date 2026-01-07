@@ -17,6 +17,7 @@ import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -137,10 +138,12 @@ class WatchingSessionRepositoryTest {
     }
 
     private WatchingSession saveSession(User user, LocalDateTime createdAt) {
+        LocalDateTime truncatedTime = createdAt.truncatedTo(ChronoUnit.SECONDS);
+
         WatchingSession session = new WatchingSession(user, content);
         watchingSessionRepository.save(session);
 
-        ReflectionTestUtils.setField(session, "createdAt", createdAt);
+        ReflectionTestUtils.setField(session, "createdAt", truncatedTime);
 
         em.flush();
         em.clear();
