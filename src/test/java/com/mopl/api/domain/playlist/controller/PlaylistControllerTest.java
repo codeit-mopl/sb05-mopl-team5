@@ -15,7 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import com.mopl.api.config.WithMockCustomUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@WithMockUser
+@WithMockCustomUser
 @DisplayName("PlaylistController 통합 테스트")
 class PlaylistControllerTest {
 
@@ -60,7 +60,7 @@ class PlaylistControllerTest {
 
     @BeforeEach
     void setUp() {
-        userId = UUID.randomUUID();
+        userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
         playlistId = UUID.randomUUID();
         contentId = UUID.randomUUID();
 
@@ -100,7 +100,6 @@ class PlaylistControllerTest {
 
         mockMvc.perform(post("/api/playlists")
                    .with(csrf())
-                   .header("X-User-Id", userId.toString())
                    .contentType(MediaType.APPLICATION_JSON)
                    .content(objectMapper.writeValueAsString(createRequest)))
                .andExpect(status().isCreated())
@@ -116,7 +115,6 @@ class PlaylistControllerTest {
 
         mockMvc.perform(post("/api/playlists")
                    .with(csrf())
-                   .header("X-User-Id", userId.toString())
                    .contentType(MediaType.APPLICATION_JSON)
                    .content(objectMapper.writeValueAsString(invalidRequest)))
                .andExpect(status().isBadRequest());
@@ -143,7 +141,6 @@ class PlaylistControllerTest {
 
         mockMvc.perform(patch("/api/playlists/{playlistId}", playlistId)
                    .with(csrf())
-                   .header("X-User-Id", userId.toString())
                    .contentType(MediaType.APPLICATION_JSON)
                    .content(objectMapper.writeValueAsString(updateRequest)))
                .andExpect(status().isOk())
@@ -158,8 +155,7 @@ class PlaylistControllerTest {
                    .removePlaylist(playlistId, userId);
 
         mockMvc.perform(delete("/api/playlists/{playlistId}", playlistId)
-                   .with(csrf())
-                   .header("X-User-Id", userId.toString()))
+                   .with(csrf()))
                .andExpect(status().isNoContent());
     }
 
@@ -169,8 +165,7 @@ class PlaylistControllerTest {
         when(playlistService.getPlaylist(playlistId, userId))
             .thenReturn(playlistDto);
 
-        mockMvc.perform(get("/api/playlists/{playlistId}", playlistId)
-                   .header("X-User-Id", userId.toString()))
+        mockMvc.perform(get("/api/playlists/{playlistId}", playlistId))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.id").value(playlistId.toString()))
                .andExpect(jsonPath("$.title").value("My Playlist"));

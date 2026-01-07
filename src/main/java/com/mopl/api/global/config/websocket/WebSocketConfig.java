@@ -1,5 +1,6 @@
 package com.mopl.api.global.config.websocket;
 
+import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +16,7 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    private final WebSocketAuthChannelInterceptor authChannelInterceptor;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -31,13 +32,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .withSockJS();
     }
 
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(webSocketAuthChannelInterceptor());
+    }
+
     @Bean
     public HandshakeInterceptor jwtHandshakeInterceptor() {
         return new JwtHandshakeInterceptor();
     }
 
-    @Override
-    public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(authChannelInterceptor);
+    @Bean
+    public WebSocketAuthChannelInterceptor webSocketAuthChannelInterceptor() {
+        return new WebSocketAuthChannelInterceptor(jwtTokenProvider);
     }
 }

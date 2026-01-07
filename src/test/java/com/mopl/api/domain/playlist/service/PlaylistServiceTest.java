@@ -5,6 +5,12 @@ import com.mopl.api.domain.playlist.dto.request.PlaylistCreateRequest;
 import com.mopl.api.domain.playlist.dto.request.PlaylistUpdateRequest;
 import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
 import com.mopl.api.domain.playlist.entity.Playlist;
+import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
+import com.mopl.api.domain.playlist.exception.detail.ContentAlreadyExistsException;
+import com.mopl.api.domain.playlist.exception.detail.ContentNotInPlaylistException;
+import com.mopl.api.domain.playlist.exception.detail.PlaylistNotFoundException;
+import com.mopl.api.domain.playlist.exception.detail.PlaylistUnauthorizedException;
+import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.playlist.mapper.PlaylistMapper;
 import com.mopl.api.domain.playlist.repository.PlaylistContentRepository;
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
@@ -106,8 +112,7 @@ class PlaylistServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.addPlaylist(request, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("User not found");
+            .isInstanceOf(UserNotFoundException.class);
 
         verify(userRepository).findById(userId);
         verify(playlistRepository, never()).save(any());
@@ -144,8 +149,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.modifyPlaylist(playlistId, request, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Playlist not found");
+            .isInstanceOf(PlaylistNotFoundException.class);
 
         verify(playlistRepository).findById(playlistId);
         verify(playlistRepository, never()).save(any());
@@ -164,8 +168,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
 
         assertThatThrownBy(() -> playlistService.modifyPlaylist(playlistId, request, differentUserId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("not authorized");
+            .isInstanceOf(PlaylistUnauthorizedException.class);
 
         verify(playlistRepository).findById(playlistId);
         verify(playlistRepository, never()).save(any());
@@ -195,8 +198,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.removePlaylist(playlistId, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Playlist not found");
+            .isInstanceOf(PlaylistNotFoundException.class);
 
         verify(playlistRepository).findById(playlistId);
         verify(playlistRepository, never()).save(any());
@@ -214,8 +216,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
 
         assertThatThrownBy(() -> playlistService.removePlaylist(playlistId, differentUserId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("not authorized");
+            .isInstanceOf(PlaylistUnauthorizedException.class);
 
         verify(playlistRepository).findById(playlistId);
         verify(mockPlaylist, never()).softDelete();
@@ -251,8 +252,7 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.getPlaylist(playlistId, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Playlist not found");
+            .isInstanceOf(PlaylistNotFoundException.class);
 
         verify(playlistRepository).findById(playlistId);
     }
@@ -266,15 +266,173 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
 
         assertThatThrownBy(() -> playlistService.getPlaylist(playlistId, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Playlist not found");
+            .isInstanceOf(PlaylistNotFoundException.class);
 
         verify(playlistRepository).findById(playlistId);
     }
 
+    @Test
+    @DisplayName("플레이리스트에 콘텐츠 추가 성공")
+    void addContentToPlaylist_Success() {
+        User mockUser = mock(User.class);
+        Playlist mockPlaylist = mock(Playlist.class);
+        com.mopl.api.domain.content.entity.Content mockContent = mock(com.mopl.api.domain.content.entity.Content.class);
 
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockPlaylist.getOwner()).thenReturn(mockUser);
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(playlistContentRepository.existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(false);
 
+        playlistService.addContentToPlaylist(playlistId, contentId, userId);
 
+        verify(playlistRepository).findById(playlistId);
+        verify(contentRepository).findById(contentId);
+        verify(playlistContentRepository).existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId);
+        verify(playlistContentRepository).save(any(com.mopl.api.domain.playlist.entity.PlaylistContent.class));
+    }
 
+    @Test
+    @DisplayName("플레이리스트에 콘텐츠 추가 실패 - 플레이리스트 없음")
+    void addContentToPlaylist_PlaylistNotFound() {
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.empty());
 
+        assertThatThrownBy(() -> playlistService.addContentToPlaylist(playlistId, contentId, userId))
+            .isInstanceOf(PlaylistNotFoundException.class);
+
+        verify(playlistRepository).findById(playlistId);
+        verify(contentRepository, never()).findById(any());
+        verify(playlistContentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("플레이리스트에 콘텐츠 추가 실패 - 권한 없음")
+    void addContentToPlaylist_Unauthorized() {
+        UUID differentUserId = UUID.randomUUID();
+        User mockUser = mock(User.class);
+        Playlist mockPlaylist = mock(Playlist.class);
+
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockPlaylist.getOwner()).thenReturn(mockUser);
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+
+        assertThatThrownBy(() -> playlistService.addContentToPlaylist(playlistId, contentId, differentUserId))
+            .isInstanceOf(PlaylistUnauthorizedException.class);
+
+        verify(playlistRepository).findById(playlistId);
+        verify(contentRepository, never()).findById(any());
+        verify(playlistContentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("플레이리스트에 콘텐츠 추가 실패 - 콘텐츠 없음")
+    void addContentToPlaylist_ContentNotFound() {
+        User mockUser = mock(User.class);
+        Playlist mockPlaylist = mock(Playlist.class);
+
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockPlaylist.getOwner()).thenReturn(mockUser);
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> playlistService.addContentToPlaylist(playlistId, contentId, userId))
+            .isInstanceOf(ContentNotFoundException.class);
+
+        verify(playlistRepository).findById(playlistId);
+        verify(contentRepository).findById(contentId);
+        verify(playlistContentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("플레이리스트에 콘텐츠 추가 실패 - 이미 존재하는 콘텐츠")
+    void addContentToPlaylist_ContentAlreadyExists() {
+        User mockUser = mock(User.class);
+        Playlist mockPlaylist = mock(Playlist.class);
+        com.mopl.api.domain.content.entity.Content mockContent = mock(com.mopl.api.domain.content.entity.Content.class);
+
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockPlaylist.getOwner()).thenReturn(mockUser);
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(playlistContentRepository.existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(true);
+
+        assertThatThrownBy(() -> playlistService.addContentToPlaylist(playlistId, contentId, userId))
+            .isInstanceOf(ContentAlreadyExistsException.class);
+
+        verify(playlistRepository).findById(playlistId);
+        verify(contentRepository).findById(contentId);
+        verify(playlistContentRepository).existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId);
+        verify(playlistContentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("플레이리스트에서 콘텐츠 삭제 성공")
+    void removeContentFromPlaylist_Success() {
+        User mockUser = mock(User.class);
+        Playlist mockPlaylist = mock(Playlist.class);
+        com.mopl.api.domain.playlist.entity.PlaylistContent mockPlaylistContent = mock(com.mopl.api.domain.playlist.entity.PlaylistContent.class);
+
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockPlaylist.getOwner()).thenReturn(mockUser);
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(Optional.of(mockPlaylistContent));
+
+        playlistService.removeContentFromPlaylist(playlistId, contentId, userId);
+
+        verify(playlistRepository).findById(playlistId);
+        verify(playlistContentRepository).findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId);
+        verify(mockPlaylistContent).softDelete();
+        verify(playlistContentRepository).save(mockPlaylistContent);
+    }
+
+    @Test
+    @DisplayName("플레이리스트에서 콘텐츠 삭제 실패 - 플레이리스트 없음")
+    void removeContentFromPlaylist_PlaylistNotFound() {
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> playlistService.removeContentFromPlaylist(playlistId, contentId, userId))
+            .isInstanceOf(PlaylistNotFoundException.class);
+
+        verify(playlistRepository).findById(playlistId);
+        verify(playlistContentRepository, never()).findByPlaylistIdAndContentIdAndIsDeletedFalse(any(), any());
+        verify(playlistContentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("플레이리스트에서 콘텐츠 삭제 실패 - 권한 없음")
+    void removeContentFromPlaylist_Unauthorized() {
+        UUID differentUserId = UUID.randomUUID();
+        User mockUser = mock(User.class);
+        Playlist mockPlaylist = mock(Playlist.class);
+
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockPlaylist.getOwner()).thenReturn(mockUser);
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+
+        assertThatThrownBy(() -> playlistService.removeContentFromPlaylist(playlistId, contentId, differentUserId))
+            .isInstanceOf(PlaylistUnauthorizedException.class);
+
+        verify(playlistRepository).findById(playlistId);
+        verify(playlistContentRepository, never()).findByPlaylistIdAndContentIdAndIsDeletedFalse(any(), any());
+        verify(playlistContentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("플레이리스트에서 콘텐츠 삭제 실패 - 플레이리스트에 없는 콘텐츠")
+    void removeContentFromPlaylist_ContentNotInPlaylist() {
+        User mockUser = mock(User.class);
+        Playlist mockPlaylist = mock(Playlist.class);
+
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockPlaylist.getOwner()).thenReturn(mockUser);
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> playlistService.removeContentFromPlaylist(playlistId, contentId, userId))
+            .isInstanceOf(ContentNotInPlaylistException.class);
+
+        verify(playlistRepository).findById(playlistId);
+        verify(playlistContentRepository).findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId);
+        verify(playlistContentRepository, never()).save(any());
+    }
 }
