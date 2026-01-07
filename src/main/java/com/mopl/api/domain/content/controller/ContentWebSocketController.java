@@ -1,7 +1,6 @@
 package com.mopl.api.domain.content.controller;
 
 import com.mopl.api.domain.content.service.ContentChatService;
-import com.mopl.api.domain.user.dto.command.WatchingSessionCreateCommand;
 import com.mopl.api.domain.user.service.WatchingSessionService;
 import com.mopl.api.global.config.websocket.dto.ContentChatSendRequest;
 import jakarta.validation.Valid;
@@ -28,28 +27,5 @@ public class ContentWebSocketController {
         Principal principal
     ) {
         contentChatService.sendChat();
-    }
-
-    @MessageMapping("/contents/{contentId}/watch/join")
-    public void watchingSessionJoin(
-        @DestinationVariable UUID contentId,
-        Principal principal
-    ) {
-        watchingSessionService.addWatchingSession(
-            WatchingSessionCreateCommand.builder()
-                                        .contentId(contentId)
-                                        .watcherId(UUID.fromString(principal.getName()))
-                                        .build()
-        );
-    }
-
-    @MessageMapping("/contents/{contentId}/watch/leave")
-    public void watchingSessionLeave(
-        @DestinationVariable UUID contentId,
-        Principal principal
-    ) {
-        watchingSessionService.removeWatchingSession(
-            contentId
-        );
     }
 }

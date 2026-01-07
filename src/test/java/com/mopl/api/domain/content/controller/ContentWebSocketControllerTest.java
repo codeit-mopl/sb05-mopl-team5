@@ -2,13 +2,11 @@ package com.mopl.api.domain.content.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.mopl.api.domain.content.service.ContentChatService;
-import com.mopl.api.domain.user.dto.command.WatchingSessionCreateCommand;
 import com.mopl.api.domain.user.service.WatchingSessionService;
 import com.mopl.api.global.config.websocket.dto.ContentChatSendRequest;
-import com.mopl.api.global.config.websocket.publisher.WatchingSessionPublisher;
+import com.mopl.api.global.config.websocket.publisher.RedisWatchingSessionPublisher;
 import java.security.Principal;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +26,7 @@ class ContentWebSocketControllerTest {
     WatchingSessionService watchingSessionService;
 
     @Mock
-    WatchingSessionPublisher publisher;
+    RedisWatchingSessionPublisher publisher;
 
     @InjectMocks
     ContentWebSocketController controller;
@@ -48,35 +46,5 @@ class ContentWebSocketControllerTest {
         controller.chatSend(contentId, request, principal);
 
         verify(contentChatService).sendChat();
-    }
-
-    @Test
-    @DisplayName("시청 세션 JOIN 시 WatchingSessionService.addWatchingSession 호출")
-    void joinWatchingSession_shouldCallAddWatchingSession() {
-
-        UUID contentId = UUID.randomUUID();
-        UUID watcherId = UUID.randomUUID();
-
-        when(principal.getName()).thenReturn(watcherId.toString());
-
-        controller.watchingSessionJoin(contentId, principal);
-
-        verify(watchingSessionService).addWatchingSession(
-            any(WatchingSessionCreateCommand.class)
-        );
-    }
-
-    @Test
-    @DisplayName("시청 세션 LEAVE 시 WatchingSessionService.removeWatchingSession 호출")
-    void leaveWatchingSession_shouldCallRemoveWatchingSession() {
-
-        UUID contentId = UUID.randomUUID();
-        UUID watcherId = UUID.randomUUID();
-
-//        when(principal.getName()).thenReturn(watcherId.toString());
-
-        controller.watchingSessionLeave(contentId, principal);
-
-        verify(watchingSessionService).removeWatchingSession(contentId);
     }
 }
