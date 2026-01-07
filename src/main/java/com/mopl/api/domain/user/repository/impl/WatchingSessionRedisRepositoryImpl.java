@@ -46,6 +46,15 @@ public class WatchingSessionRedisRepositoryImpl implements WatchingSessionRedisR
         return size != null ? size : 0L;
     }
 
+    @Override
+    public boolean isWatching(UUID contentId, UUID userId) {
+        Boolean isMember =
+            redisTemplate.opsForSet()
+                         .isMember(key(contentId), userId.toString());
+
+        return Boolean.TRUE.equals(isMember);
+    }
+
     private String key(UUID contentId) {
         return KEY_PREFIX + contentId;
     }

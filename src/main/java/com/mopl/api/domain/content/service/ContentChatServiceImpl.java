@@ -3,6 +3,7 @@ package com.mopl.api.domain.content.service;
 import com.mopl.api.domain.user.dto.request.UserSummary;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
+import com.mopl.api.domain.user.repository.WatchingSessionRedisRepository;
 import com.mopl.api.global.config.websocket.dto.ContentChatDto;
 import com.mopl.api.global.config.websocket.dto.ContentChatSendRequest;
 import com.mopl.api.global.config.websocket.publisher.RedisContentChatPublisher;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 public class ContentChatServiceImpl implements ContentChatService {
 
     private final UserRepository userRepository;
+    private final WatchingSessionRedisRepository watchingSessionRedisRepository;
     private final RedisContentChatPublisher publisher;
 
     @Override
@@ -24,6 +26,11 @@ public class ContentChatServiceImpl implements ContentChatService {
 
         User user = userRepository.findById(senderId)
                                   .orElseThrow(); // TODO User Not Found
+
+        if (!watchingSessionRedisRepository.isWatching(contentId, senderId)) {
+            log.warn("시청하지 않는 유저의 채팅 시도 contentId={}, userId={}", contentId, senderId);
+            return;
+        }
 
         UserSummary sender = UserSummary.builder()
                                         .userId(user.getId())

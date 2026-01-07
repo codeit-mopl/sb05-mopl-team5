@@ -16,4 +16,6 @@ public interface WatchingSessionRedisRepository {
     void removeWatcher(UUID contentId, UUID userId);
 
     long countWatchers(UUID contentId);
+
+    boolean isWatching(UUID contentId, UUID userId);
 }
