@@ -1,7 +1,10 @@
 package com.mopl.api.domain.user.mapper;
 
+import com.mopl.api.domain.content.dto.response.ContentDto;
+import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.entity.WatchingSession;
+import java.util.Arrays;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -16,8 +19,36 @@ public abstract class WatchingSessionMapper {
         return WatchingSessionDto.builder()
                                  .id(entity.getId())
                                  .createdAt(entity.getCreatedAt())
-                                 .user(null)      // TODO UserMapper 연동
-                                 .content(null)   // TODO ContentMapper 연동
+                                 .user(UserDto.builder()
+                                              .id(entity.getWatcher()
+                                                        .getId())
+                                              .email(entity.getWatcher()
+                                                           .getEmail())
+                                              .name(entity.getWatcher()
+                                                          .getName())
+                                              .role(entity.getWatcher()
+                                                          .getRole())
+                                              .locked(entity.getWatcher()
+                                                            .getLocked())
+                                              .profileImageUrl(entity.getWatcher()
+                                                                     .getProfileImageUrl())
+                                              .createdAt(entity.getWatcher()
+                                                               .getCreatedAt())
+                                              .build())      // TODO UserMapper 연동
+                                 .content(ContentDto.builder()
+                                                    .type(entity.getContent()
+                                                                .getType())
+                                                    .tags(Arrays.stream(entity.getContent()
+                                                                              .getTags()
+                                                                              .split("\\|"))
+                                                                .toList())
+                                                    .title(entity.getContent()
+                                                                 .getTitle())
+                                                    .id(entity.getContent()
+                                                              .getId())
+                                                    .thumbnailUrl(entity.getContent()
+                                                                        .getThumbnailUrl())
+                                                    .build())   // TODO ContentMapper 연동
                                  .build();
     }
 }

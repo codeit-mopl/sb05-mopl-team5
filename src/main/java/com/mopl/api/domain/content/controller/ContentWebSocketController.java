@@ -18,7 +18,6 @@ public class ContentWebSocketController {
     // TODO WatchingSessionWebsocketController 등으로 네이밍, 패키지 변경 고려해보자
 
     private final ContentChatService contentChatService;
-    private final WatchingSessionService watchingSessionService;
 
     @MessageMapping("/contents/{contentId}/chat")
     public void chatSend(
@@ -26,6 +25,7 @@ public class ContentWebSocketController {
         @Payload @Valid ContentChatSendRequest request,
         Principal principal
     ) {
-        contentChatService.sendChat();
+        UUID senderId = UUID.fromString(principal.getName());
+        contentChatService.sendChat(contentId, senderId, request);
     }
 }

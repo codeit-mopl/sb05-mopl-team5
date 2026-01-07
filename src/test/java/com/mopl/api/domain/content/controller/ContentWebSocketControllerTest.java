@@ -39,12 +39,13 @@ class ContentWebSocketControllerTest {
     void sendChat_shouldDelegateToChatService() {
 
         UUID contentId = UUID.randomUUID();
+        UUID senderId = UUID.fromString(principal.getName());
         ContentChatSendRequest request = new ContentChatSendRequest("hello");
 
 //        when(principal.getName()).thenReturn(UUID.randomUUID().toString());
 
         controller.chatSend(contentId, request, principal);
 
-        verify(contentChatService).sendChat();
+        verify(contentChatService).sendChat(contentId, senderId, request);
     }
 }

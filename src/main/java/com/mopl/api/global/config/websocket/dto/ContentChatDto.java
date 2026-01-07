@@ -1,7 +1,11 @@
 package com.mopl.api.global.config.websocket.dto;
 
+import com.mopl.api.domain.user.dto.request.UserSummary;
+import lombok.Builder;
+
+@Builder
 public record ContentChatDto(
-    // UserSummary sender, // TODO 이건 어떤 dto 사용인지 분석
+    UserSummary sender,
     String content
 ) {
 
