@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -86,21 +87,26 @@ class ReviewServiceTest {
         Review mockReview = mock(Review.class);
 
         when(mockContent.getId()).thenReturn(contentId);
+        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(5.0));
+        when(mockReview.getIsDeleted()).thenReturn(false);
+        when(mockReview.getContent()).thenReturn(mockContent);
 
         when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
         when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
 
         ReviewDto result = reviewService.addReview(request, userId);
 
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(reviewId);
-        verify(contentRepository).findById(contentId);
+        verify(contentRepository, times(2)).findById(contentId);
         verify(userRepository).findById(userId);
         verify(reviewRepository).existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId);
         verify(reviewRepository).save(any(Review.class));
+        verify(contentRepository).save(mockContent);
     }
 
     @Test
@@ -162,13 +168,20 @@ class ReviewServiceTest {
         ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Updated text", 4.0, null, null, true);
 
         User mockUser = mock(User.class);
+        Content mockContent = mock(Content.class);
         Review mockReview = mock(Review.class);
 
         when(mockUser.getId()).thenReturn(userId);
         when(mockReview.getUser()).thenReturn(mockUser);
+        when(mockReview.getContent()).thenReturn(mockContent);
+        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(4.0));
+        when(mockReview.getIsDeleted()).thenReturn(false);
+        when(mockContent.getId()).thenReturn(contentId);
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
         when(reviewRepository.save(mockReview)).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
         when(reviewMapper.toDto(mockReview, true)).thenReturn(expectedDto);
 
         ReviewDto result = reviewService.modifyReview(reviewId, request, userId);
@@ -178,6 +191,7 @@ class ReviewServiceTest {
         verify(reviewRepository).findById(reviewId);
         verify(mockReview).update("Updated text", BigDecimal.valueOf(4.0));
         verify(reviewRepository).save(mockReview);
+        verify(contentRepository).save(mockContent);
     }
 
     @Test
@@ -220,19 +234,26 @@ class ReviewServiceTest {
     @DisplayName("리뷰 삭제 성공")
     void removeReview_Success() {
         User mockUser = mock(User.class);
+        Content mockContent = mock(Content.class);
         Review mockReview = mock(Review.class);
 
         when(mockUser.getId()).thenReturn(userId);
         when(mockReview.getUser()).thenReturn(mockUser);
+        when(mockReview.getContent()).thenReturn(mockContent);
+        when(mockReview.getIsDeleted()).thenReturn(true);
+        when(mockContent.getId()).thenReturn(contentId);
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
         when(reviewRepository.save(mockReview)).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
 
         reviewService.removeReview(reviewId, userId);
 
         verify(reviewRepository).findById(reviewId);
         verify(mockReview).softDelete();
         verify(reviewRepository).save(mockReview);
+        verify(contentRepository).save(mockContent);
     }
 
     @Test
@@ -267,5 +288,162 @@ class ReviewServiceTest {
         verify(reviewRepository).findById(reviewId);
         verify(mockReview, never()).softDelete();
         verify(reviewRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("리뷰 생성 시 콘텐츠 평점 재계산 - 첫 리뷰")
+    void recalculateContentRating_FirstReview() {
+        ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Great movie!", 5.0);
+        ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Great movie!", 5.0, null, null, true);
+
+        User mockUser = mock(User.class);
+        Content mockContent = mock(Content.class);
+        Review mockReview = mock(Review.class);
+
+        when(mockContent.getId()).thenReturn(contentId);
+        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(5.0));
+        when(mockReview.getIsDeleted()).thenReturn(false);
+        when(mockReview.getContent()).thenReturn(mockContent);
+
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
+        when(reviewRepository.save(any(Review.class))).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
+        when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
+
+        reviewService.addReview(request, userId);
+
+        verify(mockContent).updateRatingStats(BigDecimal.valueOf(5.0), 1L);
+        verify(contentRepository).save(mockContent);
+    }
+
+    @Test
+    @DisplayName("리뷰 생성 시 콘텐츠 평점 재계산 - 여러 리뷰 평균")
+    void recalculateContentRating_MultipleReviews() {
+        ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Good movie", 4.0);
+        ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Good movie", 4.0, null, null, true);
+
+        User mockUser = mock(User.class);
+        Content mockContent = mock(Content.class);
+        Review newReview = mock(Review.class);
+        Review existingReview1 = mock(Review.class);
+        Review existingReview2 = mock(Review.class);
+
+        when(mockContent.getId()).thenReturn(contentId);
+        when(newReview.getRating()).thenReturn(BigDecimal.valueOf(4.0));
+        when(newReview.getIsDeleted()).thenReturn(false);
+        when(newReview.getContent()).thenReturn(mockContent);
+
+        when(existingReview1.getRating()).thenReturn(BigDecimal.valueOf(5.0));
+        when(existingReview1.getIsDeleted()).thenReturn(false);
+        when(existingReview1.getContent()).thenReturn(mockContent);
+
+        when(existingReview2.getRating()).thenReturn(BigDecimal.valueOf(3.0));
+        when(existingReview2.getIsDeleted()).thenReturn(false);
+        when(existingReview2.getContent()).thenReturn(mockContent);
+
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
+        when(reviewRepository.save(any(Review.class))).thenReturn(newReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(existingReview1, existingReview2, newReview));
+        when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
+
+        reviewService.addReview(request, userId);
+
+        verify(mockContent).updateRatingStats(BigDecimal.valueOf(4.0), 3L);
+        verify(contentRepository).save(mockContent);
+    }
+
+    @Test
+    @DisplayName("리뷰 수정 시 콘텐츠 평점 재계산")
+    void recalculateContentRating_OnUpdate() {
+        ReviewUpdateRequest request = new ReviewUpdateRequest("Updated text", 3.0);
+        ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Updated text", 3.0, null, null, true);
+
+        User mockUser = mock(User.class);
+        Content mockContent = mock(Content.class);
+        Review mockReview = mock(Review.class);
+        Review existingReview = mock(Review.class);
+
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockReview.getUser()).thenReturn(mockUser);
+        when(mockReview.getContent()).thenReturn(mockContent);
+        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(3.0));
+        when(mockReview.getIsDeleted()).thenReturn(false);
+
+        when(mockContent.getId()).thenReturn(contentId);
+        when(existingReview.getRating()).thenReturn(BigDecimal.valueOf(4.0));
+        when(existingReview.getIsDeleted()).thenReturn(false);
+        when(existingReview.getContent()).thenReturn(mockContent);
+
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
+        when(reviewRepository.save(mockReview)).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview, existingReview));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(reviewMapper.toDto(mockReview, true)).thenReturn(expectedDto);
+
+        reviewService.modifyReview(reviewId, request, userId);
+
+        verify(mockReview).update("Updated text", BigDecimal.valueOf(3.0));
+        verify(mockContent).updateRatingStats(BigDecimal.valueOf(3.5), 2L);
+        verify(contentRepository).save(mockContent);
+    }
+
+    @Test
+    @DisplayName("리뷰 삭제 시 콘텐츠 평점 재계산 - 남은 리뷰 있음")
+    void recalculateContentRating_OnDelete_RemainingReviews() {
+        User mockUser = mock(User.class);
+        Content mockContent = mock(Content.class);
+        Review mockReview = mock(Review.class);
+        Review remainingReview = mock(Review.class);
+
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockReview.getUser()).thenReturn(mockUser);
+        when(mockReview.getContent()).thenReturn(mockContent);
+        when(mockReview.getIsDeleted()).thenReturn(true);
+
+        when(mockContent.getId()).thenReturn(contentId);
+        when(remainingReview.getRating()).thenReturn(BigDecimal.valueOf(4.0));
+        when(remainingReview.getIsDeleted()).thenReturn(false);
+        when(remainingReview.getContent()).thenReturn(mockContent);
+
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
+        when(reviewRepository.save(mockReview)).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview, remainingReview));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+
+        reviewService.removeReview(reviewId, userId);
+
+        verify(mockReview).softDelete();
+        verify(mockContent).updateRatingStats(BigDecimal.valueOf(4.0), 1L);
+        verify(contentRepository).save(mockContent);
+    }
+
+    @Test
+    @DisplayName("리뷰 삭제 시 콘텐츠 평점 재계산 - 마지막 리뷰 삭제")
+    void recalculateContentRating_OnDelete_LastReview() {
+        User mockUser = mock(User.class);
+        Content mockContent = mock(Content.class);
+        Review mockReview = mock(Review.class);
+
+        when(mockUser.getId()).thenReturn(userId);
+        when(mockReview.getUser()).thenReturn(mockUser);
+        when(mockReview.getContent()).thenReturn(mockContent);
+        when(mockReview.getIsDeleted()).thenReturn(true);
+
+        when(mockContent.getId()).thenReturn(contentId);
+
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
+        when(reviewRepository.save(mockReview)).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+
+        reviewService.removeReview(reviewId, userId);
+
+        verify(mockReview).softDelete();
+        verify(mockContent).updateRatingStats(BigDecimal.ZERO, 0L);
+        verify(contentRepository).save(mockContent);
     }
 }
