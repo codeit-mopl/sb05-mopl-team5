@@ -18,8 +18,9 @@ import com.mopl.api.domain.user.entity.WatchingSession;
 import com.mopl.api.domain.user.exception.detail.WatchingSessionNotFoundException;
 import com.mopl.api.domain.user.mapper.WatchingSessionMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
-import com.mopl.api.domain.user.repository.WatchingSessionCacheRepository;
+import com.mopl.api.domain.user.repository.WatchingSessionRedisRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRepository;
+import com.mopl.api.global.config.websocket.dto.WatchingSessionChange;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,7 +43,7 @@ class WatchingSessionServiceImplTest {
     @Mock
     WatchingSessionRepository watchingSessionRepository;
     @Mock
-    WatchingSessionCacheRepository watchingSessionCacheRepository;
+    WatchingSessionRedisRepository watchingSessionCacheRepository;
     @Mock
     WatchingSessionMapper watchingSessionMapper;
 
@@ -151,15 +152,16 @@ class WatchingSessionServiceImplTest {
         when(watchingSessionRepository.save(any(WatchingSession.class)))
             .thenReturn(session);
 
-        WatchingSessionDto mappedDto = WatchingSessionDto.builder().build();
+        WatchingSessionDto mappedDto = WatchingSessionDto.builder()
+                                                         .build();
         when(watchingSessionMapper.toDto(session))
             .thenReturn(mappedDto);
 
-        WatchingSessionDto result =
-            watchingSessionService.addWatchingSession(command);
+        WatchingSessionChange result =
+            watchingSessionService.joinWatchingSession(contentId, watcherId);
 
         verify(watchingSessionRepository).save(any(WatchingSession.class));
-        verify(watchingSessionCacheRepository).save(session);
+        verify(watchingSessionCacheRepository).addWatcher(contentId, watcherId);
         verify(watchingSessionMapper).toDto(session);
 
         assertThat(result).isNotNull();
@@ -169,35 +171,34 @@ class WatchingSessionServiceImplTest {
     @DisplayName("유저가 존재하지 않으면 예외 발생")
     void addWatchingSession_userNotFound_shouldThrow() {
 
-        WatchingSessionCreateCommand command = mock(WatchingSessionCreateCommand.class);
-        when(command.watcherId()).thenReturn(watcherId);
-
         when(userRepository.findById(watcherId))
             .thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-            watchingSessionService.addWatchingSession(command)
+            watchingSessionService.joinWatchingSession(contentId, watcherId)
         ).isInstanceOf(RuntimeException.class);
     }
 
     @Test
     @DisplayName("웹소켓 해제 / 필요 시 DB + Redis 세션 제거")
-    void removeWatchingSession_shouldDeleteBoth() {
+    void leaveWatchingSession_shouldDeleteBoth() {
 
         UUID sessionId = UUID.randomUUID();
 
-        when(watchingSessionRepository.existsById(sessionId))
-            .thenReturn(true);
+        when(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId))
+            .thenReturn(Optional.of(session));
 
-        watchingSessionService.removeWatchingSession(sessionId);
+        WatchingSessionChange result = watchingSessionService.leaveWatchingSession(contentId, watcherId);
 
         verify(watchingSessionRepository).deleteById(sessionId);
-        verify(watchingSessionCacheRepository).deleteBySessionId(sessionId);
+        verify(watchingSessionCacheRepository).removeWatcher(contentId, watcherId);
+
+        assertThat(result).isNotNull();
     }
 
     @Test
     @DisplayName("존재하지 않는 세션 제거 시 예외 발생")
-    void removeWatchingSession_notFound_shouldThrow() {
+    void leaveWatchingSession_notFound_shouldThrow() {
 
         UUID sessionId = UUID.randomUUID();
 
@@ -205,7 +206,7 @@ class WatchingSessionServiceImplTest {
             .thenReturn(false);
 
         assertThatThrownBy(() ->
-            watchingSessionService.removeWatchingSession(sessionId)
+            watchingSessionService.leaveWatchingSession(contentId, watcherId)
         ).isInstanceOf(WatchingSessionNotFoundException.class);
     }
 }
