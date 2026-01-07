@@ -73,13 +73,18 @@ public class SecurityConfig {
                     , "/swagger-ui.html", "/swagger-ui/**", "/v3/**",
                     "/assets/**", "/h2/**")
                 .permitAll()
-
                 // 어드민 권한
                 .requestMatchers(HttpMethod.GET, "/api/users")
                 .hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/users/{userId}/role",
                     "/api/users/{userId}/locked")
-                .hasRole("ADMIN")
+                .hasRole("ADMIN")                   
+                // 웹 소켓 handshake는 허용, stomp 시 사용자 검사
+                .requestMatchers("/ws/**")
+                .permitAll()
+                .requestMatchers("/ws")
+                .permitAll()
+                                   
                 .anyRequest()
                 .authenticated()
             )
