@@ -102,6 +102,10 @@ public class WatchingSessionStompListener {
     }
 
     private UUID parseContentId(String destination) {
+        if (destination == null) {
+            return null;
+        }
+
         if (!destination.startsWith(DEST_PREFIX) ||
             !destination.endsWith(DEST_SUFFIX)) {
             return null;

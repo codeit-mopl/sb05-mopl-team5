@@ -65,7 +65,7 @@ public class WatchingSessionRepositoryCustomImpl implements WatchingSessionRepos
             } else {
                 return watchingSession.createdAt.lt(cursorDateTime)
                                                 .or(watchingSession.createdAt.eq(cursorDateTime)
-                                                                             .and(watchingSession.id.gt(lastId)));
+                                                                             .and(watchingSession.id.lt(lastId)));
             }
         } catch (Exception e) {
             log.warn("커서 파싱 실패: cursor={}, idAfter={}", request.cursor(), request.idAfter());

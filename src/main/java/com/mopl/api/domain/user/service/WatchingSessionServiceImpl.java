@@ -1,6 +1,7 @@
 package com.mopl.api.domain.user.service;
 
 import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.user.dto.event.WatchingSessionChangeEvent;
 import com.mopl.api.domain.user.dto.request.WatchingSessionSearchRequest;
@@ -8,6 +9,7 @@ import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.WatchingSession;
+import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.user.exception.detail.WatchingSessionNotFoundException;
 import com.mopl.api.domain.user.mapper.WatchingSessionMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
@@ -64,7 +66,8 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
 
         if (!resultData.isEmpty() && hasNext) {
             WatchingSession lastRecord = resultData.get(resultData.size() - 1);
-            nextCursor = lastRecord.getCreatedAt().format(DateTimeFormatter.ISO_DATE_TIME);
+            nextCursor = lastRecord.getCreatedAt()
+                                   .format(DateTimeFormatter.ISO_DATE_TIME);
             nextIdAfter = lastRecord.getId();
         }
 
@@ -76,8 +79,10 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
                                                .nextIdAfter(nextIdAfter)
                                                .hasNext(hasNext)
                                                .totalCount(totalCount)
-                                               .sortBy(request.sortBy().name())
-                                               .sortDirection(request.sortDirection().name())
+                                               .sortBy(request.sortBy()
+                                                              .name())
+                                               .sortDirection(request.sortDirection()
+                                                                     .name())
                                                .build();
     }
 
@@ -86,9 +91,9 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     public WatchingSessionChange joinWatchingSession(UUID contentId, UUID watcherId) {
 
         User watcher = userRepository.findById(watcherId)
-                                     .orElseThrow(() -> new RuntimeException("존재하지 않는 유저"));
+                                     .orElseThrow(() -> UserNotFoundException.withUserId(watcherId));
         Content content = contentRepository.findById(contentId)
-                                           .orElseThrow(() -> new RuntimeException("존재하지 않는 콘텐츠"));
+                                           .orElseThrow(() -> ContentNotFoundException.withContentId(contentId));
 
         Optional<WatchingSession> existing = watchingSessionRepository.findByContentIdAndWatcherId(contentId,
             watcherId);
