@@ -72,6 +72,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/users/{userId}/role",
                     "/api/users/{userId}/locked").hasRole("ADMIN")
+                // 웹 소켓 handshake는 허용, stomp 시 사용자 검사
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/ws").permitAll()
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
