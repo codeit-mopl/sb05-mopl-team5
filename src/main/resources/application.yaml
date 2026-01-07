@@ -83,3 +83,7 @@ custom:
     refresh-token:
       secret: ${JWT_REFRESH_SECRET:refresh-secret-key-even-longer-and-more-random}
       expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:1209600000}  # 14일
+tmdb:
+  api-key: ${TMDB_API_KEY:needKey}
+thesportdb:
+  api-key: ${THE_SPORT_API_KEY:needKey}
