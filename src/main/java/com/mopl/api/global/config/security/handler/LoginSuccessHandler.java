@@ -24,14 +24,15 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
+
     private final JwtTokenProvider jwtProvider;
     private final JwtRegistry jwtRegistry;
     private final ObjectMapper objectMapper;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        Authentication authentication)
+        HttpServletResponse response,
+        Authentication authentication)
         throws IOException, ServletException {
         log.info("Login success! username = {}", authentication.getName());
 
@@ -54,7 +55,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         try {
             // JWT 발급
-            String accessToken  = jwtProvider.generateAccessToken(userDetails);
+            String accessToken = jwtProvider.generateAccessToken(userDetails);
             String refreshToken = jwtProvider.generateRefreshToken(userDetails);
 
             // 중복 로그인 처리
@@ -94,4 +95,3 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         }
     }
 }
-
