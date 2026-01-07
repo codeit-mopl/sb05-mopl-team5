@@ -55,7 +55,7 @@ public class WatchingSessionRepositoryCustomImpl implements WatchingSessionRepos
         }
 
         try {
-            LocalDateTime cursorDateTime = LocalDateTime.parse(request.cursor(), DateTimeFormatter.ISO_DATE_TIME);
+            LocalDateTime cursorDateTime = LocalDateTime.parse(request.cursor(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             UUID lastId = UUID.fromString(request.idAfter());
 
             if (request.sortDirection() == WatchingSessionSearchRequest.SortDirection.ASCENDING) {

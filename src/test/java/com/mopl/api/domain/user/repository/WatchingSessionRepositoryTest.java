@@ -117,7 +117,7 @@ class WatchingSessionRepositoryTest {
         WatchingSessionSearchRequest request = WatchingSessionSearchRequest.builder()
                                                                            .cursor(firstInList.getCreatedAt()
                                                                                               .format(
-                                                                                                  DateTimeFormatter.ISO_DATE_TIME))
+                                                                                                  DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                                                                            .idAfter(firstInList.getId()
                                                                                                .toString())
                                                                            .limit(1)
