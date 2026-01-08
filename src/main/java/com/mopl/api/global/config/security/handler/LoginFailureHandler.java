@@ -8,6 +8,7 @@ import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
@@ -29,10 +30,16 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
 
-        objectMapper.writeValue(response.getWriter(), new FailureBody(
-            "UNAUTHORIZED",
-            "아이디 또는 비밀번호가 올바르지 않습니다."
-        ));
+        // 아이디 또는 비밀번호 달랐을 경우의 메세지
+        String code = "UNAUTHORIZED";
+        String message = "아이디 또는 비밀번호가 올바르지 않습니다.";
+
+        // 계정 잠겼을 경우의 메세지
+        if(exception instanceof LockedException){
+            code = "ACCOUNT_LOCKED";
+            message = "계정이 잠금 상태입니다.";
+        }
+        objectMapper.writeValue(response.getWriter(), new FailureBody(code, message));
     }
 
     private record FailureBody(String code, String message) {

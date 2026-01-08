@@ -14,7 +14,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -41,14 +40,8 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
             log.warn("로그인 성공 처리 중 principal 타입이 CustomUserDetails가 아님. principal={}",
                 authentication.getPrincipal());
 
-            throw new IllegalStateException("Authentication principal is not CustomUserDetails");
-
-//            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-//            response.setCharacterEncoding("UTF-8");
-//            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-//
-//            objectMapper.writeValue(response.getWriter(),);
-//            return;
+            errorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED", "Authentication principal is not CustomUserDetails");
+            return;
         }
 
         UserDto userDto = userDetails.getUserDto();
@@ -68,7 +61,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
             jwtRegistry.registerJwtInformation(jwtInformation);
 
             // refreshToken 쿠키 생성
-            Cookie refreshCookie = jwtProvider.genereateRefreshTokenCookie(refreshToken);
+            Cookie refreshCookie = jwtProvider.generateRefreshTokenCookie(refreshToken);
             response.addCookie(refreshCookie);
 
             // 응답 바디: accessToken + userDto
@@ -81,17 +74,16 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         } catch (Exception e) {
             log.error("JWT 생성/응답 처리 중 오류", e);
-            throw new RuntimeException("Failed to issue JWT", e);
 
-//            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-//            response.setCharacterEncoding("UTF-8");
-//            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            errorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Failed to generate JWT");
 
-//            ErrorResponse errorResponse = new ErrorResponse(
-//                new RuntimeException("Failed to generate JWT"),
-//                HttpServletResponse.SC_INTERNAL_SERVER_ERROR
-//            );
-//            objectMapper.writeValue(response.getWriter(), errorResponse);
         }
+    }
+
+    private void errorResponse(HttpServletResponse response, int status, String errorMsg, String errorMessage) throws IOException {
+        response.setStatus(status);
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
     }
 }
