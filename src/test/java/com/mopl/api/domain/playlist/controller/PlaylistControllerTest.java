@@ -7,15 +7,18 @@ import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
 import com.mopl.api.domain.playlist.service.PlaylistService;
 import com.mopl.api.domain.playlist.service.SubscriptionService;
 import com.mopl.api.domain.user.dto.response.UserDto;
+import com.mopl.api.config.TestSecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import com.mopl.api.config.WithMockCustomUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -35,6 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(TestSecurityConfig.class)
+@ActiveProfiles("test")
 @WithMockCustomUser
 @DisplayName("PlaylistController 통합 테스트")
 class PlaylistControllerTest {
@@ -45,10 +50,10 @@ class PlaylistControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private PlaylistService playlistService;
 
-    @MockitoBean
+    @MockBean
     private SubscriptionService subscriptionService;
 
     private UUID userId;
