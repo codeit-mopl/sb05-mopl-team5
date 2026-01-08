@@ -195,7 +195,7 @@ public class JwtTokenProvider {
         }
     }
 
-    public Cookie genereateRefreshTokenCookie(String refreshToken) {
+    public Cookie generateRefreshTokenCookie(String refreshToken) {
         Cookie refreshCookie = new Cookie(REFRESH_TOKEN, refreshToken);
         refreshCookie.setHttpOnly(true);
         refreshCookie.setSecure(false); // 개발 환경에서 false로 유지
@@ -204,7 +204,7 @@ public class JwtTokenProvider {
         return refreshCookie;
     }
 
-    public Cookie genereateRefreshTokenExpirationCookie() {
+    public Cookie generateRefreshTokenExpirationCookie() {
         Cookie refreshCookie = new Cookie(REFRESH_TOKEN, "");
         refreshCookie.setHttpOnly(true);
         refreshCookie.setSecure(false); // 개발 환경에서 false로 유지
