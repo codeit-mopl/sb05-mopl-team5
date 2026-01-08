@@ -19,6 +19,7 @@ import com.mopl.api.domain.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -100,8 +101,85 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public CursorResponseReviewDto getReviews(UUID contentId, String cursor, UUID idAfter, int limit, String sortBy,
-        String sortDirection, UUID currentUserId) {
-        return new CursorResponseReviewDto(new ArrayList<>(), null, null, false, 0, sortBy, sortDirection);
+    public CursorResponseReviewDto getReviews(
+        UUID contentId,
+        String cursor,
+        UUID idAfter,
+        int limit,
+        String sortBy,
+        String sortDirection,
+        UUID currentUserId
+    ) {
+        // 1. 커서 값 파싱
+        LocalDateTime cursorDateTime = null;
+        BigDecimal cursorRating = null;
+
+        if (cursor != null && !cursor.isBlank() && idAfter != null) {
+            if ("createdAt".equals(sortBy)) {
+                cursorDateTime = LocalDateTime.parse(cursor);
+            } else if ("rating".equals(sortBy)) {
+                cursorRating = new BigDecimal(cursor);
+            }
+        }
+
+        // 2. 리뷰 조회 (limit+1개)
+        // +1개를 조회하여 다음 페이지 존재 여부 확인
+        List<Review> reviews = reviewRepository.findReviewsWithCursor(
+            contentId,
+            sortBy,
+            sortDirection,
+            cursorDateTime,
+            cursorRating,
+            idAfter,
+            limit
+        );
+
+        // 3. 다음 페이지 존재 여부 확인
+        boolean hasNext = reviews.size() > limit;
+        if (hasNext) {
+            // limit+1개가 조회되었다면 마지막 항목 제거 (실제 응답에는 limit개만 포함)
+            reviews = reviews.subList(0, limit);
+        }
+
+        List<ReviewDto> reviewDtos = reviews.stream()
+                                            .map(review -> {
+                                                // isAuthor 계산: 현재 사용자와 리뷰 작성자가 같은지 확인
+                                                boolean isAuthor = currentUserId != null && review.getUser()
+                                                                                                  .getId()
+                                                                                                  .equals(
+                                                                                                      currentUserId);
+                                                return reviewMapper.toDto(review, isAuthor);
+                                            })
+                                            .toList(); // Java 16+: 불변 리스트 생성
+
+        // 5. 다음 커서 값 계산
+        String nextCursor = null;
+        UUID nextIdAfter = null;
+        if (hasNext && !reviews.isEmpty()) {
+            Review lastReview = reviews.get(reviews.size() - 1);
+            if ("createdAt".equals(sortBy)) {
+                nextCursor = lastReview.getCreatedAt()
+                                       .toString();
+            } else if ("rating".equals(sortBy)) {
+                nextCursor = lastReview.getRating()
+                                       .toString();
+            }
+            nextIdAfter = lastReview.getId();
+        }
+
+        // 6. 전체 개수 조회
+        long totalCount = reviewRepository.countReviewsByContentId(contentId);
+
+        // 7. 응답 DTO 생성
+        return new CursorResponseReviewDto(
+            reviewDtos,
+            nextCursor,
+            nextIdAfter,
+            hasNext,
+            (int) totalCount,
+            sortBy,
+            sortDirection
+        );
     }
+
 }
