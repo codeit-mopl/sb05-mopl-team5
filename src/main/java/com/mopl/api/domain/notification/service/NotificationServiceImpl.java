@@ -1,13 +1,13 @@
 package com.mopl.api.domain.notification.service;
 
+import com.mopl.api.domain.notification.dto.event.NotificationCreatedEvent;
 import com.mopl.api.domain.notification.dto.request.NotificationCursorPageRequest;
 import com.mopl.api.domain.notification.dto.response.CursorResponseNotificationDto;
 import com.mopl.api.domain.notification.dto.response.NotificationDto;
 import com.mopl.api.domain.notification.entity.Notification;
 import com.mopl.api.domain.notification.entity.NotificationLevel;
-import com.mopl.api.domain.notification.exception.NotificationErrorCode;
-import com.mopl.api.domain.notification.exception.NotificationException;
 import com.mopl.api.domain.notification.exception.detail.NotificationNotFoundException;
+import com.mopl.api.domain.notification.exception.detail.NotificationUnauthorizedException;
 import com.mopl.api.domain.notification.mapper.NotificationMapper;
 import com.mopl.api.domain.notification.repository.NotificationRepository;
 import com.mopl.api.domain.user.entity.User;
@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -30,6 +31,9 @@ public class NotificationServiceImpl implements NotificationService {
     private final ApplicationEventPublisher eventPublisher;
     private final UserRepository userRepository;
 
+    /**
+     * 알림 목록 조회 (커서 페이지네이션)
+     */
     @Override
     public CursorResponseNotificationDto getNotifications(UUID receiverId, NotificationCursorPageRequest request) {
         Slice<Notification> notifications = notificationRepository.findAllByReceiverId(receiverId, request);
@@ -58,36 +62,37 @@ public class NotificationServiceImpl implements NotificationService {
                 : null,
             notifications.hasNext(),
             totalCount,
-            request.sortBy()
-                   .toString(),
-            request.sortDirection()
-                   .toString()
+            String.valueOf(request.sortBy()),
+            String.valueOf(request.sortDirection())
         );
     }
 
+    /**
+     * 알림 생성
+     */
+    @Override
     @Transactional
     public void createNotification(
         UUID receiverId,
         String title,
-        String content,
-        NotificationLevel level
+        String content
+//        NotificationLevel level
     ) {
         User receiver = userRepository.getReferenceById(receiverId);
-
-        Notification notification = Notification.builder()
-                                                .receiver(receiver)
-                                                .title(title)
-                                                .content(content)
-                                                .level(level)
-                                                .build();
+        Notification notification = new Notification(receiver, title, content, NotificationLevel.INFO);
 
         notification = notificationRepository.save(notification);
 
-        // 이벤트 발행 (SSE 전송은 SseService에서 처리)
+        // 이벤트 발행 (NotificationEventListener에서 처리)
         NotificationDto dto = notificationMapper.toDto(notification);
-//        eventPublisher.publishEvent(new NotificationCreatedEvent(dto));
+        eventPublisher.publishEvent(new NotificationCreatedEvent(dto));
+
+        log.info("알림 생성: {}", notification.getId());
     }
 
+    /**
+     * 알림 삭제
+     */
     @Override
     @Transactional
     public void removeNotification(UUID notificationId, UUID receiverId) {
@@ -99,9 +104,11 @@ public class NotificationServiceImpl implements NotificationService {
         if (!notification.getReceiver()
                          .getId()
                          .equals(receiverId)) {
-            throw new NotificationException(NotificationErrorCode.NOTIFICATION_UNAUTHORIZED);
+            throw NotificationUnauthorizedException.withNotificationIdAndReceiverId(notificationId, receiverId);
         }
 
         notificationRepository.delete(notification);
+
+        log.info("알림 삭제: {}", notificationId);
     }
 }
