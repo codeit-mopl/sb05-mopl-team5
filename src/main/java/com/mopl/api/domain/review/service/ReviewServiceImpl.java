@@ -182,4 +182,30 @@ public class ReviewServiceImpl implements ReviewService {
         );
     }
 
+    private void recalculateContentRating(UUID contentId) {
+        Content content = contentRepository.findById(contentId)
+                                           .orElseThrow(() -> ContentNotFoundException.withContentId(contentId));
+
+        // TODO: 성능 개선 - Repository에 전용 쿼리 메서드 추가 필요
+        List<Review> activeReviews = reviewRepository.findAll()
+                                                     .stream()
+                                                     .filter(r -> r.getContent()
+                                                                   .getId()
+                                                                   .equals(contentId) && !r.getIsDeleted())
+                                                     .toList();
+
+        if (activeReviews.isEmpty()) {
+            content.updateRatingStats(BigDecimal.ZERO, 0L);
+        } else {
+            BigDecimal sum = activeReviews.stream()
+                                          .map(Review::getRating)
+                                          .reduce(BigDecimal.ZERO, BigDecimal::add); // 초기값 0.0, 누적 덧셈
+
+            BigDecimal average = sum.divide(BigDecimal.valueOf(activeReviews.size()), 1, RoundingMode.HALF_UP);
+
+            content.updateRatingStats(average, (long) activeReviews.size());
+        }
+
+        contentRepository.save(content);
+    }
 }
