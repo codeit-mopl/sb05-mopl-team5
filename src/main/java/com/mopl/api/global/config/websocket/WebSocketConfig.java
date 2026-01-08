@@ -21,14 +21,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-        taskScheduler.setPoolSize(1);
-        taskScheduler.setThreadNamePrefix("ws-heartbeat-thread-");
-        taskScheduler.initialize();
 
         registry.enableSimpleBroker("/sub")
                 .setHeartbeatValue(new long[]{10000, 10000})
-                .setTaskScheduler(taskScheduler);
+                .setTaskScheduler(heartbeatTaskScheduler());
 
         registry.setApplicationDestinationPrefixes("/pub");
     }
@@ -54,5 +50,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     public WebSocketAuthChannelInterceptor webSocketAuthChannelInterceptor() {
         return new WebSocketAuthChannelInterceptor(jwtTokenProvider);
+    }
+
+    @Bean
+    public ThreadPoolTaskScheduler heartbeatTaskScheduler() {
+        ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
+        taskScheduler.setPoolSize(1);
+        taskScheduler.setThreadNamePrefix("ws-heartbeat-thread-");
+        taskScheduler.initialize();
+        return taskScheduler;
     }
 }

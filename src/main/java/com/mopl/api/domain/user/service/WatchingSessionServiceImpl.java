@@ -67,7 +67,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         if (!resultData.isEmpty() && hasNext) {
             WatchingSession lastRecord = resultData.get(resultData.size() - 1);
             nextCursor = lastRecord.getCreatedAt()
-                                   .format(DateTimeFormatter.ISO_DATE_TIME);
+                                   .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             nextIdAfter = lastRecord.getId();
         }
 

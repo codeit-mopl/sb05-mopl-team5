@@ -52,6 +52,9 @@ public class RedisConfig {
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                                                                 .entryTtl(
                                                                     Duration.ofMinutes(60)) // 기본 캐시 유지 시간 임시 60분
@@ -62,7 +65,7 @@ public class RedisConfig {
                                                                 )
                                                                 .serializeValuesWith(
                                                                     RedisSerializationContext.SerializationPair.fromSerializer(
-                                                                        new GenericJackson2JsonRedisSerializer())
+                                                                        serializer)
                                                                 );
 
         // 필요시 특정 캐시 이름에 대해서만 다른 설정 적용
