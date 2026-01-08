@@ -18,6 +18,7 @@ import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,7 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    //    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final JwtRegistry jwtRegistry;
 
@@ -36,11 +37,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto createUser(UserCreateRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new DuplicateEmailException().withUserEmail(request.email());
+            throw DuplicateEmailException.withUserEmail(request.email());
         }
-//        String encodedPassword = passwordEncoder.encode(request.password());
-        User user = new User(request.email(), request.password(), request.name());
-        userRepository.save(user);
+        String encodedPassword = passwordEncoder.encode(request.password());
+        User user = new User(request.email(), encodedPassword, request.name());
+        userRepository.saveAndFlush(user);
         log.info("User created! email: {}", user.getEmail());
         return userMapper.toDto(user);
     }
@@ -54,9 +55,20 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDto(user);
     }
 
+    @Transactional
     @Override
     public void updatePassword(UUID userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                                  .orElseThrow(()-> UserNotFoundException.withUserId(userId));
+        String raw = request.password();
+        String encoded = passwordEncoder.encode(raw);
 
+        user.updatePassword(encoded);
+
+        log.info("[비밀번호 변경 확인!!!] email={}, matchesNow={}",
+            user.getEmail(),
+            passwordEncoder.matches(raw, user.getPassword())
+        );
     }
 
     @Transactional(readOnly = true)
