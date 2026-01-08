@@ -23,9 +23,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,6 +52,9 @@ public class SecurityConfig {
         LoginSuccessHandler loginSuccessHandler,
         LoginFailureHandler loginFailureHandler,
         JwtLogoutHandler logoutHandler,
+        TempPasswordAuthenticationProvider tempPasswordAuthenticationProvider,
+        PasswordEncoder passwordEncoder,
+        UserDetailsService customUserDetailsService,
         JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
         JwtAuthenticationFilter jwtAuthenticationFilter,
         AccessDeniedHandlerImpl accessDeniedHandlerImpl) throws Exception {
@@ -117,13 +122,20 @@ public class SecurityConfig {
             .oauth2Login(oauth -> oauth.disable())
             .httpBasic(basic -> basic.disable());
 
+        // 임시 비밀번호 검증
+        AuthenticationManagerBuilder authBuilder =
+            http.getSharedObject(AuthenticationManagerBuilder.class);
+        authBuilder.authenticationProvider(tempPasswordAuthenticationProvider)
+                   .userDetailsService(customUserDetailsService)
+                   .passwordEncoder(passwordEncoder);
+
         return http.build();
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance(); // 테스트용
-//        return new BCryptPasswordEncoder();
+//        return NoOpPasswordEncoder.getInstance();
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
