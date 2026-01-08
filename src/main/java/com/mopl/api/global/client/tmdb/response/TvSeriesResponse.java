@@ -17,7 +17,7 @@ public record TvSeriesResponse(
     String thumbnailUrl,
 
     @JsonProperty("genre_ids")
-    List<Long> tags
+    List<Integer> tags
 ) {
 
     public TvSeriesResponse {

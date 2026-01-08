@@ -17,7 +17,7 @@ public record MovieResponse(
     String thumbnailUrl,
 
     @JsonProperty("genre_ids")
-    List<Long> tags
+    List<Integer> tags
 ) {
 
     public MovieResponse {

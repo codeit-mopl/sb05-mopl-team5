@@ -1,7 +1,5 @@
 package com.mopl.api.global.client.tmdb;
 
-import com.mopl.api.global.client.tmdb.response.Genre;
-import com.mopl.api.global.client.tmdb.response.GenreResponse;
 import com.mopl.api.global.client.tmdb.response.MovieResponse;
 import com.mopl.api.global.client.tmdb.response.PopularMovieResponse;
 import com.mopl.api.global.client.tmdb.response.PopularTvSeriesResponse;
@@ -46,24 +44,6 @@ public class TmdbApiClient {
         }
     }
 
-    public List<Genre> getMovieGenres() {
-        try {
-            GenreResponse genres = restClient.get()
-                                             .uri(uriBuilder ->
-                                                 uriBuilder.path("/genre/movie/list")
-                                                           .queryParam("api_key", apiKey)
-                                                           .queryParam("language", "ko-KR")
-                                                           .build()
-                                             )
-                                             .retrieve()
-                                             .body(GenreResponse.class);
-            return genres != null ? genres.genres() : List.of();
-        } catch (Exception e) {
-            log.warn("Failed to fetch movie from TMDB for genre=", e);
-            return List.of();
-        }
-    }
-
     public List<TvSeriesResponse> getTvSeriesDetails(Long page) {
         try {
             PopularTvSeriesResponse popularTvSeries = restClient.get()
@@ -79,24 +59,6 @@ public class TmdbApiClient {
             return popularTvSeries != null ? popularTvSeries.tvSeries() : List.of();
         } catch (Exception e) {
             log.warn("Failed to fetch tvSeries from TMDB for page=" + page, e);
-            return List.of();
-        }
-    }
-
-    public List<Genre> getTvGenres() {
-        try {
-            GenreResponse genres = restClient.get()
-                                             .uri(uriBuilder ->
-                                                 uriBuilder.path("/genre/tv/list")
-                                                           .queryParam("api_key", apiKey)
-                                                           .queryParam("language", "ko-KR")
-                                                           .build()
-                                             )
-                                             .retrieve()
-                                             .body(GenreResponse.class);
-            return genres != null ? genres.genres() : List.of();
-        } catch (Exception e) {
-            log.warn("Failed to fetch movie from TMDB for genre=", e);
             return List.of();
         }
     }
