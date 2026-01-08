@@ -3,14 +3,15 @@ package com.mopl.api.domain.playlist.service;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.playlist.dto.request.PlaylistCreateRequest;
 import com.mopl.api.domain.playlist.dto.request.PlaylistUpdateRequest;
+import com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto;
 import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
-import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.playlist.exception.detail.ContentAlreadyExistsException;
 import com.mopl.api.domain.playlist.exception.detail.ContentNotInPlaylistException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistNotFoundException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistUnauthorizedException;
 import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
+import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.playlist.mapper.PlaylistMapper;
 import com.mopl.api.domain.playlist.repository.PlaylistContentRepository;
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
@@ -26,7 +27,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -434,5 +438,203 @@ class PlaylistServiceTest {
         verify(playlistRepository).findById(playlistId);
         verify(playlistContentRepository).findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId);
         verify(playlistContentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("플레이리스트 목록 조회 성공 - updatedAt 정렬")
+    void getPlaylists_Success_SortByUpdatedAt() {
+        String keywordLike = null;
+        UUID ownerIdEqual = null;
+        UUID subscriberIdEqual = null;
+        String cursor = null;
+        UUID idAfter = null;
+        int limit = 2;
+        String sortBy = "updatedAt";
+        String sortDirection = "desc";
+        UUID currentUserId = UUID.randomUUID();
+
+        User mockOwner = mock(User.class);
+        Playlist mockPlaylist1 = mock(Playlist.class);
+        Playlist mockPlaylist2 = mock(Playlist.class);
+        when(mockPlaylist1.getOwner()).thenReturn(mockOwner);
+        when(mockPlaylist2.getOwner()).thenReturn(mockOwner);
+        when(mockOwner.getId()).thenReturn(UUID.randomUUID());
+
+        List<Playlist> mockPlaylists = Arrays.asList(mockPlaylist1, mockPlaylist2);
+        PlaylistDto mockDto1 = mock(PlaylistDto.class);
+        PlaylistDto mockDto2 = mock(PlaylistDto.class);
+
+        when(playlistRepository.findPlaylistsWithCursor(
+            eq(keywordLike),
+            eq(ownerIdEqual),
+            eq(subscriberIdEqual),
+            eq(sortBy),
+            eq(sortDirection),
+            any(),
+            any(),
+            eq(idAfter),
+            eq(limit)
+        )).thenReturn(mockPlaylists);
+        when(playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual)).thenReturn(10L);
+        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
+        when(subscriptionRepository.existsByUserIdAndPlaylistId(eq(currentUserId), any())).thenReturn(false);
+        when(playlistMapper.toDto(eq(mockPlaylist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
+        when(playlistMapper.toDto(eq(mockPlaylist2), anyList(), eq(false), eq(false))).thenReturn(mockDto2);
+
+        CursorResponsePlaylistDto result = playlistService.getPlaylists(
+            keywordLike,
+            ownerIdEqual,
+            subscriberIdEqual,
+            cursor,
+            idAfter,
+            limit,
+            sortBy,
+            sortDirection,
+            currentUserId
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.playlists()).hasSize(2);
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.totalCount()).isEqualTo(10);
+        verify(playlistRepository).findPlaylistsWithCursor(
+            eq(keywordLike),
+            eq(ownerIdEqual),
+            eq(subscriberIdEqual),
+            eq(sortBy),
+            eq(sortDirection),
+            any(),
+            any(),
+            eq(idAfter),
+            eq(limit)
+        );
+        verify(playlistRepository).countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual);
+    }
+
+    @Test
+    @DisplayName("플레이리스트 목록 조회 성공 - subscriberCount 정렬 및 커서 페이징")
+    void getPlaylists_Success_SortBySubscriberCountWithCursor() {
+        String keywordLike = null;
+        UUID ownerIdEqual = null;
+        UUID subscriberIdEqual = null;
+        String cursor = "100";
+        UUID idAfter = UUID.randomUUID();
+        int limit = 2;
+        String sortBy = "subscriberCount";
+        String sortDirection = "desc";
+        UUID currentUserId = UUID.randomUUID();
+
+        User mockOwner = mock(User.class);
+        UUID mockPlaylist1Id = UUID.randomUUID();
+        UUID mockPlaylist2Id = UUID.randomUUID();
+        Playlist mockPlaylist1 = mock(Playlist.class);
+        Playlist mockPlaylist2 = mock(Playlist.class);
+        Playlist mockPlaylist3 = mock(Playlist.class);
+        when(mockPlaylist1.getOwner()).thenReturn(mockOwner);
+        when(mockPlaylist2.getOwner()).thenReturn(mockOwner);
+        when(mockOwner.getId()).thenReturn(UUID.randomUUID());
+        when(mockPlaylist2.getId()).thenReturn(mockPlaylist2Id);
+        when(mockPlaylist2.getSubscriberCount()).thenReturn(50L);
+
+        List<Playlist> mockPlaylists = Arrays.asList(mockPlaylist1, mockPlaylist2, mockPlaylist3);
+        PlaylistDto mockDto1 = mock(PlaylistDto.class);
+        PlaylistDto mockDto2 = mock(PlaylistDto.class);
+
+        when(playlistRepository.findPlaylistsWithCursor(
+            eq(keywordLike),
+            eq(ownerIdEqual),
+            eq(subscriberIdEqual),
+            eq(sortBy),
+            eq(sortDirection),
+            any(),
+            eq(100L),
+            eq(idAfter),
+            eq(limit)
+        )).thenReturn(mockPlaylists);
+        when(playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual)).thenReturn(5L);
+        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
+        when(subscriptionRepository.existsByUserIdAndPlaylistId(eq(currentUserId), any())).thenReturn(false);
+        when(playlistMapper.toDto(eq(mockPlaylist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
+        when(playlistMapper.toDto(eq(mockPlaylist2), anyList(), eq(false), eq(false))).thenReturn(mockDto2);
+
+        CursorResponsePlaylistDto result = playlistService.getPlaylists(
+            keywordLike,
+            ownerIdEqual,
+            subscriberIdEqual,
+            cursor,
+            idAfter,
+            limit,
+            sortBy,
+            sortDirection,
+            currentUserId
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.playlists()).hasSize(2);
+        assertThat(result.hasNext()).isTrue();
+        assertThat(result.nextCursor()).isEqualTo("50");
+        assertThat(result.nextIdAfter()).isEqualTo(mockPlaylist2Id);
+        verify(playlistRepository).findPlaylistsWithCursor(
+            eq(keywordLike),
+            eq(ownerIdEqual),
+            eq(subscriberIdEqual),
+            eq(sortBy),
+            eq(sortDirection),
+            any(),
+            eq(100L),
+            eq(idAfter),
+            eq(limit)
+        );
+    }
+
+    @Test
+    @DisplayName("플레이리스트 목록 조회 성공 - 인증되지 않은 사용자")
+    void getPlaylists_Success_NullCurrentUser() {
+        String keywordLike = null;
+        UUID ownerIdEqual = null;
+        UUID subscriberIdEqual = null;
+        String cursor = null;
+        UUID idAfter = null;
+        int limit = 2;
+        String sortBy = "updatedAt";
+        String sortDirection = "desc";
+        UUID currentUserId = null;
+
+        User mockOwner = mock(User.class);
+        Playlist mockPlaylist1 = mock(Playlist.class);
+
+        List<Playlist> mockPlaylists = Arrays.asList(mockPlaylist1);
+        PlaylistDto mockDto1 = mock(PlaylistDto.class);
+
+        when(playlistRepository.findPlaylistsWithCursor(
+            eq(keywordLike),
+            eq(ownerIdEqual),
+            eq(subscriberIdEqual),
+            eq(sortBy),
+            eq(sortDirection),
+            any(),
+            any(),
+            eq(idAfter),
+            eq(limit)
+        )).thenReturn(mockPlaylists);
+        when(playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual)).thenReturn(1L);
+        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
+        when(playlistMapper.toDto(eq(mockPlaylist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
+
+        CursorResponsePlaylistDto result = playlistService.getPlaylists(
+            keywordLike,
+            ownerIdEqual,
+            subscriberIdEqual,
+            cursor,
+            idAfter,
+            limit,
+            sortBy,
+            sortDirection,
+            currentUserId
+        );
+
+        assertThat(result).isNotNull();
+        assertThat(result.playlists()).hasSize(1);
+        verify(subscriptionRepository, never()).existsByUserIdAndPlaylistId(any(), any());
     }
 }
