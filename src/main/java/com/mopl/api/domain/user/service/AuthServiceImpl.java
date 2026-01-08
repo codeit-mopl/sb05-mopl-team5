@@ -2,7 +2,8 @@ package com.mopl.api.domain.user.service;
 
 import com.mopl.api.domain.user.dto.request.JwtInformation;
 import com.mopl.api.domain.user.dto.request.ResetPasswordRequest;
-import com.mopl.api.domain.user.dto.response.JwtDto;
+import com.mopl.api.domain.user.exception.auth.InvalidTokenException;
+import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.global.config.security.CustomUserDetails;
 import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
@@ -24,6 +25,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserDetailsService userDetailsService;
     private final JwtTokenProvider jwtProvider;
     private final JwtRegistry jwtRegistry;
+    private final UserRepository userRepository;
 
     @Transactional
     @Override
@@ -32,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
         if(!jwtProvider.validateRefreshToken(refreshToken)
             || !jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
             log.info("Invalid refresh token");
-            throw new RuntimeException("Invalid refresh token");
+            throw new InvalidTokenException();
         }
 
         String username = jwtProvider.getUsernameFromToken(refreshToken);
@@ -58,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
             return jwtInformation;
         } catch (JOSEException e) {
             log.error("Failed to generate new token for user : {}", username,e);
-            throw new RuntimeException("INTERNAL_SERVER_ERROR");
+            throw new RuntimeException("INTERNAL_SERVER_ERROR",e);
         }
     }
 
