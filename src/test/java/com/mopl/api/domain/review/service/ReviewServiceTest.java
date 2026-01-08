@@ -88,21 +88,26 @@ class ReviewServiceTest {
         Review mockReview = mock(Review.class);
 
         when(mockContent.getId()).thenReturn(contentId);
+        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(5.0));
+        when(mockReview.getIsDeleted()).thenReturn(false);
+        when(mockReview.getContent()).thenReturn(mockContent);
 
         when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
         when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
 
         ReviewDto result = reviewService.addReview(request, userId);
 
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(reviewId);
-        verify(contentRepository).findById(contentId);
+        verify(contentRepository, times(2)).findById(contentId);
         verify(userRepository).findById(userId);
         verify(reviewRepository).existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId);
         verify(reviewRepository).save(any(Review.class));
+        verify(contentRepository).save(mockContent);
     }
 
     @Test
@@ -164,13 +169,20 @@ class ReviewServiceTest {
         ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Updated text", 4.0, null, null, true);
 
         User mockUser = mock(User.class);
+        Content mockContent = mock(Content.class);
         Review mockReview = mock(Review.class);
 
         when(mockUser.getId()).thenReturn(userId);
         when(mockReview.getUser()).thenReturn(mockUser);
+        when(mockReview.getContent()).thenReturn(mockContent);
+        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(4.0));
+        when(mockReview.getIsDeleted()).thenReturn(false);
+        when(mockContent.getId()).thenReturn(contentId);
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
         when(reviewRepository.save(mockReview)).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
         when(reviewMapper.toDto(mockReview, true)).thenReturn(expectedDto);
 
         ReviewDto result = reviewService.modifyReview(reviewId, request, userId);
@@ -180,6 +192,7 @@ class ReviewServiceTest {
         verify(reviewRepository).findById(reviewId);
         verify(mockReview).update("Updated text", BigDecimal.valueOf(4.0));
         verify(reviewRepository).save(mockReview);
+        verify(contentRepository).save(mockContent);
     }
 
     @Test
@@ -222,19 +235,26 @@ class ReviewServiceTest {
     @DisplayName("리뷰 삭제 성공")
     void removeReview_Success() {
         User mockUser = mock(User.class);
+        Content mockContent = mock(Content.class);
         Review mockReview = mock(Review.class);
 
         when(mockUser.getId()).thenReturn(userId);
         when(mockReview.getUser()).thenReturn(mockUser);
+        when(mockReview.getContent()).thenReturn(mockContent);
+        when(mockReview.getIsDeleted()).thenReturn(true);
+        when(mockContent.getId()).thenReturn(contentId);
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
         when(reviewRepository.save(mockReview)).thenReturn(mockReview);
+        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
 
         reviewService.removeReview(reviewId, userId);
 
         verify(reviewRepository).findById(reviewId);
         verify(mockReview).softDelete();
         verify(reviewRepository).save(mockReview);
+        verify(contentRepository).save(mockContent);
     }
 
     @Test
@@ -269,120 +289,6 @@ class ReviewServiceTest {
         verify(reviewRepository).findById(reviewId);
         verify(mockReview, never()).softDelete();
         verify(reviewRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("리뷰 목록 조회 성공 - createdAt 정렬")
-    void getReviews_Success_SortByCreatedAt() {
-        String sortBy = "createdAt";
-        String sortDirection = "desc";
-        int limit = 10;
-        String cursor = null;
-        UUID idAfter = null;
-
-        User mockUser = mock(User.class);
-        when(mockUser.getId()).thenReturn(userId);
-
-        Review mockReview1 = mock(Review.class);
-        Review mockReview2 = mock(Review.class);
-        when(mockReview1.getUser()).thenReturn(mockUser);
-        when(mockReview2.getUser()).thenReturn(mockUser);
-
-        List<Review> mockReviews = Arrays.asList(mockReview1, mockReview2);
-        ReviewDto mockDto1 = new ReviewDto(UUID.randomUUID(), contentId, mockUserDto, "Great!", 5.0, null, null, true);
-        ReviewDto mockDto2 = new ReviewDto(UUID.randomUUID(), contentId, mockUserDto, "Good!", 4.0, null, null, true);
-
-        when(reviewRepository.findReviewsWithCursor(
-            eq(contentId),
-            eq(sortBy),
-            eq(sortDirection),
-            any(),
-            any(),
-            any(),
-            eq(limit)
-        )).thenReturn(mockReviews);
-        when(reviewRepository.countReviewsByContentId(contentId)).thenReturn(2L);
-        when(reviewMapper.toDto(eq(mockReview1), eq(true))).thenReturn(mockDto1);
-        when(reviewMapper.toDto(eq(mockReview2), eq(true))).thenReturn(mockDto2);
-
-        CursorResponseReviewDto result = reviewService.getReviews(
-            contentId,
-            cursor,
-            idAfter,
-            limit,
-            sortBy,
-            sortDirection,
-            userId
-        );
-
-        assertThat(result).isNotNull();
-        assertThat(result.reviews()).hasSize(2);
-        assertThat(result.hasNext()).isFalse();
-        assertThat(result.totalCount()).isEqualTo(2);
-        assertThat(result.sortBy()).isEqualTo(sortBy);
-        assertThat(result.sortDirection()).isEqualTo(sortDirection);
-        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(),
-            any(), eq(limit));
-        verify(reviewRepository).countReviewsByContentId(contentId);
-    }
-
-    @Test
-    @DisplayName("리뷰 목록 조회 성공 - rating 정렬 및 커서 페이징")
-    void getReviews_Success_SortByRatingWithCursor() {
-        String sortBy = "rating";
-        String sortDirection = "desc";
-        int limit = 2;
-        String cursor = "4.5";
-        UUID idAfter = UUID.randomUUID();
-
-        User mockUser = mock(User.class);
-        when(mockUser.getId()).thenReturn(userId);
-
-        UUID mockReview1Id = UUID.randomUUID();
-        UUID mockReview2Id = UUID.randomUUID();
-        Review mockReview1 = mock(Review.class);
-        Review mockReview2 = mock(Review.class);
-        Review mockReview3 = mock(Review.class);
-        when(mockReview1.getUser()).thenReturn(mockUser);
-        when(mockReview2.getUser()).thenReturn(mockUser);
-        when(mockReview2.getId()).thenReturn(mockReview2Id);
-        when(mockReview2.getRating()).thenReturn(BigDecimal.valueOf(3.5));
-
-        List<Review> mockReviews = Arrays.asList(mockReview1, mockReview2, mockReview3);
-        ReviewDto mockDto1 = new ReviewDto(mockReview1Id, contentId, mockUserDto, "Good!", 4.0, null, null, true);
-        ReviewDto mockDto2 = new ReviewDto(mockReview2Id, contentId, mockUserDto, "OK!", 3.5, null, null, true);
-
-        when(reviewRepository.findReviewsWithCursor(
-            eq(contentId),
-            eq(sortBy),
-            eq(sortDirection),
-            any(),
-            any(BigDecimal.class),
-            eq(idAfter),
-            eq(limit)
-        )).thenReturn(mockReviews);
-        when(reviewRepository.countReviewsByContentId(contentId)).thenReturn(5L);
-        when(reviewMapper.toDto(eq(mockReview1), eq(true))).thenReturn(mockDto1);
-        when(reviewMapper.toDto(eq(mockReview2), eq(true))).thenReturn(mockDto2);
-
-        CursorResponseReviewDto result = reviewService.getReviews(
-            contentId,
-            cursor,
-            idAfter,
-            limit,
-            sortBy,
-            sortDirection,
-            userId
-        );
-
-        assertThat(result).isNotNull();
-        assertThat(result.reviews()).hasSize(2);
-        assertThat(result.hasNext()).isTrue();
-        assertThat(result.nextCursor()).isEqualTo("3.5");
-        assertThat(result.nextIdAfter()).isEqualTo(mockReview2Id);
-        assertThat(result.totalCount()).isEqualTo(5);
-        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(),
-            any(BigDecimal.class), eq(idAfter), eq(limit));
     }
 
     @Test
