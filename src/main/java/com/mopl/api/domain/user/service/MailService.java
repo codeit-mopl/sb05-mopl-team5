@@ -17,13 +17,12 @@ public class MailService {
 
     public void sendMail(String email, String tempPassword) {
         try {
-            String emailContent = """ 
-                요청하신 임시 비밀번호는 아래와 같습니다.
-               
-               <strong>  %s  </strong>
-              
-               3분 이내로 로그인 후 변경해주세요;
-               """.formatted(tempPassword);
+            String emailContent =  "<h2>안녕하세요, MOPL 입니다.</h2>"
+                + "<br>"
+                + "<p>요청하신 임시 비밀번호를 안내드립니다.</p>"
+                + "<p><strong>임시 비밀번호: </strong> " + tempPassword + "</p>"
+                + "<br>"
+                + "<p>3분 이내로 반드시 비밀번호를 변경해 주세요.</p>";
 
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
