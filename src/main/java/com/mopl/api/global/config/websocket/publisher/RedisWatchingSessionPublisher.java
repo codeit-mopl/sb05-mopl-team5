@@ -7,10 +7,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-public class WatchingSessionPublisher
-    extends AbstractRedisPublisher<WatchingSessionChange> {
+public class RedisWatchingSessionPublisher
+    extends AbstractRedisPublisher<WatchingSessionChange> implements WatchingSessionEventPublisher {
 
-    public WatchingSessionPublisher(RedisTemplate<String, Object> redisTemplate) {
+    public RedisWatchingSessionPublisher(RedisTemplate<String, Object> redisTemplate) {
         super(redisTemplate);
     }
 
@@ -19,13 +19,5 @@ public class WatchingSessionPublisher
             RedisChannel.WATCHING_SESSION.channel(contentId),
             payload
         );
-
-        // TODO 세션 관련 정보 DB insert는 어디서 할 지 고민 필요
-        /*
-           → DB 저장
-           → Redis 캐시 저장
-           → WatchingSessionChange 생성
-           → WatchingSessionPublisher.publish()
-         */
     }
 }
