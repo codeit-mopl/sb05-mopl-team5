@@ -69,6 +69,8 @@ public class UserServiceImpl implements UserService {
             user.getEmail(),
             passwordEncoder.matches(raw, user.getPassword())
         );
+
+        jwtRegistry.invalidateJwtInformationByUserId(userId);
     }
 
     @Transactional(readOnly = true)
