@@ -11,6 +11,7 @@ import com.mopl.api.domain.content.dto.response.ContentDto;
 import com.mopl.api.domain.user.dto.request.WatchingSessionSearchRequest;
 import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.UserDto;
+import com.mopl.api.domain.user.dto.response.UserSummary;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.service.WatchingSessionService;
 import com.mopl.api.global.config.security.filter.JwtAuthenticationFilter;
@@ -54,10 +55,10 @@ class WatchingSessionControllerTest {
         WatchingSessionDto responseDto = WatchingSessionDto.builder()
                                                            .id(UUID.randomUUID())
                                                            .createdAt(LocalDateTime.now())
-                                                           .user(UserDto.builder()
-                                                                        .id(watcherId)
-                                                                        .name("테스트유저")
-                                                                        .build())
+                                                           .watcher(UserSummary.builder()
+                                                                               .userId(watcherId)
+                                                                               .name("테스트유저")
+                                                                               .build())
                                                            .content(ContentDto.builder()
                                                                               .id(UUID.randomUUID())
                                                                               .title("영화 제목")

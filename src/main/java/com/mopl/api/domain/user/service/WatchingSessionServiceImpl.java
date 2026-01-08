@@ -108,7 +108,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         log.debug("세션 생성 시작 contentId: {}, watcherId: {}", contentId, watcherId);
 
         WatchingSession session = new WatchingSession(watcher, content);
-        WatchingSession saved = watchingSessionRepository.save(session);
+        WatchingSession saved = watchingSessionRepository.saveAndFlush(session);
         log.debug("DB 저장 완료");
 
         watchingSessionCacheRepository.addWatcher(contentId, watcherId);

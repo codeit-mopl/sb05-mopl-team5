@@ -1,5 +1,6 @@
 package com.mopl.api.domain.user.repository.impl;
 
+import com.mopl.api.domain.content.entity.QContent;
 import com.mopl.api.domain.user.dto.request.WatchingSessionSearchRequest;
 import com.mopl.api.domain.user.entity.QUser;
 import com.mopl.api.domain.user.entity.QWatchingSession;
@@ -24,12 +25,15 @@ public class WatchingSessionRepositoryCustomImpl implements WatchingSessionRepos
 
     private final QWatchingSession watchingSession = QWatchingSession.watchingSession;
     private final QUser user = QUser.user;
+    private final QContent content = QContent.content;
 
     @Override
     public List<WatchingSession> searchSessions(UUID contentId, WatchingSessionSearchRequest request) {
         return queryFactory
             .selectFrom(watchingSession)
             .join(watchingSession.watcher, user)
+            .fetchJoin()
+            .join(watchingSession.content, content)
             .fetchJoin()
             .where(
                 watchingSession.content.id.eq(contentId),
