@@ -1,9 +1,8 @@
-package com.mopl.api.global.config.exception.auth;
+package com.mopl.api.domain.user.exception.auth;
 
 import com.mopl.api.global.config.exception.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 @Getter
