@@ -4,7 +4,6 @@ import com.mopl.api.domain.notification.dto.request.NotificationCursorPageReques
 import com.mopl.api.domain.notification.dto.request.NotificationCursorPageRequest.SortBy;
 import com.mopl.api.domain.notification.dto.request.NotificationCursorPageRequest.SortDirection;
 import com.mopl.api.domain.notification.dto.response.CursorResponseNotificationDto;
-import com.mopl.api.domain.notification.dto.response.NotificationDto;
 import com.mopl.api.domain.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,7 +48,7 @@ public class NotificationController {
     }
 
     @DeleteMapping("/{notificationId}")
-    public ResponseEntity<NotificationDto> notificationRemove(
+    public ResponseEntity<Void> notificationRemove(
         @PathVariable UUID notificationId,
         @AuthenticationPrincipal UUID userId
     ) {

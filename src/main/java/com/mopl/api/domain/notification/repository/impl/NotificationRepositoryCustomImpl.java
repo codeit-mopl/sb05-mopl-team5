@@ -9,15 +9,17 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class NotificationRepositoryCustomImpl implements NotificationRepositoryCustom {
 
-    private JPAQueryFactory queryFactory;
+    private final JPAQueryFactory queryFactory;
     private static final QNotification n = QNotification.notification;
 
     @Override

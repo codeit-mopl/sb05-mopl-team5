@@ -8,7 +8,7 @@ import lombok.Builder;
 public record NotificationCursorPageRequest(
     String cursor,
     UUID idAfter,
-    @NotNull int limit,
+    @NotNull Integer limit,
     @NotNull SortDirection sortDirection,
     @NotNull SortBy sortBy
 ) {

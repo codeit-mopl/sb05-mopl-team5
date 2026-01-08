@@ -7,6 +7,7 @@ import com.mopl.api.domain.notification.entity.Notification;
 import com.mopl.api.domain.notification.entity.NotificationLevel;
 import com.mopl.api.domain.notification.exception.NotificationErrorCode;
 import com.mopl.api.domain.notification.exception.NotificationException;
+import com.mopl.api.domain.notification.exception.detail.NotificationNotFoundException;
 import com.mopl.api.domain.notification.mapper.NotificationMapper;
 import com.mopl.api.domain.notification.repository.NotificationRepository;
 import com.mopl.api.domain.user.entity.User;
@@ -32,7 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public CursorResponseNotificationDto getNotifications(UUID receiverId, NotificationCursorPageRequest request) {
         Slice<Notification> notifications = notificationRepository.findAllByReceiverId(receiverId, request);
-        int totalCount = Long.valueOf(notificationRepository.count())
+        int totalCount = Long.valueOf(notificationRepository.countByReceiverId(receiverId))
                              .intValue();
 
         return new CursorResponseNotificationDto(
@@ -85,18 +86,22 @@ public class NotificationServiceImpl implements NotificationService {
         // 이벤트 발행 (SSE 전송은 SseService에서 처리)
         NotificationDto dto = notificationMapper.toDto(notification);
 //        eventPublisher.publishEvent(new NotificationCreatedEvent(dto));
-
-        log.info("Notification created and event published: {}", notification.getId());
     }
 
     @Override
     @Transactional
     public void removeNotification(UUID notificationId, UUID receiverId) {
         Notification notification = notificationRepository.findById(notificationId)
-                                                          .orElseThrow(() -> new NotificationException(
-                                                              NotificationErrorCode.NOTIFICATION_NOT_FOUND));
+                                                          .orElseThrow(
+                                                              () -> NotificationNotFoundException.withNotificationId(
+                                                                  notificationId));
+
+        if (!notification.getReceiver()
+                         .getId()
+                         .equals(receiverId)) {
+            throw new NotificationException(NotificationErrorCode.NOTIFICATION_UNAUTHORIZED);
+        }
 
         notificationRepository.delete(notification);
-        log.info("Notification deleted: {}", notificationId);
     }
 }
