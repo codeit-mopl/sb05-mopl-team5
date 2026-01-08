@@ -1,23 +1,21 @@
 package com.mopl.api.domain.user.mapper;
 
+import com.mopl.api.domain.content.mapper.ContentMapper;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.entity.WatchingSession;
+import java.util.List;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
-public abstract class WatchingSessionMapper {
+@Mapper(
+    componentModel = "spring",
+    uses = {UserMapper.class, ContentMapper.class}
+)
+public interface WatchingSessionMapper {
 
-    // TODO UserMapper, ContentMapper가 정의 되면 추후 정리
-    public WatchingSessionDto toDto(WatchingSession entity) {
-        if (entity == null) {
-            return null;
-        }
+    @Mapping(source = "watcher", target = "watcher")
+    @Mapping(source = "content", target = "content")
+    WatchingSessionDto toDto(WatchingSession entity);
 
-        return WatchingSessionDto.builder()
-                                 .id(entity.getId())
-                                 .createdAt(entity.getCreatedAt())
-                                 .user(null)      // TODO UserMapper 연동
-                                 .content(null)   // TODO ContentMapper 연동
-                                 .build();
-    }
+    List<WatchingSessionDto> toDtoList(List<WatchingSession> entities);
 }

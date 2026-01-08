@@ -1,21 +1,29 @@
 package com.mopl.api.domain.user.service;
 
 import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
-import com.mopl.api.domain.user.dto.command.WatchingSessionCreateCommand;
+import com.mopl.api.domain.user.dto.event.WatchingSessionChangeEvent;
 import com.mopl.api.domain.user.dto.request.WatchingSessionSearchRequest;
 import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.WatchingSession;
+import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.user.exception.detail.WatchingSessionNotFoundException;
 import com.mopl.api.domain.user.mapper.WatchingSessionMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
-import com.mopl.api.domain.user.repository.WatchingSessionCacheRepository;
+import com.mopl.api.domain.user.repository.WatchingSessionRedisRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRepository;
+import com.mopl.api.global.config.websocket.dto.WatchingSessionChange;
+import com.mopl.api.global.config.websocket.dto.WatchingSessionChange.ChangeType;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,66 +35,132 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     private final UserRepository userRepository;
     private final ContentRepository contentRepository;
     private final WatchingSessionRepository watchingSessionRepository;
-    private final WatchingSessionCacheRepository watchingSessionCacheRepository;
+    private final WatchingSessionRedisRepository watchingSessionCacheRepository;
     private final WatchingSessionMapper watchingSessionMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
-    /**
-     * 세션 조회 정책 고민 및 결정 필요
-     * 결정 포인트: 1. Redis 단일 신뢰 모델로 갈 것인가? 2. Redis 조회 후 DB 무결성 검증을 할 것인가? - 즉시 검증 - 배치 / 리스너 기반 보정
-     */
     @Override
     public WatchingSessionDto getWatchingSession(UUID watcherId) {
 
-        // TODO REDIS에 세션 정보가 있다면 가져오기
-        // Redis 신뢰 > REDIS만 조회
-        // Redis 신뢰 x > DB 무결성 검증 or DB만 조회
+        WatchingSession session = watchingSessionRepository.findByWatcherId(watcherId)
+                                                           .orElseThrow(
+                                                               () -> WatchingSessionNotFoundException.withWatcherId(
+                                                                   watcherId));
 
-        throw new UnsupportedOperationException("조회 정책 결정 후 구현");
+        return watchingSessionMapper.toDto(session);
     }
 
     @Override
     public CursorResponseWatchingSessionDto getWatchingSession(UUID contentId,
         WatchingSessionSearchRequest request) {
+        List<WatchingSession> sessions = watchingSessionRepository.searchSessions(contentId, request);
 
-        // TODO REDIS에 세션 정보가 있다면 가져오기
+        boolean hasNext = sessions.size() > request.limit();
 
-        throw new UnsupportedOperationException("조회 정책 결정 후 구현");
+        List<WatchingSession> resultData = hasNext
+            ? sessions.subList(0, request.limit())
+            : sessions;
+
+        String nextCursor = null;
+        UUID nextIdAfter = null;
+
+        if (!resultData.isEmpty() && hasNext) {
+            WatchingSession lastRecord = resultData.get(resultData.size() - 1);
+            nextCursor = lastRecord.getCreatedAt()
+                                   .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            nextIdAfter = lastRecord.getId();
+        }
+
+        long totalCount = watchingSessionCacheRepository.countWatchers(contentId);
+
+        return CursorResponseWatchingSessionDto.builder()
+                                               .data(watchingSessionMapper.toDtoList(resultData))
+                                               .nextCursor(nextCursor)
+                                               .nextIdAfter(nextIdAfter)
+                                               .hasNext(hasNext)
+                                               .totalCount(totalCount)
+                                               .sortBy(request.sortBy()
+                                                              .name())
+                                               .sortDirection(request.sortDirection()
+                                                                     .name())
+                                               .build();
     }
 
     @Override
     @Transactional
-    public WatchingSessionDto addWatchingSession(WatchingSessionCreateCommand command) {
+    public WatchingSessionChange joinWatchingSession(UUID contentId, UUID watcherId) {
 
-        User watcher = userRepository.findById(command.watcherId())
-                                     .orElseThrow(() -> new RuntimeException("존재하지 않는 유저"));
-        Content content = contentRepository.findById(command.contentId())
-                                           .orElseThrow(() -> new RuntimeException("존재하지 않는 콘텐츠"));
+        User watcher = userRepository.findById(watcherId)
+                                     .orElseThrow(() -> UserNotFoundException.withUserId(watcherId));
+        Content content = contentRepository.findById(contentId)
+                                           .orElseThrow(() -> ContentNotFoundException.withContentId(contentId));
 
-        log.debug("세션 생성 시작 command : {}", command);
+        Optional<WatchingSession> existing = watchingSessionRepository.findByContentIdAndWatcherId(contentId,
+            watcherId);
+        if (existing.isPresent()) {
+            return WatchingSessionChange.builder()
+                                        .watchingSession(watchingSessionMapper.toDto(existing.get()))
+                                        .type(ChangeType.JOIN)
+                                        .watcherCount(watchingSessionCacheRepository.countWatchers(contentId))
+                                        .build();
+        }
+
+        log.debug("세션 생성 시작 contentId: {}, watcherId: {}", contentId, watcherId);
 
         WatchingSession session = new WatchingSession(watcher, content);
-        WatchingSession saved = watchingSessionRepository.save(session);
+        WatchingSession saved = watchingSessionRepository.saveAndFlush(session);
         log.debug("DB 저장 완료");
 
-        watchingSessionCacheRepository.save(saved);
+        watchingSessionCacheRepository.addWatcher(contentId, watcherId);
         log.debug("Redis 저장 완료");
+        long count = watchingSessionCacheRepository.countWatchers(contentId);
 
         log.debug("세션 생성 완료");
 
-        return watchingSessionMapper.toDto(saved);
+        WatchingSessionChange change = WatchingSessionChange.builder()
+                                                            .watchingSession(watchingSessionMapper.toDto(saved))
+                                                            .type(ChangeType.JOIN)
+                                                            .watcherCount(count)
+                                                            .build();
+
+        eventPublisher.publishEvent(WatchingSessionChangeEvent.builder()
+                                                              .contentId(contentId)
+                                                              .change(change)
+                                                              .build());
+        log.debug("join 이벤트 발행 완료");
+
+        return change;
     }
 
     @Override
     @Transactional
-    public void removeWatchingSession(UUID sessionId) {
+    public WatchingSessionChange leaveWatchingSession(UUID contentId, UUID watcherId) {
 
-        if (!watchingSessionRepository.existsById(sessionId)) {
-            throw WatchingSessionNotFoundException.withSessionId(sessionId);
+        WatchingSession session = watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)
+                                                           .orElse(null);
+
+        if (session == null) {
+            throw WatchingSessionNotFoundException.withContentIdAndWatcherId(contentId, watcherId);
         }
 
-        watchingSessionRepository.deleteById(sessionId);
+        watchingSessionRepository.delete(session);
         log.debug("DB 삭제 완료");
-        watchingSessionCacheRepository.deleteBySessionId(sessionId);
+        watchingSessionCacheRepository.removeWatcher(contentId, watcherId);
         log.debug("Redis 삭제 완료");
+        long count = watchingSessionCacheRepository.countWatchers(contentId);
+
+        WatchingSessionChange change = WatchingSessionChange.builder()
+                                                            .watchingSession(watchingSessionMapper.toDto(session))
+                                                            .watcherCount(count)
+                                                            .type(ChangeType.LEAVE)
+                                                            .build();
+
+        eventPublisher.publishEvent(WatchingSessionChangeEvent.builder()
+                                                              .contentId(contentId)
+                                                              .change(change)
+                                                              .build());
+        log.debug("leave 이벤트 발행 완료");
+
+        return change;
     }
 }
