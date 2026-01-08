@@ -39,7 +39,9 @@ public class ActiveConversationRegistry {
         return set != null && set.contains(conversationId);
     }
 
-
+    public void clearUser(UUID userId) {
+        registry.remove(userId);
+    }
     
 
 }

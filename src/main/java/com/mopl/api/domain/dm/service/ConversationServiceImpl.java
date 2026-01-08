@@ -247,7 +247,7 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public void conversationRead(UUID conversationId, UUID directMessageId) {
 
         UUID me = currentUserId();
