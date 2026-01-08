@@ -20,6 +20,7 @@ import com.mopl.api.domain.playlist.repository.PlaylistRepository;
 import com.mopl.api.domain.playlist.repository.SubscriptionRepository;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -125,12 +126,71 @@ public class PlaylistServiceImpl implements PlaylistService {
         String sortDirection,
         UUID currentUserId
     ) {
+        Instant cursorInstant = null;
+        Long cursorLong = null;
+
+        if (cursor != null && !cursor.isBlank() && idAfter != null) {
+            if ("updatedAt".equals(sortBy)) {
+                cursorInstant = Instant.parse(cursor);
+            } else if ("subscriberCount".equals(sortBy)) {
+                cursorLong = Long.parseLong(cursor);
+            }
+        }
+
+        List<Playlist> playlists = playlistRepository.findPlaylistsWithCursor(
+            keywordLike,
+            ownerIdEqual,
+            subscriberIdEqual,
+            sortBy,
+            sortDirection,
+            cursorInstant,
+            cursorLong,
+            idAfter,
+            limit
+        );
+
+        boolean hasNext = playlists.size() > limit;
+        if (hasNext) {
+            playlists = playlists.subList(0, limit);
+        }
+
+        List<PlaylistDto> playlistDtos = playlists.stream()
+                                                  .map(playlist -> {
+                                                      List<PlaylistContent> playlistContents = playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(
+                                                          playlist.getId());
+                                                      boolean isOwner = currentUserId != null && playlist.getOwner()
+                                                                                                         .getId()
+                                                                                                         .equals(
+                                                                                                             currentUserId);
+                                                      boolean subscribedByMe = currentUserId != null
+                                                          && subscriptionRepository.existsByUserIdAndPlaylistId(
+                                                          currentUserId, playlist.getId());
+                                                      return playlistMapper.toDto(playlist, playlistContents,
+                                                          subscribedByMe, isOwner);
+                                                  })
+                                                  .toList();
+
+        String nextCursor = null;
+        UUID nextIdAfter = null;
+        if (hasNext && !playlists.isEmpty()) {
+            Playlist lastPlaylist = playlists.get(playlists.size() - 1);
+            if ("updatedAt".equals(sortBy)) {
+                nextCursor = lastPlaylist.getUpdatedAt()
+                                         .toString();
+            } else if ("subscriberCount".equals(sortBy)) {
+                nextCursor = String.valueOf(lastPlaylist.getSubscriberCount());
+            }
+            nextIdAfter = lastPlaylist.getId();
+        }
+
+        long totalCount = playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual);
+
         return new CursorResponsePlaylistDto(
-            new ArrayList<>(),
-            null,
-            null,
-            false,
-            0,
+            playlistDtos,
+            nextCursor,
+            nextIdAfter,
+            hasNext,
+            (int) totalCount,
             sortBy,
             sortDirection
         );
@@ -171,8 +231,11 @@ public class PlaylistServiceImpl implements PlaylistService {
             throw PlaylistUnauthorizedException.withDetails(playlistId, userId);
         }
 
-        PlaylistContent playlistContent = playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)
-                                                                   .orElseThrow(() -> ContentNotInPlaylistException.withDetails(playlistId, contentId));
+        PlaylistContent playlistContent = playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(
+                                                                       playlistId, contentId)
+                                                                   .orElseThrow(
+                                                                       () -> ContentNotInPlaylistException.withDetails(
+                                                                           playlistId, contentId));
 
         playlistContent.softDelete();
         playlistContentRepository.save(playlistContent);
