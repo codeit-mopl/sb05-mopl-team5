@@ -86,9 +86,9 @@ custom:
 
 # 10. API 설정
 tmdb:
-  api-key: ${TMDB_API_KEY}
+  api-key: ${TMDB_API_KEY:default}
 thesportdb:
-  api-key: ${THE_SPORT_API_KEY}
+  api-key: ${THE_SPORT_API_KEY:default}
 
 # 11. 배치 주기 설정
 batch:
