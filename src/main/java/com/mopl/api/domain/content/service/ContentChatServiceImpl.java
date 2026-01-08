@@ -1,6 +1,6 @@
 package com.mopl.api.domain.content.service;
 
-import com.mopl.api.domain.user.dto.request.UserSummary;
+import com.mopl.api.domain.user.dto.response.UserSummary;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRedisRepository;

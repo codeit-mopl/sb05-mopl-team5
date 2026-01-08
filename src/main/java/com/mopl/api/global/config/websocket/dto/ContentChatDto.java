@@ -1,6 +1,6 @@
 package com.mopl.api.global.config.websocket.dto;
 
-import com.mopl.api.domain.user.dto.request.UserSummary;
+import com.mopl.api.domain.user.dto.response.UserSummary;
 import lombok.Builder;
 
 @Builder

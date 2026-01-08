@@ -1,4 +1,4 @@
-package com.mopl.api.domain.user.dto.request;
+package com.mopl.api.domain.user.dto.response;
 
 import java.util.UUID;
 import lombok.Builder;

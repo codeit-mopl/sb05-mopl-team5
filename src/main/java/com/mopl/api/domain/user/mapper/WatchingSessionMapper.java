@@ -13,7 +13,7 @@ import org.mapstruct.Mapping;
 )
 public interface WatchingSessionMapper {
 
-    @Mapping(source = "watcher", target = "user")
+    @Mapping(source = "watcher", target = "watcher")
     @Mapping(source = "content", target = "content")
     WatchingSessionDto toDto(WatchingSession entity);
 
