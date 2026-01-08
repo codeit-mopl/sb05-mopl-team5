@@ -6,7 +6,7 @@ import com.mopl.api.domain.notification.dto.response.CursorResponseNotificationD
 import com.mopl.api.domain.notification.dto.response.NotificationDto;
 import com.mopl.api.domain.notification.entity.Notification;
 import com.mopl.api.domain.notification.entity.NotificationLevel;
-import com.mopl.api.domain.notification.exception.detail.NotificationForBiddenException;
+import com.mopl.api.domain.notification.exception.detail.NotificationForbiddenException;
 import com.mopl.api.domain.notification.exception.detail.NotificationNotFoundException;
 import com.mopl.api.domain.notification.mapper.NotificationMapper;
 import com.mopl.api.domain.notification.repository.NotificationRepository;
@@ -105,7 +105,7 @@ public class NotificationServiceImpl implements NotificationService {
         if (!notification.getReceiver()
                          .getId()
                          .equals(receiverId)) {
-            throw NotificationForBiddenException.withNotificationIdAndReceiverId(notificationId, receiverId);
+            throw NotificationForbiddenException.withNotificationIdAndReceiverId(notificationId, receiverId);
         }
 
         notificationRepository.delete(notification);

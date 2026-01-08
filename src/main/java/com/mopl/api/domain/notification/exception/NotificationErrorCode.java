@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum NotificationErrorCode implements ErrorCode {
     NOTIFICATION_NOT_FOUND("N001", "존재하지 않는 알림입니다.", HttpStatus.NOT_FOUND),
-    NOTIFICATION_FORBIDDEN("N002", "알림에 접근할 권한이 없습니다.", HttpStatus.FORBIDDEN),
+    NOTIFICATION_FORBIDDEN("N002", "알림에 대한 권한이 없습니다.", HttpStatus.FORBIDDEN),
     ;
 
     private final String code;

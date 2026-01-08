@@ -5,7 +5,7 @@ import static org.mockito.BDDMockito.given;
 
 import com.mopl.api.domain.notification.entity.Notification;
 import com.mopl.api.domain.notification.entity.NotificationLevel;
-import com.mopl.api.domain.notification.exception.detail.NotificationForBiddenException;
+import com.mopl.api.domain.notification.exception.detail.NotificationForbiddenException;
 import com.mopl.api.domain.notification.exception.detail.NotificationNotFoundException;
 import com.mopl.api.domain.notification.repository.NotificationRepository;
 import com.mopl.api.domain.user.entity.User;
@@ -45,7 +45,7 @@ class NotificationServiceTest {
 
         // when & then
         assertThatThrownBy(() -> notificationService.removeNotification(notificationId, requesterId))
-            .isInstanceOf(NotificationForBiddenException.class);
+            .isInstanceOf(NotificationForbiddenException.class);
     }
 
     @Test
