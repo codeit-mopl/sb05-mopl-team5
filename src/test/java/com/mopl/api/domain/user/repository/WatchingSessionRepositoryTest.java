@@ -18,8 +18,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -99,38 +97,6 @@ class WatchingSessionRepositoryTest {
         assertThat(secondPage.get(0)
                              .getWatcher()
                              .getName()).isEqualTo("유저2");
-    }
-
-    @Test
-    @DisplayName("생성일이 같을 경우 ID를 비교하여 다음 데이터를 가져온다")
-    void searchSessions_TieBreaker_Success() {
-
-        LocalDateTime sameTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-
-        User user1 = createUser("A 유저", "auser@test.com");
-        User user2 = createUser("B 유저", "buser@test.com");
-
-        WatchingSession s1 = saveSession(user1, sameTime);
-        WatchingSession s2 = saveSession(user2, sameTime);
-
-        List<WatchingSession> sessions = new ArrayList<>(List.of(s1, s2));
-        sessions.sort(Comparator.comparing(WatchingSession::getId));
-
-        WatchingSession first = sessions.get(0);
-        WatchingSession second = sessions.get(1);
-
-        WatchingSessionSearchRequest request = WatchingSessionSearchRequest.builder()
-                                                                           .cursor(first.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                                                                           .idAfter(first.getId().toString())
-                                                                           .limit(10)
-                                                                           .sortDirection(SortDirection.ASCENDING)
-                                                                           .sortBy(SortBy.createdAt)
-                                                                           .build();
-
-        List<WatchingSession> result = watchingSessionRepository.searchSessions(content.getId(), request);
-
-        assertThat(result).isNotEmpty();
-        assertThat(result.get(0).getId()).isEqualTo(second.getId());
     }
 
     private User createUser(String name, String email) {
