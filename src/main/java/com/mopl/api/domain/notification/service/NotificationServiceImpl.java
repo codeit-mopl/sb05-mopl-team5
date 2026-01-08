@@ -6,8 +6,8 @@ import com.mopl.api.domain.notification.dto.response.CursorResponseNotificationD
 import com.mopl.api.domain.notification.dto.response.NotificationDto;
 import com.mopl.api.domain.notification.entity.Notification;
 import com.mopl.api.domain.notification.entity.NotificationLevel;
+import com.mopl.api.domain.notification.exception.detail.NotificationForBiddenException;
 import com.mopl.api.domain.notification.exception.detail.NotificationNotFoundException;
-import com.mopl.api.domain.notification.exception.detail.NotificationUnauthorizedException;
 import com.mopl.api.domain.notification.mapper.NotificationMapper;
 import com.mopl.api.domain.notification.repository.NotificationRepository;
 import com.mopl.api.domain.user.entity.User;
@@ -72,11 +72,10 @@ public class NotificationServiceImpl implements NotificationService {
      */
     @Override
     @Transactional
-    public void createNotification(
+    public NotificationDto createNotification(
         UUID receiverId,
         String title,
         String content
-//        NotificationLevel level
     ) {
         User receiver = userRepository.getReferenceById(receiverId);
         Notification notification = new Notification(receiver, title, content, NotificationLevel.INFO);
@@ -88,6 +87,8 @@ public class NotificationServiceImpl implements NotificationService {
         eventPublisher.publishEvent(new NotificationCreatedEvent(dto));
 
         log.info("알림 생성: {}", notification.getId());
+
+        return dto;
     }
 
     /**
@@ -104,7 +105,7 @@ public class NotificationServiceImpl implements NotificationService {
         if (!notification.getReceiver()
                          .getId()
                          .equals(receiverId)) {
-            throw NotificationUnauthorizedException.withNotificationIdAndReceiverId(notificationId, receiverId);
+            throw NotificationForBiddenException.withNotificationIdAndReceiverId(notificationId, receiverId);
         }
 
         notificationRepository.delete(notification);

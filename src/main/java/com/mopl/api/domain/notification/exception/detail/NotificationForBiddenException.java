@@ -4,15 +4,15 @@ import com.mopl.api.domain.notification.exception.NotificationErrorCode;
 import com.mopl.api.domain.notification.exception.NotificationException;
 import java.util.UUID;
 
-public class NotificationUnauthorizedException extends NotificationException {
+public class NotificationForBiddenException extends NotificationException {
 
-    public NotificationUnauthorizedException() {
-        super(NotificationErrorCode.NOTIFICATION_UNAUTHORIZED);
+    public NotificationForBiddenException() {
+        super(NotificationErrorCode.NOTIFICATION_FORBIDDEN);
     }
 
-    public static NotificationUnauthorizedException withNotificationIdAndReceiverId(UUID notificationId,
+    public static NotificationForBiddenException withNotificationIdAndReceiverId(UUID notificationId,
         UUID receiverId) {
-        NotificationUnauthorizedException exception = new NotificationUnauthorizedException();
+        NotificationForBiddenException exception = new NotificationForBiddenException();
         exception.addDetail("notificationId", notificationId);
         exception.addDetail("receiverId", receiverId);
         return exception;
