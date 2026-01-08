@@ -119,13 +119,13 @@ class WatchingSessionServiceImplTest {
         given(userRepository.findById(watcherId)).willReturn(Optional.of(watcher));
         given(contentRepository.findById(contentId)).willReturn(Optional.of(content));
         given(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)).willReturn(Optional.empty());
-        given(watchingSessionRepository.save(any())).willReturn(session);
+        given(watchingSessionRepository.saveAndFlush(any())).willReturn(session);
         given(watchingSessionCacheRepository.countWatchers(contentId)).willReturn(1L);
 
         watchingSessionService.joinWatchingSession(contentId, watcherId);
 
         then(watchingSessionRepository).should()
-                                       .save(any());
+                                       .saveAndFlush(any());
         then(watchingSessionCacheRepository).should()
                                             .addWatcher(contentId, watcherId);
         then(eventPublisher).should()

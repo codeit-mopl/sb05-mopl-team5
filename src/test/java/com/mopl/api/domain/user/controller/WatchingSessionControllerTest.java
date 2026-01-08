@@ -71,8 +71,8 @@ class WatchingSessionControllerTest {
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.id").value(responseDto.id()
                                                             .toString()))
-               .andExpect(jsonPath("$.user.id").value(watcherId.toString()))
-               .andExpect(jsonPath("$.user.name").value("테스트유저"))
+               .andExpect(jsonPath("$.watcher.userId").value(watcherId.toString()))
+               .andExpect(jsonPath("$.watcher.name").value("테스트유저"))
                .andExpect(jsonPath("$.content.title").value("영화 제목"));
     }
 

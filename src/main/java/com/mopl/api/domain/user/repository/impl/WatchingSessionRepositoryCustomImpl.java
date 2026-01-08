@@ -23,9 +23,9 @@ public class WatchingSessionRepositoryCustomImpl implements WatchingSessionRepos
 
     private final JPAQueryFactory queryFactory;
 
-    private final QWatchingSession watchingSession = QWatchingSession.watchingSession;
-    private final QUser user = QUser.user;
     private final QContent content = QContent.content;
+    private final QUser user = QUser.user;
+    private final QWatchingSession watchingSession = QWatchingSession.watchingSession;
 
     @Override
     public List<WatchingSession> searchSessions(UUID contentId, WatchingSessionSearchRequest request) {
