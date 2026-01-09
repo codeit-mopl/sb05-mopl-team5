@@ -6,7 +6,6 @@ import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
 import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.playlist.entity.PlaylistContent;
 import com.mopl.api.domain.user.mapper.UserMapper;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -32,8 +31,6 @@ public abstract class PlaylistMapper {
     @Mapping(target = "subscriberCount", source = "playlist.subscriberCount")
     @Mapping(target = "subscribedByMe", source = "subscribedByMe")
     @Mapping(target = "isOwner", source = "isOwner")
-    @Mapping(target = "createdAt", expression = "java(toLocalDateTime(playlist.getCreatedAt()))")
-    @Mapping(target = "updatedAt", expression = "java(toLocalDateTime(playlist.getUpdatedAt()))")
     public abstract PlaylistDto toDto(
         Playlist playlist,
         List<PlaylistContent> playlistContents,
@@ -48,16 +45,5 @@ public abstract class PlaylistMapper {
         return playlistContents.stream()
             .map(pc -> contentMapper.toDto(pc.getContent()))
             .collect(Collectors.toList());
-    }
-
-    protected LocalDateTime toLocalDateTime(LocalDateTime dateTime) {
-        return dateTime;
-    }
-
-    protected LocalDateTime toLocalDateTime(Instant instant) {
-        if (instant == null) {
-            return null;
-        }
-        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
     }
 }

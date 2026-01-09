@@ -1,23 +1,40 @@
 package com.mopl.api.domain.review.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.review.dto.request.ReviewCreateRequest;
 import com.mopl.api.domain.review.dto.request.ReviewUpdateRequest;
 import com.mopl.api.domain.review.dto.response.CursorResponseReviewDto;
 import com.mopl.api.domain.review.dto.response.ReviewDto;
 import com.mopl.api.domain.review.entity.Review;
-import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.review.exception.detail.ReviewAlreadyExistsException;
 import com.mopl.api.domain.review.exception.detail.ReviewNotFoundException;
 import com.mopl.api.domain.review.exception.detail.ReviewUnauthorizedException;
-import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.review.mapper.ReviewMapper;
 import com.mopl.api.domain.review.repository.ReviewRepository;
 import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.UserRole;
+import com.mopl.api.domain.user.exception.user.UserErrorCode;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,18 +42,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ReviewService 단위 테스트")
@@ -137,7 +142,7 @@ class ReviewServiceTest {
 
         assertThatThrownBy(() -> reviewService.addReview(request, userId))
             .isInstanceOf(UserNotFoundException.class)
-            .hasMessageContaining("존재하지 않는 사용자입니다");
+            .hasMessageContaining(UserErrorCode.USER_NOT_FOUND.getMessage());
 
         verify(userRepository).findById(userId);
         verify(reviewRepository, never()).save(any());
@@ -342,7 +347,8 @@ class ReviewServiceTest {
         assertThat(result.totalCount()).isEqualTo(2);
         assertThat(result.sortBy()).isEqualTo(sortBy);
         assertThat(result.sortDirection()).isEqualTo(sortDirection);
-        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(), any(), eq(limit));
+        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(),
+            any(), eq(limit));
         verify(reviewRepository).countReviewsByContentId(contentId);
     }
 
@@ -401,7 +407,8 @@ class ReviewServiceTest {
         assertThat(result.nextCursor()).isEqualTo("3.5");
         assertThat(result.nextIdAfter()).isEqualTo(mockReview2Id);
         assertThat(result.totalCount()).isEqualTo(5);
-        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(BigDecimal.class), eq(idAfter), eq(limit));
+        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(),
+            any(BigDecimal.class), eq(idAfter), eq(limit));
     }
 
     @Test
@@ -440,8 +447,11 @@ class ReviewServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.data()).hasSize(1);
-        assertThat(result.data().get(0).isAuthor()).isFalse();
-        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(), any(), eq(limit));
+        assertThat(result.data()
+                         .get(0)
+                         .isAuthor()).isFalse();
+        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(),
+            any(), eq(limit));
     }
 
     @Test

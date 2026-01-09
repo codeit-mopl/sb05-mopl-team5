@@ -9,6 +9,7 @@ import com.mopl.api.domain.playlist.exception.detail.SubscriptionNotFoundExcepti
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
 import com.mopl.api.domain.playlist.repository.SubscriptionRepository;
 import com.mopl.api.domain.user.entity.User;
+import com.mopl.api.domain.user.exception.user.UserErrorCode;
 import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -145,7 +146,7 @@ class SubscriptionServiceImplTest {
 
         assertThatThrownBy(() -> subscriptionService.subscribeToPlaylist(playlistId, userId))
             .isInstanceOf(UserNotFoundException.class)
-            .hasMessageContaining("존재하지 않는 사용자입니다");
+            .hasMessageContaining(UserErrorCode.USER_NOT_FOUND.getMessage());
 
         verify(playlistRepository).findById(playlistId);
         verify(subscriptionRepository).existsByUserIdAndPlaylistId(userId, playlistId);
