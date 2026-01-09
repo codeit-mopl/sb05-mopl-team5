@@ -1,4 +1,4 @@
-package com.mopl.api.domain.review.repository;
+package com.mopl.api.domain.review.repository.impl;
 
 import com.mopl.api.domain.review.entity.Review;
 import java.math.BigDecimal;

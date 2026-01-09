@@ -5,7 +5,7 @@ import com.mopl.api.domain.review.dto.request.ReviewUpdateRequest;
 import com.mopl.api.domain.review.dto.response.CursorResponseReviewDto;
 import com.mopl.api.domain.review.dto.response.ReviewDto;
 import com.mopl.api.domain.review.service.ReviewService;
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
