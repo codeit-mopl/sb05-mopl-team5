@@ -1,6 +1,7 @@
 package com.mopl.api.global.config.security;
 
 import com.mopl.api.domain.user.entity.User;
+import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
 import com.mopl.api.domain.user.mapper.UserMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,7 @@ public class TempPasswordAuthenticationProvider implements AuthenticationProvide
         }
 
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new BadCredentialsException("Invalid email"));
+            .orElseThrow(() -> UserNotFoundException.withUserEmail(email));
 
         // Redis에서 임시 비밀번호 해시값 조회
         String key = TEMP_PW_KEY_PREFIX + email;
