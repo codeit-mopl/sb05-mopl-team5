@@ -20,7 +20,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @EnableCaching
 @RequiredArgsConstructor
 public class RedisConfig {
-
+    // TODO 최적화 설정 and LIMIT 설정이 필요함
     private final ObjectMapper objectMapper;
 
     @Bean

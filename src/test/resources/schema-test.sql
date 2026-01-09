@@ -1,7 +1,6 @@
 -- ==========================================
 -- 0. Drop Tables (Clean Up)
 -- ==========================================
-DROP TABLE IF EXISTS `jwt_sessions`;
 DROP TABLE IF EXISTS `direct_messages`;
 DROP TABLE IF EXISTS `conversation_participants`;
 DROP TABLE IF EXISTS `conversations`;
@@ -46,7 +45,7 @@ CREATE TABLE `contents`
     `title`          VARCHAR(255)  NOT NULL,
     `description`    VARCHAR(1000) NOT NULL,
     `thumbnail_url`  VARCHAR(255)  NOT NULL,
-    `tags`           VARCHAR(500) NOT NULL,
+    `tags`           VARCHAR(500)  NOT NULL,
     `average_rating` DECIMAL(2, 1) NOT NULL DEFAULT 0.0,
     `review_count`   BIGINT        NOT NULL DEFAULT 0,
     `watcher_count`  BIGINT        NOT NULL DEFAULT 0,
@@ -54,7 +53,8 @@ CREATE TABLE `contents`
     `updated_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `is_deleted`     BOOLEAN       NOT NULL DEFAULT FALSE,
 
-    CONSTRAINT `PK_CONTENTS` PRIMARY KEY (`id`)
+    CONSTRAINT `PK_CONTENTS` PRIMARY KEY (`id`),
+    CONSTRAINT `UK_CONTENTS_TYPE_API_ID` UNIQUE (`type`, `api_id`)
 );
 
 -- ==========================================
@@ -182,6 +182,12 @@ CREATE TABLE `conversations`
     `id`         BINARY(16)     NOT NULL COMMENT 'PK',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
+    -- [추가] 목록 조회를 위한 역정규화 컬럼 (최신 메시지 캐싱)
+    `last_message_content`    VARCHAR(2000) NULL,
+    `last_message_created_at` DATETIME      NULL,
+
+
+
     CONSTRAINT `PK_CONVERSATIONS` PRIMARY KEY (`id`)
 );
 
@@ -213,20 +219,6 @@ CREATE TABLE `direct_messages`
     `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT `PK_DIRECT_MESSAGES` PRIMARY KEY (`id`)
-);
-
--- ==========================================
--- 14. JWT Sessions Table
--- ==========================================
-CREATE TABLE `jwt_sessions`
-(
-    `id`            BINARY(16)   NOT NULL COMMENT 'PK',
-    `user_id`       BINARY(16)   NOT NULL COMMENT 'FK',
-    `refresh_token` VARCHAR(500) NOT NULL,
-    `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `expired_at`    DATETIME     NOT NULL,
-
-    CONSTRAINT `PK_JWT_SESSIONS` PRIMARY KEY (`id`)
 );
 
 -- ==========================================
@@ -269,5 +261,3 @@ ALTER TABLE `direct_messages`
     ADD CONSTRAINT `FK_DM_SENDER` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`);
 ALTER TABLE `direct_messages`
     ADD CONSTRAINT `FK_DM_RECEIVER` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`);
-ALTER TABLE `jwt_sessions`
-    ADD CONSTRAINT `FK_JWT_USER` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);

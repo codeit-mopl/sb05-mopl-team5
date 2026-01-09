@@ -1,4 +1,4 @@
-package com.mopl.api.domain.user.profile;
+package com.mopl.api.domain.user.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,13 +10,10 @@ import static org.mockito.Mockito.when;
 
 import com.mopl.api.domain.user.dto.request.UserUpdateRequest;
 import com.mopl.api.domain.user.entity.User;
+import com.mopl.api.domain.user.mapper.UserMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
-import com.mopl.api.domain.user.service.ProfileImageStorageService;
-import com.mopl.api.domain.user.service.UserServiceImpl;
 import java.util.Optional;
 import java.util.UUID;
-
-// [수정] JUnit 5의 Test 어노테이션 사용
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,10 +22,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
-public class UserServiceProfileChangeTest {
+public class ProfileUserServiceTest {
 
     @Mock
-    UserRepository  userRepository;
+    UserRepository userRepository;
+
+    @Mock
+    UserMapper userMapper;
 
     @Mock
     ProfileImageStorageService profileImageStorageService;
