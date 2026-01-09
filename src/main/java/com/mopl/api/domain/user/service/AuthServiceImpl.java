@@ -2,16 +2,23 @@ package com.mopl.api.domain.user.service;
 
 import com.mopl.api.domain.user.dto.request.JwtInformation;
 import com.mopl.api.domain.user.dto.request.ResetPasswordRequest;
-import com.mopl.api.domain.user.dto.response.JwtDto;
+import com.mopl.api.domain.user.exception.auth.InvalidTokenException;
+import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
+import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.global.config.security.CustomUserDetails;
 import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
 import com.nimbusds.jose.JOSEException;
+import java.time.Duration;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +31,15 @@ public class AuthServiceImpl implements AuthService {
     private final UserDetailsService userDetailsService;
     private final JwtTokenProvider jwtProvider;
     private final JwtRegistry jwtRegistry;
+    private final UserRepository userRepository;
+    private final MailService mailService;
+    private final PasswordEncoder passwordEncoder;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    @Value("${auth.temp-password-expiration}")
+    private long expirationSeconds;
+
+    private static final String TEMP_PW_KEY_PREFIX = "temp-pw:";
 
     @Transactional
     @Override
@@ -32,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
         if(!jwtProvider.validateRefreshToken(refreshToken)
             || !jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
             log.info("Invalid refresh token");
-            throw new RuntimeException("Invalid refresh token");
+            throw new InvalidTokenException();
         }
 
         String username = jwtProvider.getUsernameFromToken(refreshToken);
@@ -58,12 +74,33 @@ public class AuthServiceImpl implements AuthService {
             return jwtInformation;
         } catch (JOSEException e) {
             log.error("Failed to generate new token for user : {}", username,e);
-            throw new RuntimeException("INTERNAL_SERVER_ERROR");
+            throw new RuntimeException("INTERNAL_SERVER_ERROR",e);
         }
     }
 
     @Transactional
     @Override
     public void resetPassword(ResetPasswordRequest request) {
+        String email = request.email();
+
+        if(!userRepository.existsByEmail(request.email()) ) {
+            throw UserNotFoundException.withUserEmail(request.email());
+        }
+        String tempPassword = generateTempPassword(); // 임시비밀번호 생성
+
+        // Redis- 해시저장 + TTL
+        String hashed = passwordEncoder.encode(tempPassword);
+        String key = TEMP_PW_KEY_PREFIX + email; // temp_pw:{email}
+
+        // 재발급이면 덮어쓰기
+        redisTemplate.opsForValue().set(key, hashed, Duration.ofSeconds(expirationSeconds));
+
+        // 메일 전송
+        mailService.sendMail(email, tempPassword);
+    }
+
+    private String generateTempPassword() {
+        String temp= UUID.randomUUID().toString().replace("-", "");
+        return "mopl1!" + temp.substring(0,6);
     }
 }

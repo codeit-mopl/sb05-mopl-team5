@@ -63,6 +63,21 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+  # 비밀번호 초기화 이메일 전송
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME} # 메일 보내는 계정 이메일 주소
+    password: ${MAIL_PASSWORD} # 앱 비밀번호
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+        debug: true
+
+
 # 7. 모니터링 (Actuator + Prometheus)
 management:
   endpoints:
@@ -96,3 +111,8 @@ batch:
     sport: "0 0 3 * * *"
     movie: "0 5 3 * * *"
     tv: "0 10 3 * * *"
+
+# 12. 임시비밀번호 만료 시간
+auth:
+  temp-password-expiration: 180
+

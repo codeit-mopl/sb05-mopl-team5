@@ -45,9 +45,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(token)) {
                 if (jwtProvider.validateAccessToken(token)
                     && jwtRegistry.hasActiveJwtInformationByAccessToken(token)) {
-                    String username = jwtProvider.getUsernameFromToken(token);
+                    String email = jwtProvider.getUsernameFromToken(token);
 
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
                     UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -62,7 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     SecurityContextHolder.getContext()
                                          .setAuthentication(authentication);
-                    log.debug("Set authentication for user: {}", username);
+                    log.debug("Set authentication for user: {}", email);
                 } else {
                     log.debug("Invalid JWT token");
                     sendErrorResponse(response, "Invalid JWT token", HttpServletResponse.SC_UNAUTHORIZED);

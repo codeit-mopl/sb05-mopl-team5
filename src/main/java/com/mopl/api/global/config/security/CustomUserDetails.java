@@ -36,9 +36,11 @@ public class CustomUserDetails implements UserDetails {
         return UserDetails.super.isAccountNonExpired();
     }
 
+    // 계정 잠김 여부 체크
     @Override
     public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
+        // locked = true -> 로그인 불가
+        return !userDto.locked();
     }
 
     @Override

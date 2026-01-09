@@ -13,6 +13,7 @@ public interface ReviewMapper {
 
     @Mapping(target = "id", source = "review.id")
     @Mapping(target = "contentId", source = "review.content.id")
+    @Mapping(target = "author", source = "review.user")
     @Mapping(target = "text", source = "review.text")
     @Mapping(target = "rating", source = "review.rating")
     @Mapping(target = "createdAt", expression = "java(toLocalDateTime(review.getCreatedAt()))")

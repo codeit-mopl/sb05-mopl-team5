@@ -9,6 +9,7 @@ import com.mopl.api.global.config.security.handler.JwtAuthenticationEntryPoint;
 import com.mopl.api.global.config.security.handler.JwtLogoutHandler;
 import com.mopl.api.global.config.security.handler.LoginFailureHandler;
 import com.mopl.api.global.config.security.handler.LoginSuccessHandler;
+import com.mopl.api.global.config.security.handler.SpaCsrfTokenRequestHandler;
 import com.mopl.api.global.config.security.jwt.InMemoryJwtRegistry;
 import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
@@ -26,6 +27,9 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -50,6 +54,9 @@ public class SecurityConfig {
         LoginSuccessHandler loginSuccessHandler,
         LoginFailureHandler loginFailureHandler,
         JwtLogoutHandler logoutHandler,
+        TempPasswordAuthenticationProvider tempPasswordAuthenticationProvider,
+        PasswordEncoder passwordEncoder,
+        UserDetailsService customUserDetailsService,
         JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
         JwtAuthenticationFilter jwtAuthenticationFilter,
         AccessDeniedHandlerImpl accessDeniedHandlerImpl) throws Exception {
@@ -117,13 +124,20 @@ public class SecurityConfig {
             .oauth2Login(oauth -> oauth.disable())
             .httpBasic(basic -> basic.disable());
 
+        // 임시 비밀번호 검증
+        AuthenticationManagerBuilder authBuilder =
+            http.getSharedObject(AuthenticationManagerBuilder.class);
+        authBuilder.authenticationProvider(tempPasswordAuthenticationProvider)
+                   .userDetailsService(customUserDetailsService)
+                   .passwordEncoder(passwordEncoder);
+
         return http.build();
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance(); // 테스트용
-//        return new BCryptPasswordEncoder();
+//        return NoOpPasswordEncoder.getInstance();
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -137,34 +151,5 @@ public class SecurityConfig {
                                 .role(UserRole.ADMIN.name())
                                 .implies(UserRole.USER.name())
                                 .build();
-    }
-
-    static class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
-
-        private final CsrfTokenRequestHandler plain = new CsrfTokenRequestAttributeHandler();
-        private final CsrfTokenRequestHandler xor = new XorCsrfTokenRequestAttributeHandler();
-
-        @Override
-        public void handle(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Supplier<CsrfToken> csrfToken
-        ) {
-            // 1) 응답에 토큰을 렌더링할 때 XOR 방식(BREACH 방어) 적용
-            this.xor.handle(request, response, csrfToken);
-
-            // 2) 토큰을 강제로 로드해서 "쿠키로 토큰이 저장/발급되도록" 트리거 확실히
-            csrfToken.get();
-        }
-
-        @Override
-        public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
-            String headerValue = request.getHeader(csrfToken.getHeaderName());
-
-            // 헤더가 있으면 SPA 방식(plain)으로 검증
-            // 없으면 폼 파라미터(_csrf) 등 XOR 방식으로 검증
-            return (StringUtils.hasText(headerValue) ? this.plain : this.xor)
-                .resolveCsrfTokenValue(request, csrfToken);
-        }
     }
 }

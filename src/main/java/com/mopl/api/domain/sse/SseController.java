@@ -33,7 +33,7 @@ public class SseController {
         try {
             sseEmitterRegistry.send(
                 me,
-                "notifications",
+                "connect",
                 "sse-connect-" + System.currentTimeMillis(),
                 "connected"
             );
