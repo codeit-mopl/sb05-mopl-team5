@@ -1,8 +1,9 @@
-package com.mopl.api.global.config.security;
+package com.mopl.api.global.config.security.service;
 
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.mapper.UserMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UserDetails;

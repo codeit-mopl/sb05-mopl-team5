@@ -1,9 +1,10 @@
-package com.mopl.api.global.config.security;
+package com.mopl.api.global.config.security.provider;
 
 import com.mopl.api.domain.user.entity.User;
-import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.mapper.UserMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;

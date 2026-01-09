@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mopl.api.domain.user.dto.request.JwtInformation;
 import com.mopl.api.domain.user.dto.response.JwtDto;
 import com.mopl.api.domain.user.dto.response.UserDto;
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
 import jakarta.servlet.ServletException;

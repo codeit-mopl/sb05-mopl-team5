@@ -1,4 +1,4 @@
-package com.mopl.api.global.config.security;
+package com.mopl.api.global.config.security.claim;
 
 import com.mopl.api.domain.user.dto.response.UserDto;
 import java.util.Collection;
