@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class UserExceptionHandler {
 
     @ExceptionHandler(UserException.class)
-    public ProblemDetail handleWatchingSessionException(UserException e) {
+    public ProblemDetail handleUserException(UserException e) {
         ErrorCode errorCode = e.getErrorCode();
         log.error(e.getMessage(), e);
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(errorCode.getHttpStatus(), errorCode.getMessage());

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class AuthExceptionHandler {
 
     @ExceptionHandler(AuthException.class)
-    public ProblemDetail handleWatchingSessionException(AuthException e) {
+    public ProblemDetail handleAuthException(AuthException e) {
         ErrorCode errorCode = e.getErrorCode();
         log.error(e.getMessage(), e);
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(errorCode.getHttpStatus(), errorCode.getMessage());
