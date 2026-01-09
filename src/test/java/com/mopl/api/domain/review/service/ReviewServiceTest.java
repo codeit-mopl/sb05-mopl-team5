@@ -338,7 +338,7 @@ class ReviewServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.reviews()).hasSize(2);
+        assertThat(result.data()).hasSize(2);
         assertThat(result.hasNext()).isFalse();
         assertThat(result.totalCount()).isEqualTo(2);
         assertThat(result.sortBy()).isEqualTo(sortBy);
@@ -397,7 +397,7 @@ class ReviewServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.reviews()).hasSize(2);
+        assertThat(result.data()).hasSize(2);
         assertThat(result.hasNext()).isTrue();
         assertThat(result.nextCursor()).isEqualTo("3.5");
         assertThat(result.nextIdAfter()).isEqualTo(mockReview2Id);
@@ -440,8 +440,8 @@ class ReviewServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.reviews()).hasSize(1);
-        assertThat(result.reviews().get(0).isAuthor()).isFalse();
+        assertThat(result.data()).hasSize(1);
+        assertThat(result.data().get(0).isAuthor()).isFalse();
         verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(), any(), eq(limit));
     }
 

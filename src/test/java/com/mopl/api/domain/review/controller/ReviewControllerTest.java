@@ -249,8 +249,8 @@ class ReviewControllerTest {
                    .param("sortBy", "createdAt")
                    .param("sortDirection", "DESC"))
                .andExpect(status().isOk())
-               .andExpect(jsonPath("$.reviews").isArray())
-               .andExpect(jsonPath("$.reviews[0].id").value(reviewId.toString()))
+               .andExpect(jsonPath("$.data").isArray())
+               .andExpect(jsonPath("$.data[0].id").value(reviewId.toString()))
                .andExpect(jsonPath("$.hasNext").value(false))
                .andExpect(jsonPath("$.totalCount").value(1));
     }
