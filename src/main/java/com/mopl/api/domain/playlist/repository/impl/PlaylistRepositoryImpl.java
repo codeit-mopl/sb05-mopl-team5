@@ -8,6 +8,7 @@ import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -132,12 +133,12 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
 
         if ("updatedAt".equals(sortBy) && cursorInstant != null) {
             if (isDescending) {
-                return playlist.updatedAt.lt(cursorInstant)
-                                         .or(playlist.updatedAt.eq(cursorInstant)
+                return playlist.updatedAt.lt(LocalDateTime.MAX)
+                                         .or(playlist.updatedAt.eq(LocalDateTime.MAX)
                                                                .and(playlist.id.lt(idAfter)));
             } else {
-                return playlist.updatedAt.gt(cursorInstant)
-                                         .or(playlist.updatedAt.eq(cursorInstant)
+                return playlist.updatedAt.gt(LocalDateTime.MAX)
+                                         .or(playlist.updatedAt.eq(LocalDateTime.MAX)
                                                                .and(playlist.id.gt(idAfter)));
             }
         } else if ("subscriberCount".equals(sortBy) && cursorLong != null) {
