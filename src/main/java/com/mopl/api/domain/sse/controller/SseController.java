@@ -1,7 +1,8 @@
-package com.mopl.api.domain.sse;
+package com.mopl.api.domain.sse.controller;
 
 
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.domain.sse.SseEmitterRegistry;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
