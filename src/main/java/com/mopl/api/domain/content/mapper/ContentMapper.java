@@ -10,5 +10,6 @@ import org.mapstruct.Mapping;
 public interface ContentMapper {
 
     @Mapping(target = "tags", expression = "java(Arrays.asList(content.getTags().split(\"\\\\|\")))")
+    @Mapping(target = "type", expression = "java(content.getType().getValue())")
     ContentDto toDto(Content content);
 }

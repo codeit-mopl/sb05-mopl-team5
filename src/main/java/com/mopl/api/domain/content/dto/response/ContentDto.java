@@ -1,7 +1,6 @@
 package com.mopl.api.domain.content.dto.response;
 
 import com.mopl.api.domain.content.entity.Content;
-import com.mopl.api.domain.content.entity.ContentType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -11,7 +10,7 @@ import lombok.Builder;
 @Builder
 public record ContentDto(
     UUID id,
-    ContentType type,
+    String type,
     String title,
     String description,
     String thumbnailUrl,
@@ -23,8 +22,10 @@ public record ContentDto(
 
     public static ContentDto from(Content content) {
         List<String> tags = Collections.emptyList();
-        if (content.getTags() != null && !content.getTags().isBlank()) {
-            tags = Arrays.stream(content.getTags().split(","))
+        if (content.getTags() != null && !content.getTags()
+                                                 .isBlank()) {
+            tags = Arrays.stream(content.getTags()
+                                        .split(","))
                          .map(String::trim)
                          .filter(s -> !s.isEmpty())
                          .toList();
@@ -32,12 +33,14 @@ public record ContentDto(
 
         return ContentDto.builder()
                          .id(content.getId())
-                         .type(content.getType())
+                         .type(content.getType()
+                                      .getValue())
                          .title(content.getTitle())
                          .description(content.getDescription())
                          .thumbnailUrl(content.getThumbnailUrl())
                          .tags(tags)
-                         .averageRating(content.getAverageRating() == null ? null : content.getAverageRating().doubleValue())
+                         .averageRating(content.getAverageRating() == null ? null : content.getAverageRating()
+                                                                                           .doubleValue())
                          .reviewCount(content.getReviewCount())
                          .watcherCount(content.getWatcherCount())
                          .build();
