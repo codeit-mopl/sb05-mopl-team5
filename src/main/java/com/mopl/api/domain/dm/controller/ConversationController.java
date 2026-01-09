@@ -42,7 +42,11 @@ public class ConversationController {
     @PostMapping
     public ResponseEntity<ConversationDto> createConversation(@Valid @RequestBody ConversationRequestDto requestDto) {
         ConversationDto conversationDto = service.createConversation(requestDto);
-        return ResponseEntity.status(HttpStatus.OK)
+        if (conversationDto == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED)
                              .body(conversationDto);
     }
 
@@ -62,10 +66,10 @@ public class ConversationController {
                              .body(conversationDto);
     }
 
-    @GetMapping("/{conversationId}/direct-message")
+    @GetMapping("/{conversationId}/direct-messages")
     public ResponseEntity<DirectMessageResponseDto> getDirectMessageList(@PathVariable UUID conversationId,
         @RequestParam(required = false) String cursor, @RequestParam(required = false) UUID idAfter,
-        @RequestParam(defaultValue = "32") int limit, @RequestParam(defaultValue = "ASCENDING") String sortDirection,
+        @RequestParam(defaultValue = "20") int limit, @RequestParam(defaultValue = "ASCENDING") String sortDirection,
         @RequestParam(defaultValue = "createdAt") String sortBy) {
 
         DirectMessageResponseDto responseDto = service.getDirectMessageList(conversationId, cursor, idAfter, limit,
@@ -78,6 +82,10 @@ public class ConversationController {
     @GetMapping("/with")
     public ResponseEntity<DirectMessageWithDto> getDirectMessageWith(@RequestParam UUID userId) {
         DirectMessageWithDto directMessageWithDto = service.getDirectMessageWith(userId);
+        if (directMessageWithDto == null || directMessageWithDto.id() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
         return ResponseEntity.status(HttpStatus.OK)
                              .body(directMessageWithDto);
     }

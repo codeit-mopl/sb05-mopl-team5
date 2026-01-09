@@ -8,7 +8,8 @@ import com.mopl.api.domain.conversation.repository.ConversationRepository;
 import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
 import com.mopl.api.domain.dm.dto.response.direct.DirectMessageDto;
 import com.mopl.api.domain.dm.dto.response.direct.DirectMessageReceiver;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageSend;
+import com.mopl.api.domain.dm.dto.response.direct.DirectMessagesender;
+
 import com.mopl.api.domain.dm.realtime.ActiveConversationRegistry;
 import com.mopl.api.domain.sse.SseEmitterRegistry;
 import com.mopl.api.domain.user.entity.User;
@@ -115,11 +116,11 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
                                .id(msg.getId())
                                .conversationId(msg.getConversation().getId())
                                .createdAt(msg.getCreatedAt())
-                               .send(DirectMessageSend.builder()
-                                                      .userId(msg.getSender().getId())
-                                                      .name(msg.getSender().getName())
-                                                      .profileImageUrl(msg.getSender().getProfileImageUrl())
-                                                      .build())
+                               .sender(DirectMessagesender.builder()
+                                                        .userId(msg.getSender().getId())
+                                                        .name(msg.getSender().getName())
+                                                        .profileImageUrl(msg.getSender().getProfileImageUrl())
+                                                        .build())
                                .receiver(DirectMessageReceiver.builder()
                                                               .userId(msg.getReceiver().getId())
                                                               .name(msg.getReceiver().getName())
