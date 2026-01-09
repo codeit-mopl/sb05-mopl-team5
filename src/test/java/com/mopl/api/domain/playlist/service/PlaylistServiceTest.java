@@ -494,7 +494,7 @@ class PlaylistServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.playlists()).hasSize(2);
+        assertThat(result.data()).hasSize(2);
         assertThat(result.hasNext()).isFalse();
         assertThat(result.totalCount()).isEqualTo(10);
         verify(playlistRepository).findPlaylistsWithCursor(
@@ -570,7 +570,7 @@ class PlaylistServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.playlists()).hasSize(2);
+        assertThat(result.data()).hasSize(2);
         assertThat(result.hasNext()).isTrue();
         assertThat(result.nextCursor()).isEqualTo("50");
         assertThat(result.nextIdAfter()).isEqualTo(mockPlaylist2Id);
@@ -634,7 +634,7 @@ class PlaylistServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.playlists()).hasSize(1);
+        assertThat(result.data()).hasSize(1);
         verify(subscriptionRepository, never()).existsByUserIdAndPlaylistId(any(), any());
     }
 }

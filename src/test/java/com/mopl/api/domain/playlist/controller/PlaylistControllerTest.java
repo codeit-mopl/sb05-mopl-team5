@@ -182,7 +182,7 @@ class PlaylistControllerTest {
     void playlistList_Success() throws Exception {
         com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto response = 
             com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto.builder()
-                .playlists(List.of(playlistDto))
+                .data(List.of(playlistDto))
                 .nextCursor(null)
                 .nextIdAfter(null)
                 .hasNext(false)
@@ -208,8 +208,8 @@ class PlaylistControllerTest {
                    .param("sortBy", "updatedAt")
                    .param("sortDirection", "DESC"))
                .andExpect(status().isOk())
-               .andExpect(jsonPath("$.playlists").isArray())
-               .andExpect(jsonPath("$.playlists[0].id").value(playlistId.toString()))
+               .andExpect(jsonPath("$.data").isArray())
+               .andExpect(jsonPath("$.data[0].id").value(playlistId.toString()))
                .andExpect(jsonPath("$.hasNext").value(false))
                .andExpect(jsonPath("$.totalCount").value(1));
     }
@@ -219,7 +219,7 @@ class PlaylistControllerTest {
     void playlistList_WithKeyword() throws Exception {
         com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto response = 
             com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto.builder()
-                .playlists(List.of(playlistDto))
+                .data(List.of(playlistDto))
                 .nextCursor(null)
                 .nextIdAfter(null)
                 .hasNext(false)
@@ -246,7 +246,7 @@ class PlaylistControllerTest {
                    .param("sortBy", "updatedAt")
                    .param("sortDirection", "DESC"))
                .andExpect(status().isOk())
-               .andExpect(jsonPath("$.playlists").isArray())
+               .andExpect(jsonPath("$.data").isArray())
                .andExpect(jsonPath("$.totalCount").value(1));
     }
 
@@ -255,7 +255,7 @@ class PlaylistControllerTest {
     void playlistList_WithOwnerId() throws Exception {
         com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto response = 
             com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto.builder()
-                .playlists(List.of(playlistDto))
+                .data(List.of(playlistDto))
                 .nextCursor(null)
                 .nextIdAfter(null)
                 .hasNext(false)
@@ -282,7 +282,7 @@ class PlaylistControllerTest {
                    .param("sortBy", "updatedAt")
                    .param("sortDirection", "DESC"))
                .andExpect(status().isOk())
-               .andExpect(jsonPath("$.playlists").isArray())
+               .andExpect(jsonPath("$.data").isArray())
                .andExpect(jsonPath("$.totalCount").value(1));
     }
 
@@ -308,7 +308,7 @@ class PlaylistControllerTest {
 
         com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto response = 
             com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto.builder()
-                .playlists(List.of(playlistDto, nextPlaylistDto))
+                .data(List.of(playlistDto, nextPlaylistDto))
                 .nextCursor("2024-01-01T09:00:00")
                 .nextIdAfter(nextPlaylistId)
                 .hasNext(true)
@@ -336,7 +336,7 @@ class PlaylistControllerTest {
                    .param("sortBy", "updatedAt")
                    .param("sortDirection", "DESC"))
                .andExpect(status().isOk())
-               .andExpect(jsonPath("$.playlists").isArray())
+               .andExpect(jsonPath("$.data").isArray())
                .andExpect(jsonPath("$.hasNext").value(true))
                .andExpect(jsonPath("$.nextCursor").value("2024-01-01T09:00:00"))
                .andExpect(jsonPath("$.totalCount").value(10));
