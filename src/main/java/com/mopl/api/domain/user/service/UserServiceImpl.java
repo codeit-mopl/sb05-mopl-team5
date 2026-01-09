@@ -123,6 +123,6 @@ public class UserServiceImpl implements UserService {
             user.changeProfileImageUrl(imageUrl);
         }
 
-        return UserDto.from(user);
+        return userMapper.toDto(user);
     }
 }
