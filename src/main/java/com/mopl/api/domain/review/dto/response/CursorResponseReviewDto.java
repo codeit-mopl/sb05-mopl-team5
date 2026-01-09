@@ -6,7 +6,7 @@ import lombok.Builder;
 
 @Builder
 public record CursorResponseReviewDto(
-    List<ReviewDto> reviews,
+    List<ReviewDto> data,
     String nextCursor,
     UUID nextIdAfter,
     boolean hasNext,

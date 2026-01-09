@@ -6,7 +6,7 @@ import lombok.Builder;
 
 @Builder
 public record CursorResponsePlaylistDto(
-    List<PlaylistDto> playlists,
+    List<PlaylistDto> data,
     String nextCursor,
     UUID nextIdAfter,
     boolean hasNext,
@@ -14,5 +14,9 @@ public record CursorResponsePlaylistDto(
     String sortBy,
     String sortDirection
 ) {
-
+    public CursorResponsePlaylistDto {
+        if (data == null) {
+            data = List.of();
+        }
+    }
 }
