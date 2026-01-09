@@ -1,4 +1,4 @@
-package com.mopl.api.domain.dm.service;
+package com.mopl.api.domain.conversation.service;
 
 
 import com.mopl.api.domain.conversation.entity.Conversation;
@@ -10,21 +10,19 @@ import com.mopl.api.domain.conversation.entity.QDirectMessage;
 import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository;
 import com.mopl.api.domain.conversation.repository.ConversationRepository;
 import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
-import com.mopl.api.domain.dm.dto.request.ConversationRequestDto;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationDto;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationLatestMessage;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationListRow;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationReceiver;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationResponseDto;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationSend;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationWith;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageDto;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageLastestMessage;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageReceiver;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageResponseDto;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageSend;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageWith;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageWithDto;
+import com.mopl.api.domain.conversation.dto.request.ConversationRequestDto;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationDto;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationLatestMessage;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationListRow;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationResponseDto;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationWith;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageLastestMessage;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageReceiver;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageResponseDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageSend;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWith;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWithDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.global.config.security.CustomUserDetails;
@@ -32,8 +30,6 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.ComparablePath;
-import com.querydsl.core.types.dsl.DateTimePath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -50,6 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ConversationServiceImpl implements ConversationService {
 
+    // TODO 권장사항, DB 조작 관련한 로직/기능이 Service 레이어에 작성된게 Repository로직으로 정리 되었으면 좋겠다.
 
     private final JPAQueryFactory queryFactory;
     private final ConversationRepository conversationRepository;

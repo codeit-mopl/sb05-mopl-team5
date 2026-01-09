@@ -1,4 +1,4 @@
-package com.mopl.api.domain.dm.dto.request;
+package com.mopl.api.domain.conversation.dto.request;
 
 
 import java.util.UUID;

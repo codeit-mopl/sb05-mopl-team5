@@ -1,4 +1,4 @@
-package com.mopl.api.domain.dm.realtime;
+package com.mopl.api.domain.conversation.realtime;
 
 
 import java.util.Set;

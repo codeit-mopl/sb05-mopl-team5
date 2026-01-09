@@ -1,4 +1,4 @@
-package com.mopl.api.domain.dm.dto.response.conversation;
+package com.mopl.api.domain.conversation.dto.response.conversation;
 
 
 import java.util.UUID;

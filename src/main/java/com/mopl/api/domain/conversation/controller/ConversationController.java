@@ -1,12 +1,12 @@
-package com.mopl.api.domain.dm.controller;
+package com.mopl.api.domain.conversation.controller;
 
 
-import com.mopl.api.domain.dm.dto.request.ConversationRequestDto;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationDto;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationResponseDto;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageResponseDto;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageWithDto;
-import com.mopl.api.domain.dm.service.ConversationService;
+import com.mopl.api.domain.conversation.dto.request.ConversationRequestDto;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationDto;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationResponseDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageResponseDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWithDto;
+import com.mopl.api.domain.conversation.service.ConversationService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

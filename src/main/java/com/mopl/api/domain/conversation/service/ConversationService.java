@@ -1,10 +1,10 @@
-package com.mopl.api.domain.dm.service;
+package com.mopl.api.domain.conversation.service;
 
-import com.mopl.api.domain.dm.dto.request.ConversationRequestDto;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationDto;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationResponseDto;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageResponseDto;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageWithDto;
+import com.mopl.api.domain.conversation.dto.request.ConversationRequestDto;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationDto;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationResponseDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageResponseDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWithDto;
 import java.util.UUID;
 
 public interface ConversationService {

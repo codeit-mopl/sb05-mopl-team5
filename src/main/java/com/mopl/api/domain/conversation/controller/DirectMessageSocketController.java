@@ -1,9 +1,9 @@
-package com.mopl.api.domain.dm.controller;
+package com.mopl.api.domain.conversation.controller;
 
 
 import com.mopl.api.domain.conversation.dto.request.DirectMessageSendRequest;
 import com.mopl.api.domain.conversation.service.DirectMessageCommandService;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.UUID;
