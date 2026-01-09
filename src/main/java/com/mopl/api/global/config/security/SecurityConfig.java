@@ -23,10 +23,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
@@ -43,6 +44,7 @@ import org.springframework.util.StringUtils;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -84,13 +86,13 @@ public class SecurityConfig {
                 .hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/users/{userId}/role",
                     "/api/users/{userId}/locked")
-                .hasRole("ADMIN")                   
+                .hasRole("ADMIN")
                 // 웹 소켓 handshake는 허용, stomp 시 사용자 검사
                 .requestMatchers("/ws/**")
                 .permitAll()
                 .requestMatchers("/ws")
                 .permitAll()
-                                   
+
                 .anyRequest()
                 .authenticated()
             )

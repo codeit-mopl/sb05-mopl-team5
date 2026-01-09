@@ -6,6 +6,7 @@ import com.mopl.api.domain.content.dto.request.ContentUpdateRequest;
 import com.mopl.api.domain.content.dto.response.ContentDto;
 import com.mopl.api.domain.content.dto.response.CursorResponseContentDto;
 import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.entity.ContentType;
 import com.mopl.api.domain.content.mapper.ContentMapper;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.global.config.image.LocalUploader;
@@ -48,7 +49,8 @@ public class ContentServiceImpl implements ContentService {
 
         String thumbnail = localUploader.upload(file);
 
-        Content content = new Content(request.type(), null, request.title(), request.description(),
+        Content content = new Content(ContentType.findByValue(request.type()), null, request.title(),
+            request.description(),
             thumbnail, tags, BigDecimal.ZERO, 0L, 0L);
 
         return contentMapper.toDto(contentRepository.save(content));

@@ -5,8 +5,11 @@ import com.mopl.api.domain.content.dto.request.ContentSearchRequest;
 import com.mopl.api.domain.content.dto.request.ContentUpdateRequest;
 import com.mopl.api.domain.content.dto.response.ContentDto;
 import com.mopl.api.domain.content.dto.response.CursorResponseContentDto;
+import com.mopl.api.domain.content.mapper.ContentMapper;
+import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.content.service.ContentService;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,6 +31,9 @@ import org.springframework.web.multipart.MultipartFile;
 public class ContentController {
 
     private final ContentService contentService;
+    private final ContentRepository contentRepository;  // 목록 조회 테스트를 위해 임시 사용
+    private final ContentMapper contentMapper;
+
 
     @GetMapping("/{contentId}")
     public ResponseEntity<ContentDto> contentList(@PathVariable UUID contentId) {
@@ -39,16 +45,27 @@ public class ContentController {
     @GetMapping
     public ResponseEntity<CursorResponseContentDto> contentDetails(
         @Valid ContentSearchRequest request) {
-        CursorResponseContentDto contentDtos = contentService.getContents(request);
-        return ResponseEntity.status(HttpStatus.OK)
-                             .body(contentDtos);
+//        CursorResponseContentDto contentDtos = contentService.getContents(request);
+//        return ResponseEntity.status(HttpStatus.OK)
+//                             .body(contentDtos);
+
+        List<ContentDto> contents = contentRepository.findAll()
+                                                     .stream()
+                                                     .map(contentMapper::toDto)
+                                                     .toList();
+        return ResponseEntity.status(HttpStatus.OK).body(CursorResponseContentDto.builder()
+                                .data(contents)
+                                 .sortBy("createdAt")
+                                 .sortDirection("DESCENDING")
+                                .build());
+
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ContentDto> contentAdd(@Valid @RequestPart ContentCreateRequest request,
-        @RequestPart MultipartFile file) {
-        ContentDto contentDto = contentService.addContent(request, file);
+        @RequestPart MultipartFile thumbnail) {
+        ContentDto contentDto = contentService.addContent(request, thumbnail);
         return ResponseEntity.status(HttpStatus.CREATED)
                              .body(contentDto);
     }

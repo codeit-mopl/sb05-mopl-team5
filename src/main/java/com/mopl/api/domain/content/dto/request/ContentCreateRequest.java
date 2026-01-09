@@ -1,6 +1,5 @@
 package com.mopl.api.domain.content.dto.request;
 
-import com.mopl.api.domain.content.entity.ContentType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -11,7 +10,7 @@ import lombok.Builder;
 @Builder
 public record ContentCreateRequest(
     @NotNull
-    ContentType type,
+    String type,
 
     @NotBlank
     @Size(max = 255)
