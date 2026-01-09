@@ -9,7 +9,7 @@ import com.mopl.api.domain.playlist.exception.detail.SubscriptionNotFoundExcepti
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
 import com.mopl.api.domain.playlist.repository.SubscriptionRepository;
 import com.mopl.api.domain.user.entity.User;
-import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
