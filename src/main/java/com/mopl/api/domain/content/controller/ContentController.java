@@ -7,7 +7,6 @@ import com.mopl.api.domain.content.dto.response.ContentDto;
 import com.mopl.api.domain.content.dto.response.CursorResponseContentDto;
 import com.mopl.api.domain.content.service.ContentService;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -42,11 +41,8 @@ public class ContentController {
         @Valid ContentSearchRequest request) {
         CursorResponseContentDto contentDtos = contentService.getContents(request);
         return ResponseEntity.status(HttpStatus.OK)
-                             .body(CursorResponseContentDto.builder().data(List.of()).hasNext(false).nextCursor("")
-                                                           .sortBy("").sortDirection("").build());
+                             .body(contentDtos);
     }
-
-
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
