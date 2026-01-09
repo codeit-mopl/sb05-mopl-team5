@@ -1,4 +1,4 @@
-package com.mopl.api.domain.playlist.repository;
+package com.mopl.api.domain.playlist.repository.impl;
 
 import com.mopl.api.domain.playlist.entity.Playlist;
 import java.time.Instant;
