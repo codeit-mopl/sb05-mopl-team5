@@ -16,7 +16,7 @@ import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
 import com.mopl.api.domain.user.dto.response.WatchingSessionDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.WatchingSession;
-import com.mopl.api.domain.user.exception.detail.WatchingSessionNotFoundException;
+import com.mopl.api.domain.user.exception.watching.detail.WatchingSessionNotFoundException;
 import com.mopl.api.domain.user.mapper.WatchingSessionMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.domain.user.repository.WatchingSessionRedisRepository;

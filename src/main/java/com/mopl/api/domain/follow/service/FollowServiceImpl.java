@@ -6,11 +6,8 @@ import com.mopl.api.domain.follow.mapper.FollowMapper;
 import com.mopl.api.domain.follow.repository.FollowRepository;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
-import com.mopl.api.global.config.security.CustomUserDetails;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

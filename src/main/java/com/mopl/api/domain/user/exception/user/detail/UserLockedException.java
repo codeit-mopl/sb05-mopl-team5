@@ -1,5 +1,8 @@
-package com.mopl.api.domain.user.exception.user;
+package com.mopl.api.domain.user.exception.user.detail;
 
+
+import com.mopl.api.domain.user.exception.user.UserErrorCode;
+import com.mopl.api.domain.user.exception.user.UserException;
 
 public class UserLockedException extends UserException {
 

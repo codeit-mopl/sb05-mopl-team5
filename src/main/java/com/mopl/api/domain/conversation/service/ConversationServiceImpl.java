@@ -25,7 +25,7 @@ import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWith;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWithDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;

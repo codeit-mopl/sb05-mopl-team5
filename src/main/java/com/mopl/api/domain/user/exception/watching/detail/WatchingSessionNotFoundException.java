@@ -1,7 +1,7 @@
-package com.mopl.api.domain.user.exception.detail;
+package com.mopl.api.domain.user.exception.watching.detail;
 
-import com.mopl.api.domain.user.exception.WatchingSessionErrorCode;
-import com.mopl.api.domain.user.exception.WatchingSessionException;
+import com.mopl.api.domain.user.exception.watching.WatchingSessionErrorCode;
+import com.mopl.api.domain.user.exception.watching.WatchingSessionException;
 import java.util.UUID;
 
 public class WatchingSessionNotFoundException extends WatchingSessionException {

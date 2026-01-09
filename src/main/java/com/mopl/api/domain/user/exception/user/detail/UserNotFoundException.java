@@ -1,10 +1,10 @@
-package com.mopl.api.domain.user.exception.detail;
+package com.mopl.api.domain.user.exception.user.detail;
 
-import com.mopl.api.domain.user.exception.UserErrorCode;
-import com.mopl.api.domain.user.exception.UserErrorException;
+import com.mopl.api.domain.user.exception.user.UserErrorCode;
+import com.mopl.api.domain.user.exception.user.UserException;
 import java.util.UUID;
 
-public class UserNotFoundException extends UserErrorException {
+public class UserNotFoundException extends UserException {
 
     public UserNotFoundException() {
         super(UserErrorCode.USER_NOT_FOUND);

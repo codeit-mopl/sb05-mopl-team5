@@ -2,7 +2,7 @@ package com.mopl.api.config;
 
 import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.entity.UserRole;
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;

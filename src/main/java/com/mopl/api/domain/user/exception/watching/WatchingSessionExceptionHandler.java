@@ -1,4 +1,4 @@
-package com.mopl.api.domain.user.exception;
+package com.mopl.api.domain.user.exception.watching;
 
 import com.mopl.api.global.config.exception.ErrorCode;
 import java.net.URI;

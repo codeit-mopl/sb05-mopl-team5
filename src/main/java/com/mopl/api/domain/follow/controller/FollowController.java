@@ -3,7 +3,7 @@ package com.mopl.api.domain.follow.controller;
 import com.mopl.api.domain.follow.dto.request.FollowRequest;
 import com.mopl.api.domain.follow.dto.response.FollowDto;
 import com.mopl.api.domain.follow.service.FollowService;
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
