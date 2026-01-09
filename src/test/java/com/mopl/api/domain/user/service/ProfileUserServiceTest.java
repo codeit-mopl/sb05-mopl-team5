@@ -61,8 +61,8 @@ public class ProfileUserServiceTest {
 
         userService.profileChange(userId, requester, new UserUpdateRequest("alice"), image);
 
-        verify(user).changeName("alice");
-        verify(user).changeProfileImageUrl("/profile-images/a.png");
+        verify(user).updateName("alice");
+        verify(user).updateProfileImageUrl("/profile-images/a.png");
     }
 
     @Test
@@ -73,7 +73,7 @@ public class ProfileUserServiceTest {
 
         userService.profileChange(userId, userId, new UserUpdateRequest("bob"), null);
 
-        verify(user).changeName("bob");
-        verify(user, never()).changeProfileImageUrl(any());
+        verify(user).updateName("bob");
+        verify(user, never()).updateProfileImageUrl(any());
     }
 }

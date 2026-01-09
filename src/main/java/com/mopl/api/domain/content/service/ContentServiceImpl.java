@@ -81,7 +81,7 @@ public class ContentServiceImpl implements ContentService {
         Content content = contentRepository.findByIdAndIsDeletedFalse(id)
                                            .orElseThrow(
                                                () -> new NoSuchElementException("Content not found with id: " + id));
-        content.isDelete();
+        content.softDelete();
     }
 
     private String tagToString(List<String> tagList) {

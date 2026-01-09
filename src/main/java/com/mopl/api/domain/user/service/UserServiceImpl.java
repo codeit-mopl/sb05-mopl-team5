@@ -115,12 +115,12 @@ public class UserServiceImpl implements UserService {
 
         if (request != null && request.name() != null && !request.name()
                                                                  .isBlank()) {
-            user.changeName(request.name());
+            user.updateName(request.name());
         }
 
         if (image != null && !image.isEmpty()) {
             String imageUrl = profileImageStorageService.store(userId, image);
-            user.changeProfileImageUrl(imageUrl);
+            user.updateProfileImageUrl(imageUrl);
         }
 
         return userMapper.toDto(user);
