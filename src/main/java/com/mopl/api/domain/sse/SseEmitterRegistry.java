@@ -9,7 +9,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Component
 public class SseEmitterRegistry {
-
+    // TODO Redis 
     private final Map<UUID, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     /**

@@ -1,7 +1,7 @@
 package com.mopl.api.global.common.entity;
 
 import jakarta.persistence.MappedSuperclass;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -10,5 +10,5 @@ import org.hibernate.annotations.UpdateTimestamp;
 public abstract class BaseUpdatableEntity extends BaseEntity {
 
     @UpdateTimestamp
-    protected Instant updatedAt;
+    protected LocalDateTime updatedAt;
 }

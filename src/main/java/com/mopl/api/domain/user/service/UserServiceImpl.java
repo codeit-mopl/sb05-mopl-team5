@@ -10,8 +10,8 @@ import com.mopl.api.domain.user.dto.response.CursorResponseUserDto;
 import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.UserRole;
-import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
-import com.mopl.api.domain.user.exception.user.DuplicateEmailException;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
+import com.mopl.api.domain.user.exception.user.detail.DuplicateEmailException;
 import com.mopl.api.domain.user.mapper.UserMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.global.config.security.jwt.JwtRegistry;
@@ -115,14 +115,14 @@ public class UserServiceImpl implements UserService {
 
         if (request != null && request.name() != null && !request.name()
                                                                  .isBlank()) {
-            user.changeName(request.name());
+            user.updateName(request.name());
         }
 
         if (image != null && !image.isEmpty()) {
             String imageUrl = profileImageStorageService.store(userId, image);
-            user.changeProfileImageUrl(imageUrl);
+            user.updateProfileImageUrl(imageUrl);
         }
 
-        return UserDto.from(user);
+        return userMapper.toDto(user);
     }
 }

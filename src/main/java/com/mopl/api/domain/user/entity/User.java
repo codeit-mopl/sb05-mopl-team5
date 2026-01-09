@@ -42,21 +42,6 @@ public class User extends BaseUpdatableEntity {
     private Long followerCount = 0L;
 
 
-    public void changeName(String name) {
-        if (name == null || name.isBlank()) {
-            return;
-        }
-        this.name = name;
-    }
-
-    public void changeProfileImageUrl(String url) {
-        if (url == null || url.isBlank()) {
-            return;
-        }
-        this.profileImageUrl = url;
-    }
-
-
 
     public User(String email, String password, String name) {
         this.email = email;
@@ -74,6 +59,20 @@ public class User extends BaseUpdatableEntity {
 
     public void updatePassword(String password) {
         this.password = password;
+    }
+
+    public void updateName(String name) {
+        if (name == null || name.isBlank()) {
+            return;
+        }
+        this.name = name;
+    }
+
+    public void updateProfileImageUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return;
+        }
+        this.profileImageUrl = url;
     }
 }
 

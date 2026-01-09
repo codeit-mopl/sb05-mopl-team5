@@ -103,21 +103,6 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-// --- [QueryDSL] 빌드 설정 ---
-def querydslDir = "$buildDir/generated/querydsl"
-
-sourceSets {
-    main.java.srcDirs += [querydslDir]
-}
-
-tasks.withType(JavaCompile) {
-    options.getGeneratedSourceOutputDirectory().set(file(querydslDir))
-}
-
-clean.doLast {
-    file(querydslDir).deleteDir()
-}
-
 // --- [Jacoco] 리포트 설정 ---
 test {
     useJUnitPlatform()

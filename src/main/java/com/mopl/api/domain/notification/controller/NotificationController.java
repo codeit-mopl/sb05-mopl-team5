@@ -5,7 +5,7 @@ import com.mopl.api.domain.notification.dto.request.NotificationCursorPageReques
 import com.mopl.api.domain.notification.dto.request.NotificationCursorPageRequest.SortDirection;
 import com.mopl.api.domain.notification.dto.response.CursorResponseNotificationDto;
 import com.mopl.api.domain.notification.service.NotificationService;
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.UUID;

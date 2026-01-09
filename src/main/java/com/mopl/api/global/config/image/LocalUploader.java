@@ -11,7 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Component
 public class LocalUploader {
-
+    // TODO 서버에 업로드 된 파일을 응답 해 줄 설정이 필요함
+    // TODO AWS S3 업로더를 구현하고 이 업로더와 설정에 따라 스위칭이 필요함(dev , prod)
     private final String UPLOAD_DIR = "src/main/resources/static/contents";
 
     public String upload(MultipartFile file) {

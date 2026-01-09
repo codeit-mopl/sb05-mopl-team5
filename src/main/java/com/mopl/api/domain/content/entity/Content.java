@@ -68,10 +68,6 @@ public class Content extends BaseDeletableEntity {
         }
     }
 
-    public void isDelete() {
-        this.isDeleted = true;
-    }
-
     public void updateRatingStats(BigDecimal newAverageRating, Long newReviewCount) {
         this.averageRating = newAverageRating;
         this.reviewCount = newReviewCount;

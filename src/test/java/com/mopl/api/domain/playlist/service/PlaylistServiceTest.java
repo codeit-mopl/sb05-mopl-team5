@@ -10,7 +10,7 @@ import com.mopl.api.domain.playlist.exception.detail.ContentAlreadyExistsExcepti
 import com.mopl.api.domain.playlist.exception.detail.ContentNotInPlaylistException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistNotFoundException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistUnauthorizedException;
-import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.playlist.mapper.PlaylistMapper;
 import com.mopl.api.domain.playlist.repository.PlaylistContentRepository;
@@ -27,7 +27,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

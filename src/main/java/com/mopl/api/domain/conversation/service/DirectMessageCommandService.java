@@ -1,6 +1,6 @@
 package com.mopl.api.domain.conversation.service;
 
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
 import java.util.UUID;
 
 public interface DirectMessageCommandService {

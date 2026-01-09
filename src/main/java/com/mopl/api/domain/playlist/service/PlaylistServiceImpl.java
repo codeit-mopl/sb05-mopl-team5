@@ -13,7 +13,7 @@ import com.mopl.api.domain.playlist.exception.detail.ContentAlreadyExistsExcepti
 import com.mopl.api.domain.playlist.exception.detail.ContentNotInPlaylistException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistNotFoundException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistUnauthorizedException;
-import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.playlist.mapper.PlaylistMapper;
 import com.mopl.api.domain.playlist.repository.PlaylistContentRepository;
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
@@ -21,7 +21,6 @@ import com.mopl.api.domain.playlist.repository.SubscriptionRepository;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
