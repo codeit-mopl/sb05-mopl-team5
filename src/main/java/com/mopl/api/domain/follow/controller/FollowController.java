@@ -40,11 +40,11 @@ public class FollowController {
         String name = auth.getName();
         try {
             return UUID.fromString(name);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
 
-        throw  new IllegalStateException("현재 사용자 ID를 확인할 수 없습ㄴ디ㅏ.");
+        throw  new IllegalStateException("현재 사용자 ID를 확인할 수 없습니다.");
     }
 
 

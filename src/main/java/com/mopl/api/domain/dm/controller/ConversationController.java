@@ -27,11 +27,10 @@ public class ConversationController {
 
     private final ConversationService service;
 
-
     @GetMapping
     public ResponseEntity<ConversationResponseDto> getConversationList(
         @RequestParam(required = false) String keywordLike, @RequestParam(required = false) String cursor,
-        @RequestParam(required = false) UUID idAfter, @RequestParam(defaultValue = "32") int limit,
+        @RequestParam(required = false) UUID idAfter, @RequestParam(defaultValue = "20") int limit,
         @RequestParam(defaultValue = "ASCENDING") String sortDirection,
         @RequestParam(defaultValue = "createdAt") String sortBy) {
         ConversationResponseDto conversationResponseDto = service.getConversationList(keywordLike, cursor, idAfter,

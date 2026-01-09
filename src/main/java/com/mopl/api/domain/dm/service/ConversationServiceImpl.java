@@ -13,6 +13,7 @@ import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
 import com.mopl.api.domain.dm.dto.request.ConversationRequestDto;
 import com.mopl.api.domain.dm.dto.response.conversation.ConversationDto;
 import com.mopl.api.domain.dm.dto.response.conversation.ConversationLatestMessage;
+import com.mopl.api.domain.dm.dto.response.conversation.ConversationListRow;
 import com.mopl.api.domain.dm.dto.response.conversation.ConversationReceiver;
 import com.mopl.api.domain.dm.dto.response.conversation.ConversationResponseDto;
 import com.mopl.api.domain.dm.dto.response.conversation.ConversationSend;
@@ -231,20 +232,7 @@ public class ConversationServiceImpl implements ConversationService {
                                       .build();
     }
 
-    /**
-     * ✅ Projection 전용 Row record (DB에서 필요한 값만 가져오게 해서 성능/메모리 최적)
-     */
-    private record ConversationListRow(
-        UUID conversationId,
-        UUID otherUserId,
-        String otherName,
-        String otherProfileImageUrl,
-        String lastMessageContent,
-        LocalDateTime lastMessageCreatedAt,
-        LocalDateTime myLastReadAt
-    ) {
 
-    }
 
     @Override
     @Transactional

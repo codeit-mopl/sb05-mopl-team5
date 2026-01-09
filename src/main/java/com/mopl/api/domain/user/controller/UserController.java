@@ -9,12 +9,15 @@ import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.dto.request.UserLockUpdateRequest;
 import com.mopl.api.domain.user.dto.request.UserRoleUpdateRequest;
 import com.mopl.api.domain.user.service.UserService;
+import com.mopl.api.global.config.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +35,34 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
+
+    private UUID currentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new IllegalStateException("인증 정보가 없습니다.");
+        }
+
+        Object principal = auth.getPrincipal();
+
+        if (principal instanceof CustomUserDetails cud && cud.getUserDto() != null) {
+            return cud.getUserDto().id();
+        }
+
+        if (principal instanceof UUID uuid) {
+            return uuid;
+        }
+
+        String name = auth.getName();
+        try {
+            return UUID.fromString(name);
+        } catch (Exception e) {
+
+        }
+
+        throw  new IllegalStateException("현재 사용자 ID를 확인할 수 없습니다.");
+    }
+
 
     @PostMapping
     public ResponseEntity<UserDto> userAdd(@RequestBody UserCreateRequest request) {
@@ -79,9 +110,9 @@ public class UserController {
     @PatchMapping("/{userId}")
     public ResponseEntity<UserDto> profileChange(
         @PathVariable UUID userId,
-        @RequestHeader("X-User-Id") UUID requesterId,
         @RequestPart("request") @Valid UserUpdateRequest request,
         @RequestPart(value = "image", required = false) MultipartFile image) {
+        UUID requesterId = currentUserId();
         UserDto userDto = userService.profileChange(userId, requesterId, request, image);
         return ResponseEntity.status(HttpStatus.OK).body(userDto);
 
