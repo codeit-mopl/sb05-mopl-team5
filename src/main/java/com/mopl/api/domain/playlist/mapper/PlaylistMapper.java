@@ -43,7 +43,7 @@ public abstract class PlaylistMapper {
 
     protected List<ContentDto> mapContents(List<PlaylistContent> playlistContents) {
         if (playlistContents == null) {
-            return null;
+            return List.of();
         }
         return playlistContents.stream()
             .map(pc -> contentMapper.toDto(pc.getContent()))

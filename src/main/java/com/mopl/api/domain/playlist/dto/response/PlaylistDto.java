@@ -21,5 +21,9 @@ public record PlaylistDto(
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
-
+    public PlaylistDto {
+        if (contents == null) {
+            contents = List.of();
+        }
+    }
 }
