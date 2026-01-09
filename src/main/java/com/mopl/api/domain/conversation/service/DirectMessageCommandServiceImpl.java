@@ -1,16 +1,16 @@
 package com.mopl.api.domain.conversation.service;
 
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageSender;
 import com.mopl.api.domain.conversation.entity.Conversation;
 import com.mopl.api.domain.conversation.entity.ConversationParticipant;
 import com.mopl.api.domain.conversation.entity.DirectMessage;
 import com.mopl.api.domain.conversation.entity.QConversationParticipant;
 import com.mopl.api.domain.conversation.repository.ConversationRepository;
 import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageDto;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessageReceiver;
-import com.mopl.api.domain.dm.dto.response.direct.DirectMessagesender;
-
-import com.mopl.api.domain.dm.realtime.ActiveConversationRegistry;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageReceiver;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageSend;
+import com.mopl.api.domain.conversation.realtime.ActiveConversationRegistry;
 import com.mopl.api.domain.sse.SseEmitterRegistry;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
@@ -36,8 +36,6 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
     private final ActiveConversationRegistry activeConversationRegistry;
     private final SseEmitterRegistry sseEmitterRegistry;
 
-    private static final QConversationParticipant p = QConversationParticipant.conversationParticipant;
-    private static final QConversationParticipant pOther = new QConversationParticipant("p2");
 
 
     @Override
@@ -116,11 +114,11 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
                                .id(msg.getId())
                                .conversationId(msg.getConversation().getId())
                                .createdAt(msg.getCreatedAt())
-                               .sender(DirectMessagesender.builder()
-                                                        .userId(msg.getSender().getId())
-                                                        .name(msg.getSender().getName())
-                                                        .profileImageUrl(msg.getSender().getProfileImageUrl())
-                                                        .build())
+                               .sender(DirectMessageSender.builder()
+                                                          .userId(msg.getSender().getId())
+                                                          .name(msg.getSender().getName())
+                                                          .profileImageUrl(msg.getSender().getProfileImageUrl())
+                                                          .build())
                                .receiver(DirectMessageReceiver.builder()
                                                               .userId(msg.getReceiver().getId())
                                                               .name(msg.getReceiver().getName())

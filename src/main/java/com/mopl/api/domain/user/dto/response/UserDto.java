@@ -1,6 +1,5 @@
 package com.mopl.api.domain.user.dto.response;
 
-import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.UserRole;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -30,17 +29,5 @@ public record UserDto(
     Boolean locked
 
 ) {
-
-    public static UserDto from(User user) {
-        return UserDto.builder()
-                      .id(user.getId())
-                      .createdAt(user.getCreatedAt())
-                      .email(user.getEmail())
-                      .name(user.getName())
-                      .profileImageUrl(user.getProfileImageUrl())
-                      .role(user.getRole())
-                      .locked(user.getLocked())
-                      .build();
-    }
 
 }

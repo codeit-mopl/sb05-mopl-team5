@@ -1,7 +1,6 @@
 -- ==========================================
 -- 0. Drop Tables (Clean Up)
 -- ==========================================
-DROP TABLE IF EXISTS `jwt_sessions`;
 DROP TABLE IF EXISTS `direct_messages`;
 DROP TABLE IF EXISTS `conversation_participants`;
 DROP TABLE IF EXISTS `conversations`;
@@ -223,20 +222,6 @@ CREATE TABLE `direct_messages`
 );
 
 -- ==========================================
--- 14. JWT Sessions Table
--- ==========================================
-CREATE TABLE `jwt_sessions`
-(
-    `id`            BINARY(16)   NOT NULL COMMENT 'PK',
-    `user_id`       BINARY(16)   NOT NULL COMMENT 'FK',
-    `refresh_token` VARCHAR(500) NOT NULL,
-    `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `expired_at`    DATETIME     NOT NULL,
-
-    CONSTRAINT `PK_JWT_SESSIONS` PRIMARY KEY (`id`)
-);
-
--- ==========================================
 -- Foreign Key Constraints
 -- ==========================================
 
@@ -276,5 +261,3 @@ ALTER TABLE `direct_messages`
     ADD CONSTRAINT `FK_DM_SENDER` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`);
 ALTER TABLE `direct_messages`
     ADD CONSTRAINT `FK_DM_RECEIVER` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`);
-ALTER TABLE `jwt_sessions`
-    ADD CONSTRAINT `FK_JWT_USER` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);

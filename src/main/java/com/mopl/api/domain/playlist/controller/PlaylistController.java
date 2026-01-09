@@ -6,7 +6,7 @@ import com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto;
 import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
 import com.mopl.api.domain.playlist.service.PlaylistService;
 import com.mopl.api.domain.playlist.service.SubscriptionService;
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

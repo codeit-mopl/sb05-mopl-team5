@@ -2,10 +2,10 @@ package com.mopl.api.domain.user.service;
 
 import com.mopl.api.domain.user.dto.request.JwtInformation;
 import com.mopl.api.domain.user.dto.request.ResetPasswordRequest;
-import com.mopl.api.domain.user.exception.auth.InvalidTokenException;
-import com.mopl.api.domain.user.exception.detail.UserNotFoundException;
+import com.mopl.api.domain.user.exception.auth.detail.InvalidTokenException;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
 import com.nimbusds.jose.JOSEException;

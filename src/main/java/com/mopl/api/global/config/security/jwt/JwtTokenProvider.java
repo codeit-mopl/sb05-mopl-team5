@@ -1,7 +1,7 @@
 package com.mopl.api.global.config.security.jwt;
 
 import com.mopl.api.domain.user.dto.response.UserDto;
-import com.mopl.api.global.config.security.CustomUserDetails;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
