@@ -56,16 +56,10 @@ public class StompSubscriptionListener {
 
         if (accessor == null) return;
 
-        String destination = accessor.getDestination();
-        if (destination == null) return;
-
-        UUID conversationId = parseConversationId(destination);
-        if (conversationId == null) return;
-
         UUID userId = extractUserId(accessor.getUser());
         if (userId == null) return;
 
-        registry.unsubscribe(userId, conversationId);
+        registry.clearUser(userId);
     }
 
     private UUID parseConversationId(String destination) {
