@@ -17,7 +17,6 @@ public class NotificationExceptionHandler {
         log.error(e.getMessage(), e);
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(errorCode.getHttpStatus(), errorCode.getMessage());
 
-        // TODO error URI 처리
         pd.setType(URI.create("/errors/" + errorCode.getCode()));
         pd.setTitle(errorCode.getCode());
         pd.setProperty("code", errorCode.getCode());
