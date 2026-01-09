@@ -65,11 +65,6 @@ public class UserServiceImpl implements UserService {
 
         user.updatePassword(encoded);
 
-        log.info("[비밀번호 변경 확인!!!] email={}, matchesNow={}",
-            user.getEmail(),
-            passwordEncoder.matches(raw, user.getPassword())
-        );
-
         jwtRegistry.invalidateJwtInformationByUserId(userId);
     }
 
