@@ -29,6 +29,9 @@ public interface PlaylistMapper {
     );
 
     default OwnerDto mapOwner(Playlist playlist) {
+        if (playlist == null || playlist.getOwner() == null) {
+            return null;
+        }
         return OwnerDto.builder()
             .userId(playlist.getOwner().getId())
             .name(playlist.getOwner().getName())
