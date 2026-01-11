@@ -1,8 +1,9 @@
 package com.mopl.api.domain.playlist.repository.impl;
 
+import static com.mopl.api.domain.playlist.entity.QPlaylist.playlist;
+import static com.mopl.api.domain.playlist.entity.QSubscription.subscription;
+
 import com.mopl.api.domain.playlist.entity.Playlist;
-import com.mopl.api.domain.playlist.entity.QPlaylist;
-import com.mopl.api.domain.playlist.entity.QSubscription;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -29,8 +30,6 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
         UUID idAfter,
         int limit
     ) {
-        QPlaylist playlist = QPlaylist.playlist;
-        QSubscription subscription = QSubscription.subscription;
 
         BooleanExpression predicate = playlist.isDeleted.eq(false);
 
@@ -61,10 +60,10 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
 
         if (idAfter != null) {
             predicate = predicate.and(
-                buildCursorPredicate(playlist, sortBy, sortDirection, cursorDateTime, cursorLong, idAfter));
+                buildCursorPredicate(sortBy, sortDirection, cursorDateTime, cursorLong, idAfter));
         }
 
-        OrderSpecifier<?> primaryOrder = buildOrderSpecifier(playlist, sortBy, sortDirection);
+        OrderSpecifier<?> primaryOrder = buildOrderSpecifier(sortBy, sortDirection);
         OrderSpecifier<UUID> tieBreaker = new OrderSpecifier<>(
             "DESCENDING".equals(sortDirection) ? Order.DESC : Order.ASC,
             playlist.id
@@ -84,9 +83,6 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
         UUID ownerIdEqual,
         UUID subscriberIdEqual
     ) {
-        QPlaylist playlist = QPlaylist.playlist;
-        QSubscription subscription = QSubscription.subscription;
-
         BooleanExpression predicate = playlist.isDeleted.eq(false);
 
         if (keywordLike != null && !keywordLike.isBlank()) {
@@ -121,7 +117,6 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
     }
 
     private BooleanExpression buildCursorPredicate(
-        QPlaylist playlist,
         String sortBy,
         String sortDirection,
         LocalDateTime cursorDateTime,
@@ -155,7 +150,7 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
         return null;
     }
 
-    private OrderSpecifier<?> buildOrderSpecifier(QPlaylist playlist, String sortBy, String sortDirection) {
+    private OrderSpecifier<?> buildOrderSpecifier(String sortBy, String sortDirection) {
         Order order = "DESCENDING".equals(sortDirection) ? Order.DESC : Order.ASC;
 
         if ("updatedAt".equals(sortBy)) {
