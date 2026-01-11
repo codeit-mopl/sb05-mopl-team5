@@ -9,9 +9,13 @@ import com.mopl.api.domain.playlist.entity.PlaylistContent;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Mapper(componentModel = "spring", uses = ContentMapper.class)
-public interface PlaylistMapper {
+public abstract class PlaylistMapper {
+
+    @Autowired
+    protected ContentMapper contentMapper;
 
     @Mapping(target = "id", source = "playlist.id")
     @Mapping(target = "owner", expression = "java(mapOwner(playlist))")
@@ -21,14 +25,14 @@ public interface PlaylistMapper {
     @Mapping(target = "subscriberCount", source = "playlist.subscriberCount")
     @Mapping(target = "subscribedByMe", source = "subscribedByMe")
     @Mapping(target = "isOwner", source = "isOwner")
-    PlaylistDto toDto(
+    public abstract PlaylistDto toDto(
         Playlist playlist,
         List<PlaylistContent> playlistContents,
         boolean subscribedByMe,
         boolean isOwner
     );
 
-    default OwnerDto mapOwner(Playlist playlist) {
+    protected OwnerDto mapOwner(Playlist playlist) {
         if (playlist == null || playlist.getOwner() == null) {
             return null;
         }
@@ -39,16 +43,12 @@ public interface PlaylistMapper {
             .build();
     }
 
-    default List<ContentDto> mapContents(List<PlaylistContent> playlistContents) {
+    protected List<ContentDto> mapContents(List<PlaylistContent> playlistContents) {
         if (playlistContents == null) {
             return List.of();
         }
         return playlistContents.stream()
-            .map(pc -> toContentDto(pc.getContent()))
+            .map(pc -> contentMapper.toDto(pc.getContent()))
             .toList();
     }
-
-    @Mapping(target = "tags", expression = "java(java.util.Arrays.asList(content.getTags().split(\"\\\\|\")))")
-    @Mapping(target = "type", expression = "java(content.getType().getValue())")
-    ContentDto toContentDto(com.mopl.api.domain.content.entity.Content content);
 }
