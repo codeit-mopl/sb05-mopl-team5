@@ -15,6 +15,7 @@ import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.review.dto.request.ReviewCreateRequest;
 import com.mopl.api.domain.review.dto.request.ReviewUpdateRequest;
+import com.mopl.api.domain.review.dto.response.AuthorDto;
 import com.mopl.api.domain.review.dto.response.CursorResponseReviewDto;
 import com.mopl.api.domain.review.dto.response.ReviewDto;
 import com.mopl.api.domain.review.entity.Review;
@@ -23,7 +24,6 @@ import com.mopl.api.domain.review.exception.detail.ReviewNotFoundException;
 import com.mopl.api.domain.review.exception.detail.ReviewUnauthorizedException;
 import com.mopl.api.domain.review.mapper.ReviewMapper;
 import com.mopl.api.domain.review.repository.ReviewRepository;
-import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.UserRole;
 import com.mopl.api.domain.user.exception.user.UserErrorCode;
@@ -65,29 +65,35 @@ class ReviewServiceTest {
     private UUID userId;
     private UUID contentId;
     private UUID reviewId;
-    private UserDto mockUserDto;
 
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
         contentId = UUID.randomUUID();
         reviewId = UUID.randomUUID();
-        mockUserDto = UserDto.builder()
-                             .id(userId)
-                             .createdAt(LocalDateTime.now())
-                             .email("test@example.com")
-                             .name("Test User")
-                             .profileImageUrl(null)
-                             .role(UserRole.USER)
-                             .locked(false)
-                             .build();
     }
 
     @Test
     @DisplayName("리뷰 생성 성공")
     void addReview_Success() {
         ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Great movie!", 5.0);
-        ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Great movie!", 5.0, null, null, true);
+        
+        AuthorDto authorDto = AuthorDto.builder()
+                                       .userId(userId)
+                                       .name("Test User")
+                                       .profileImageUrl(null)
+                                       .build();
+        
+        ReviewDto expectedDto = ReviewDto.builder()
+                                         .id(reviewId)
+                                         .contentId(contentId)
+                                         .author(authorDto)
+                                         .text("Great movie!")
+                                         .rating(5.0)
+                                         .createdAt(null)
+                                         .updatedAt(null)
+                                         .isAuthor(true)
+                                         .build();
 
         User mockUser = mock(User.class);
         Content mockContent = mock(Content.class);
@@ -172,7 +178,23 @@ class ReviewServiceTest {
     @DisplayName("리뷰 수정 성공")
     void modifyReview_Success() {
         ReviewUpdateRequest request = new ReviewUpdateRequest("Updated text", 4.0);
-        ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Updated text", 4.0, null, null, true);
+        
+        AuthorDto authorDto = AuthorDto.builder()
+                                       .userId(userId)
+                                       .name("Test User")
+                                       .profileImageUrl(null)
+                                       .build();
+        
+        ReviewDto expectedDto = ReviewDto.builder()
+                                         .id(reviewId)
+                                         .contentId(contentId)
+                                         .author(authorDto)
+                                         .text("Updated text")
+                                         .rating(4.0)
+                                         .createdAt(null)
+                                         .updatedAt(null)
+                                         .isAuthor(true)
+                                         .build();
 
         User mockUser = mock(User.class);
         Content mockContent = mock(Content.class);
@@ -315,8 +337,34 @@ class ReviewServiceTest {
         when(mockReview2.getUser()).thenReturn(mockUser);
 
         List<Review> mockReviews = Arrays.asList(mockReview1, mockReview2);
-        ReviewDto mockDto1 = new ReviewDto(UUID.randomUUID(), contentId, mockUserDto, "Great!", 5.0, null, null, true);
-        ReviewDto mockDto2 = new ReviewDto(UUID.randomUUID(), contentId, mockUserDto, "Good!", 4.0, null, null, true);
+        
+        AuthorDto authorDto = AuthorDto.builder()
+                                       .userId(userId)
+                                       .name("Test User")
+                                       .profileImageUrl(null)
+                                       .build();
+        
+        ReviewDto mockDto1 = ReviewDto.builder()
+                                      .id(UUID.randomUUID())
+                                      .contentId(contentId)
+                                      .author(authorDto)
+                                      .text("Great!")
+                                      .rating(5.0)
+                                      .createdAt(null)
+                                      .updatedAt(null)
+                                      .isAuthor(true)
+                                      .build();
+        
+        ReviewDto mockDto2 = ReviewDto.builder()
+                                      .id(UUID.randomUUID())
+                                      .contentId(contentId)
+                                      .author(authorDto)
+                                      .text("Good!")
+                                      .rating(4.0)
+                                      .createdAt(null)
+                                      .updatedAt(null)
+                                      .isAuthor(true)
+                                      .build();
 
         when(reviewRepository.findReviewsWithCursor(
             eq(contentId),
@@ -375,8 +423,34 @@ class ReviewServiceTest {
         when(mockReview2.getRating()).thenReturn(BigDecimal.valueOf(3.5));
 
         List<Review> mockReviews = Arrays.asList(mockReview1, mockReview2, mockReview3);
-        ReviewDto mockDto1 = new ReviewDto(mockReview1Id, contentId, mockUserDto, "Good!", 4.0, null, null, true);
-        ReviewDto mockDto2 = new ReviewDto(mockReview2Id, contentId, mockUserDto, "OK!", 3.5, null, null, true);
+        
+        AuthorDto authorDto = AuthorDto.builder()
+                                       .userId(userId)
+                                       .name("Test User")
+                                       .profileImageUrl(null)
+                                       .build();
+        
+        ReviewDto mockDto1 = ReviewDto.builder()
+                                      .id(mockReview1Id)
+                                      .contentId(contentId)
+                                      .author(authorDto)
+                                      .text("Good!")
+                                      .rating(4.0)
+                                      .createdAt(null)
+                                      .updatedAt(null)
+                                      .isAuthor(true)
+                                      .build();
+        
+        ReviewDto mockDto2 = ReviewDto.builder()
+                                      .id(mockReview2Id)
+                                      .contentId(contentId)
+                                      .author(authorDto)
+                                      .text("OK!")
+                                      .rating(3.5)
+                                      .createdAt(null)
+                                      .updatedAt(null)
+                                      .isAuthor(true)
+                                      .build();
 
         when(reviewRepository.findReviewsWithCursor(
             eq(contentId),
@@ -421,7 +495,23 @@ class ReviewServiceTest {
         Review mockReview = mock(Review.class);
 
         List<Review> mockReviews = Arrays.asList(mockReview);
-        ReviewDto mockDto = new ReviewDto(UUID.randomUUID(), contentId, mockUserDto, "Great!", 5.0, null, null, false);
+        
+        AuthorDto authorDto = AuthorDto.builder()
+                                       .userId(UUID.randomUUID())
+                                       .name("Test User")
+                                       .profileImageUrl(null)
+                                       .build();
+        
+        ReviewDto mockDto = ReviewDto.builder()
+                                     .id(UUID.randomUUID())
+                                     .contentId(contentId)
+                                     .author(authorDto)
+                                     .text("Great!")
+                                     .rating(5.0)
+                                     .createdAt(null)
+                                     .updatedAt(null)
+                                     .isAuthor(false)
+                                     .build();
 
         when(reviewRepository.findReviewsWithCursor(
             eq(contentId),
@@ -458,7 +548,23 @@ class ReviewServiceTest {
     @DisplayName("리뷰 생성 시 콘텐츠 평점 재계산 - 첫 리뷰")
     void recalculateContentRating_FirstReview() {
         ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Great movie!", 5.0);
-        ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Great movie!", 5.0, null, null, true);
+        
+        AuthorDto authorDto = AuthorDto.builder()
+                                       .userId(userId)
+                                       .name("Test User")
+                                       .profileImageUrl(null)
+                                       .build();
+        
+        ReviewDto expectedDto = ReviewDto.builder()
+                                         .id(reviewId)
+                                         .contentId(contentId)
+                                         .author(authorDto)
+                                         .text("Great movie!")
+                                         .rating(5.0)
+                                         .createdAt(null)
+                                         .updatedAt(null)
+                                         .isAuthor(true)
+                                         .build();
 
         User mockUser = mock(User.class);
         Content mockContent = mock(Content.class);
@@ -486,7 +592,23 @@ class ReviewServiceTest {
     @DisplayName("리뷰 생성 시 콘텐츠 평점 재계산 - 여러 리뷰 평균")
     void recalculateContentRating_MultipleReviews() {
         ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Good movie", 4.0);
-        ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Good movie", 4.0, null, null, true);
+        
+        AuthorDto authorDto = AuthorDto.builder()
+                                       .userId(userId)
+                                       .name("Test User")
+                                       .profileImageUrl(null)
+                                       .build();
+        
+        ReviewDto expectedDto = ReviewDto.builder()
+                                         .id(reviewId)
+                                         .contentId(contentId)
+                                         .author(authorDto)
+                                         .text("Good movie")
+                                         .rating(4.0)
+                                         .createdAt(null)
+                                         .updatedAt(null)
+                                         .isAuthor(true)
+                                         .build();
 
         User mockUser = mock(User.class);
         Content mockContent = mock(Content.class);
@@ -524,7 +646,23 @@ class ReviewServiceTest {
     @DisplayName("리뷰 수정 시 콘텐츠 평점 재계산")
     void recalculateContentRating_OnUpdate() {
         ReviewUpdateRequest request = new ReviewUpdateRequest("Updated text", 3.0);
-        ReviewDto expectedDto = new ReviewDto(reviewId, contentId, mockUserDto, "Updated text", 3.0, null, null, true);
+        
+        AuthorDto authorDto = AuthorDto.builder()
+                                       .userId(userId)
+                                       .name("Test User")
+                                       .profileImageUrl(null)
+                                       .build();
+        
+        ReviewDto expectedDto = ReviewDto.builder()
+                                         .id(reviewId)
+                                         .contentId(contentId)
+                                         .author(authorDto)
+                                         .text("Updated text")
+                                         .rating(3.0)
+                                         .createdAt(null)
+                                         .updatedAt(null)
+                                         .isAuthor(true)
+                                         .build();
 
         User mockUser = mock(User.class);
         Content mockContent = mock(Content.class);
