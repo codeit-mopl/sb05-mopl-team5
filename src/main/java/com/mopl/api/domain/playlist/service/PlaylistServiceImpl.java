@@ -125,6 +125,10 @@ public class PlaylistServiceImpl implements PlaylistService {
         String sortDirection,
         UUID currentUserId
     ) {
+        if ("subscribeCount".equals(sortBy)) {
+            sortBy = "subscriberCount";
+        }
+
         LocalDateTime cursorDateTime = null;
         Long cursorLong = null;
 
