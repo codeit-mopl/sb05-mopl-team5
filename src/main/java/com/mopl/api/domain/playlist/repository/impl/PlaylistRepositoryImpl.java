@@ -7,7 +7,6 @@ import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -25,7 +24,7 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
         UUID subscriberIdEqual,
         String sortBy,
         String sortDirection,
-        Instant cursorInstant,
+        LocalDateTime cursorDateTime,
         Long cursorLong,
         UUID idAfter,
         int limit
@@ -62,7 +61,7 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
 
         if (idAfter != null) {
             predicate = predicate.and(
-                buildCursorPredicate(playlist, sortBy, sortDirection, cursorInstant, cursorLong, idAfter));
+                buildCursorPredicate(playlist, sortBy, sortDirection, cursorDateTime, cursorLong, idAfter));
         }
 
         OrderSpecifier<?> primaryOrder = buildOrderSpecifier(playlist, sortBy, sortDirection);
@@ -125,20 +124,20 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
         QPlaylist playlist,
         String sortBy,
         String sortDirection,
-        Instant cursorInstant,
+        LocalDateTime cursorDateTime,
         Long cursorLong,
         UUID idAfter
     ) {
         boolean isDescending = "DESCENDING".equals(sortDirection);
 
-        if ("updatedAt".equals(sortBy) && cursorInstant != null) {
+        if ("updatedAt".equals(sortBy) && cursorDateTime != null) {
             if (isDescending) {
-                return playlist.updatedAt.lt(LocalDateTime.MAX)
-                                         .or(playlist.updatedAt.eq(LocalDateTime.MAX)
+                return playlist.updatedAt.lt(cursorDateTime)
+                                         .or(playlist.updatedAt.eq(cursorDateTime)
                                                                .and(playlist.id.lt(idAfter)));
             } else {
-                return playlist.updatedAt.gt(LocalDateTime.MAX)
-                                         .or(playlist.updatedAt.eq(LocalDateTime.MAX)
+                return playlist.updatedAt.gt(cursorDateTime)
+                                         .or(playlist.updatedAt.eq(cursorDateTime)
                                                                .and(playlist.id.gt(idAfter)));
             }
         } else if ("subscriberCount".equals(sortBy) && cursorLong != null) {
