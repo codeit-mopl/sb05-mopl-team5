@@ -5,10 +5,10 @@ import com.mopl.api.config.TestSecurityConfig;
 import com.mopl.api.config.WithMockCustomUser;
 import com.mopl.api.domain.review.dto.request.ReviewCreateRequest;
 import com.mopl.api.domain.review.dto.request.ReviewUpdateRequest;
+import com.mopl.api.domain.review.dto.response.AuthorDto;
 import com.mopl.api.domain.review.dto.response.CursorResponseReviewDto;
 import com.mopl.api.domain.review.dto.response.ReviewDto;
 import com.mopl.api.domain.review.service.ReviewService;
-import com.mopl.api.domain.user.dto.response.UserDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import static com.mopl.api.domain.user.entity.UserRole.USER;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -58,7 +58,6 @@ class ReviewControllerTest {
     private ReviewCreateRequest createRequest;
     private ReviewUpdateRequest updateRequest;
     private ReviewDto reviewDto;
-    private UserDto userDto;
 
     @BeforeEach
     void setUp() {
@@ -66,30 +65,26 @@ class ReviewControllerTest {
         reviewId = UUID.randomUUID();
         contentId = UUID.randomUUID();
 
-        userDto = UserDto.builder()
-                         .id(userId)
-                         .createdAt(LocalDateTime.now())
-                         .email("test@example.com")
-                         .name("testuser")
-                         .profileImageUrl("http://example.com/profile.jpg")
-                         .role(USER)
-                         .locked(false)
-                         .build();
-
         createRequest = new ReviewCreateRequest(contentId, "Great content!", 4.5);
 
         updateRequest = new ReviewUpdateRequest("Updated review", 5.0);
 
-        reviewDto = new ReviewDto(
-            reviewId,
-            contentId,
-            userDto,
-            "Great content!",
-            4.5,
-            LocalDateTime.now(),
-            LocalDateTime.now(),
-            true
-        );
+        AuthorDto authorDto = AuthorDto.builder()
+                                      .userId(userId)
+                                      .name("testuser")
+                                      .profileImageUrl("http://example.com/profile.jpg")
+                                      .build();
+
+        reviewDto = ReviewDto.builder()
+                            .id(reviewId)
+                            .contentId(contentId)
+                            .author(authorDto)
+                            .text("Great content!")
+                            .rating(4.5)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .isAuthor(true)
+                            .build();
     }
 
     @Test
@@ -136,16 +131,22 @@ class ReviewControllerTest {
     @Test
     @DisplayName("PATCH /api/reviews/{reviewId} - 리뷰 수정 성공")
     void reviewModify_Success() throws Exception {
-        ReviewDto updatedDto = new ReviewDto(
-            reviewId,
-            contentId,
-            userDto,
-            "Updated review",
-            5.0,
-            LocalDateTime.now(),
-            LocalDateTime.now(),
-            true
-        );
+        AuthorDto authorDto = AuthorDto.builder()
+                                      .userId(userId)
+                                      .name("testuser")
+                                      .profileImageUrl("http://example.com/profile.jpg")
+                                      .build();
+
+        ReviewDto updatedDto = ReviewDto.builder()
+                                        .id(reviewId)
+                                        .contentId(contentId)
+                                        .author(authorDto)
+                                        .text("Updated review")
+                                        .rating(5.0)
+                                        .createdAt(LocalDateTime.now())
+                                        .updatedAt(LocalDateTime.now())
+                                        .isAuthor(true)
+                                        .build();
 
         when(reviewService.modifyReview(eq(reviewId), any(ReviewUpdateRequest.class), eq(userId)))
             .thenReturn(updatedDto);

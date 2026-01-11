@@ -3,10 +3,10 @@ package com.mopl.api.domain.playlist.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mopl.api.domain.playlist.dto.request.PlaylistCreateRequest;
 import com.mopl.api.domain.playlist.dto.request.PlaylistUpdateRequest;
+import com.mopl.api.domain.playlist.dto.response.OwnerDto;
 import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
 import com.mopl.api.domain.playlist.service.PlaylistService;
 import com.mopl.api.domain.playlist.service.SubscriptionService;
-import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.config.TestSecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static com.mopl.api.domain.user.entity.UserRole.USER;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -62,7 +62,6 @@ class PlaylistControllerTest {
     private PlaylistCreateRequest createRequest;
     private PlaylistUpdateRequest updateRequest;
     private PlaylistDto playlistDto;
-    private UserDto userDto;
 
     @BeforeEach
     void setUp() {
@@ -70,23 +69,19 @@ class PlaylistControllerTest {
         playlistId = UUID.randomUUID();
         contentId = UUID.randomUUID();
 
-        userDto = UserDto.builder()
-                         .id(userId)
-                         .createdAt(LocalDateTime.now())
-                         .email("test@example.com")
-                         .name("testuser")
-                         .profileImageUrl("http://example.com/profile.jpg")
-                         .role(USER)
-                         .locked(false)
-                         .build();
-
         createRequest = new PlaylistCreateRequest("My Playlist", "Great movies");
 
         updateRequest = new PlaylistUpdateRequest("Updated Playlist", "Updated Description");
 
+        OwnerDto ownerDto = OwnerDto.builder()
+                                   .userId(userId)
+                                   .name("testuser")
+                                   .profileImageUrl("http://example.com/profile.jpg")
+                                   .build();
+
         playlistDto = PlaylistDto.builder()
                                  .id(playlistId)
-                                 .owner(userDto)
+                                 .owner(ownerDto)
                                  .title("My Playlist")
                                  .description("Great movies")
                                  .contents(new ArrayList<>())
@@ -129,9 +124,15 @@ class PlaylistControllerTest {
     @Test
     @DisplayName("PATCH /api/playlists/{playlistId} - 플레이리스트 수정 성공")
     void playlistModify_Success() throws Exception {
+        OwnerDto ownerDto = OwnerDto.builder()
+                                   .userId(userId)
+                                   .name("testuser")
+                                   .profileImageUrl("http://example.com/profile.jpg")
+                                   .build();
+
         PlaylistDto updatedDto = PlaylistDto.builder()
                                             .id(playlistId)
-                                            .owner(userDto)
+                                            .owner(ownerDto)
                                             .title("Updated Playlist")
                                             .description("Updated Description")
                                             .contents(new ArrayList<>())
@@ -293,9 +294,15 @@ class PlaylistControllerTest {
         UUID idAfter = UUID.randomUUID();
         UUID nextPlaylistId = UUID.randomUUID();
 
+        OwnerDto ownerDto = OwnerDto.builder()
+                                   .userId(userId)
+                                   .name("testuser")
+                                   .profileImageUrl("http://example.com/profile.jpg")
+                                   .build();
+
         PlaylistDto nextPlaylistDto = PlaylistDto.builder()
                                                  .id(nextPlaylistId)
-                                                 .owner(userDto)
+                                                 .owner(ownerDto)
                                                  .title("Next Playlist")
                                                  .description("Description")
                                                  .contents(new ArrayList<>())
