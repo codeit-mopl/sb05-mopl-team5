@@ -96,7 +96,8 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
 
         switch (sortBy) {
             case "createdAt" -> {
-                return new OrderSpecifier[]{new OrderSpecifier<>(order, content.createdAt)};
+                return new OrderSpecifier[]{new OrderSpecifier<>(order, content.createdAt),
+                    new OrderSpecifier<>(order, content.id)};
             }
             case "watcherCount" -> {
                 return new OrderSpecifier[]{new OrderSpecifier<>(order, content.watcherCount),
