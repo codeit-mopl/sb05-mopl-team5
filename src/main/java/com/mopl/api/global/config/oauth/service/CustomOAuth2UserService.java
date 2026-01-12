@@ -41,7 +41,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         OAuth2User oAuth2User = super.loadUser(request);
 
-        String registrationId = request.getClientRegistration().getRegistrationId();
+        String registrationId = request.getClientRegistration()
+                                       .getRegistrationId();
         OAuth2UserInfo userInfo = resolveUserInfo(registrationId, oAuth2User.getAttributes());
 
         SocialAccountProvider provider = userInfo.getProvider();
@@ -53,45 +54,52 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         if (socialOpt.isPresent()) {
             // 이미 연결된 계정이면 기존 사용자로
             SocialAccount social = socialOpt.get();
-            UUID userId = social.getUser().getId();
-            user = userRepository.findById(userId).orElseThrow(() -> UserNotFoundException.withUserId(userId));
+            UUID userId = social.getUser()
+                                .getId();
+            user = userRepository.findById(userId)
+                                 .orElseThrow(() -> UserNotFoundException.withUserId(userId));
         } else {
             // 첫 로그인이라면 -> 계정 만들기!
             String email = userInfo.getEmail();
-            String name =  userInfo.getName();
+            String name = userInfo.getName();
             String profileImageUrl = userInfo.getProfileImageUrl();
 
             String finalEmail = (email == null || email.isBlank()) ? generateEmail(provider, providerId, name) : email;
 
             // 이메일 있으면 가져오기 ->  없으면 만들기
-            user = userRepository.findByEmail(finalEmail).orElseGet(() -> {
-                String encodePassword = passwordEncoder.encode(generateRandomPassword());
-                User newUser = new User(finalEmail, encodePassword, name);
-                newUser.updateProfileImageUrl(profileImageUrl);
-                return userRepository.saveAndFlush(newUser);
-            });
+            user = userRepository.findByEmail(finalEmail)
+                                 .orElseGet(() -> {
+                                     String encodePassword = passwordEncoder.encode(generateRandomPassword());
+                                     User newUser = new User(finalEmail, encodePassword, name);
+                                     newUser.updateProfileImageUrl(profileImageUrl);
+                                     return userRepository.saveAndFlush(newUser);
+                                 });
 
             SocialAccount social = new SocialAccount(user, provider, providerId);
             socialAccountRepository.save(social);
         }
 
         UserDto userDto = UserDto.builder()
-            .id(user.getId())
-            .createdAt(user.getCreatedAt())
-            .email(user.getEmail())
-            .name(user.getName())
-            .profileImageUrl(user.getProfileImageUrl())
-            .role(user.getRole())
-            .locked(user.getLocked())
-            .build();
+                                 .id(user.getId())
+                                 .createdAt(user.getCreatedAt())
+                                 .email(user.getEmail())
+                                 .name(user.getName())
+                                 .profileImageUrl(user.getProfileImageUrl())
+                                 .role(user.getRole())
+                                 .locked(user.getLocked())
+                                 .build();
 
         return new CustomOAuth2UserDetails(userDto, user.getPassword(), oAuth2User.getAttributes());
     }
 
     private OAuth2UserInfo resolveUserInfo(String registrationId, Map<String, Object> attributes) {
 
-        if ("google".equalsIgnoreCase(registrationId)) {return new GoogleUserInfo(attributes);}
-        if ("kakao".equalsIgnoreCase(registrationId)) {return new KakaoUserInfo(attributes);}
+        if ("google".equalsIgnoreCase(registrationId)) {
+            return new GoogleUserInfo(attributes);
+        }
+        if ("kakao".equalsIgnoreCase(registrationId)) {
+            return new KakaoUserInfo(attributes);
+        }
 
         log.error("[OAuth2] 지원하지 않는 소셜 로그인 : {}", registrationId);
         throw new OAuth2AuthenticationException("Unsupported provider: " + registrationId);
@@ -99,18 +107,23 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private String generateEmail(SocialAccountProvider provider, String providerId, String name) {
         String safeName = (name == null ? "user" : name.replaceAll("\\s+", ""));
-        if (safeName.isBlank()) safeName = "user";
+        if (safeName.isBlank()) {
+            safeName = "user";
+        }
 
         if (provider == SocialAccountProvider.KAKAO) {
             return safeName + "_" + providerId + "@kakao.com";
         }
-        return provider.name().toLowerCase() + "_" + providerId + "@social.local";
+        return provider.name()
+                       .toLowerCase() + "_" + providerId + "@social.local";
     }
 
     private String generateRandomPassword() {
         byte[] bytes = new byte[24];
         new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return Base64.getUrlEncoder()
+                     .withoutPadding()
+                     .encodeToString(bytes);
     }
 
 }

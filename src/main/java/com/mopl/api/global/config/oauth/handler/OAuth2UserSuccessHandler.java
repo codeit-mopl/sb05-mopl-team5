@@ -59,10 +59,10 @@ public class OAuth2UserSuccessHandler extends SimpleUrlAuthenticationSuccessHand
 
             CustomUserDetails userDetails = new CustomUserDetails(userDto, principal.getPassword());
 
-            String accessToken  = jwtTokenProvider.generateAccessToken(userDetails);
+            String accessToken = jwtTokenProvider.generateAccessToken(userDetails);
             String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
 
-           // 중복 로그인 처리
+            // 중복 로그인 처리
             if (jwtRegistry.hasActiveJwtInformationByUserId(userDto.id())) {
                 log.info("[OAuth2] 중복 로그인!!!! userId={}, email={}", userDto.id(), userDto.email());
                 jwtRegistry.invalidateJwtInformationByUserId(userDto.id());
@@ -88,7 +88,8 @@ public class OAuth2UserSuccessHandler extends SimpleUrlAuthenticationSuccessHand
             log.error("[OAuth2] 토큰 생성 실패!!!!!", e);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         } catch (ClassCastException e) {
-            log.error("[OAuth2] principal 타입 매칭 실패!!!! :{}", authentication.getPrincipal().getClass(), e);
+            log.error("[OAuth2] principal 타입 매칭 실패!!!! :{}", authentication.getPrincipal()
+                                                                           .getClass(), e);
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         } catch (Exception e) {
             log.error("[OAuth2] Success Handler 실행 실패!!!!!", e);

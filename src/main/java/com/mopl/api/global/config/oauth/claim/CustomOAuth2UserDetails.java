@@ -36,13 +36,19 @@ public class CustomOAuth2UserDetails implements OAuth2User, UserDetails {
     }
 
     @Override
-    public boolean isAccountNonExpired() { return true; }
+    public boolean isAccountNonExpired() {
+        return true;
+    }
 
     @Override
-    public boolean isCredentialsNonExpired() { return true; }
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
 
     @Override
-    public boolean isEnabled() { return true; }
+    public boolean isEnabled() {
+        return true;
+    }
 
     @Override
     public Map<String, Object> getAttributes() {
@@ -51,11 +57,13 @@ public class CustomOAuth2UserDetails implements OAuth2User, UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + userDto.role().name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + userDto.role()
+                                                                   .name()));
     }
 
     @Override
     public String getName() {
-        return userDto.id().toString(); // 식별자로 사용
+        return userDto.id()
+                      .toString(); // 식별자로 사용
     }
 }
