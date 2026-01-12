@@ -13,6 +13,10 @@ public enum ContentType {
     private final String value;
 
     public static ContentType findByValue(String value) {
+        if (value == null) {
+            return null;
+        }
+
         for (ContentType type : ContentType.values()) {
             if (type.value.equalsIgnoreCase(value)) {
                 return type;
