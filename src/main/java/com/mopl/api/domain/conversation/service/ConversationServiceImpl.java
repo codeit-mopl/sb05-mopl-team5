@@ -1,6 +1,8 @@
 package com.mopl.api.domain.conversation.service;
 
 
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationReceiver;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationSend;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageSender;
 import com.mopl.api.domain.conversation.entity.Conversation;
 import com.mopl.api.domain.conversation.entity.ConversationParticipant;
@@ -21,7 +23,7 @@ import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageLastestMessage;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageReceiver;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageResponseDto;
-import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageSend;
+
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWith;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWithDto;
 import com.mopl.api.domain.user.entity.User;

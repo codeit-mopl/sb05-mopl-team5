@@ -1,6 +1,7 @@
 package com.mopl.api.domain.conversation.repository;
 
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationListRow;
+
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationListRow;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;

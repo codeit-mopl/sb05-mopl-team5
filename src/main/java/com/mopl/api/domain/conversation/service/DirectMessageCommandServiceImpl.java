@@ -1,16 +1,16 @@
 package com.mopl.api.domain.conversation.service;
 
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageReceiver;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageSender;
 import com.mopl.api.domain.conversation.entity.Conversation;
 import com.mopl.api.domain.conversation.entity.ConversationParticipant;
 import com.mopl.api.domain.conversation.entity.DirectMessage;
-import com.mopl.api.domain.conversation.entity.QConversationParticipant;
+
+import com.mopl.api.domain.conversation.realtime.ActiveConversationRegistry;
 import com.mopl.api.domain.conversation.repository.ConversationRepository;
 import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
-import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
-import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageReceiver;
-import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageSend;
-import com.mopl.api.domain.conversation.realtime.ActiveConversationRegistry;
+
 import com.mopl.api.domain.sse.SseEmitterRegistry;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
@@ -20,6 +20,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+
+import com.mopl.api.domain.conversation.entity.QConversation;
+import com.mopl.api.domain.conversation.entity.QConversationParticipant;
 
 
 @Service
@@ -36,6 +40,8 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
     private final ActiveConversationRegistry activeConversationRegistry;
     private final SseEmitterRegistry sseEmitterRegistry;
 
+    private static final QConversationParticipant p = QConversationParticipant.conversationParticipant;
+    private static final QConversationParticipant pOther = new QConversationParticipant("p2");
 
 
     @Override

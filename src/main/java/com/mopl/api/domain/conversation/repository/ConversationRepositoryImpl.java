@@ -3,9 +3,10 @@ package com.mopl.api.domain.conversation.repository;
 import static com.mopl.api.domain.conversation.entity.QConversation.conversation;
 import static com.mopl.api.domain.conversation.entity.QConversationParticipant.conversationParticipant;
 
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationListRow;
 import com.mopl.api.domain.conversation.entity.QConversation;
 import com.mopl.api.domain.conversation.entity.QConversationParticipant;
-import com.mopl.api.domain.dm.dto.response.conversation.ConversationListRow;
+
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
