@@ -3,6 +3,8 @@ package com.mopl.api.global.config.security;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 import com.mopl.api.domain.user.entity.UserRole;
+import com.mopl.api.global.config.oauth.handler.OAuth2UserSuccessHandler;
+import com.mopl.api.global.config.oauth.service.CustomOAuth2UserService;
 import com.mopl.api.global.config.security.filter.JwtAuthenticationFilter;
 import com.mopl.api.global.config.security.handler.AccessDeniedHandlerImpl;
 import com.mopl.api.global.config.security.handler.JwtAuthenticationEntryPoint;
@@ -51,7 +53,10 @@ public class SecurityConfig {
         UserDetailsService customUserDetailsService,
         JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
         JwtAuthenticationFilter jwtAuthenticationFilter,
-        AccessDeniedHandlerImpl accessDeniedHandlerImpl) throws Exception {
+        AccessDeniedHandlerImpl accessDeniedHandlerImpl,
+        CustomOAuth2UserService oAuth2UserService,
+        OAuth2UserSuccessHandler oAuth2UserSuccessHandler
+        ) throws Exception {
         http
             .csrf(csrf -> csrf
                 // 쿠키에 CSRF 토큰 저장 : 쿠키명:XSRF-TOKEN 헤더명:X-XSRF-TOKEN
@@ -113,7 +118,11 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 안씀
             )
-            .oauth2Login(oauth -> oauth.disable())
+            .oauth2Login(oauth -> oauth
+                .loginPage("/api/auth/sign-in")
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(oAuth2UserService))
+                .successHandler(oAuth2UserSuccessHandler))
             .httpBasic(basic -> basic.disable());
 
         // 임시 비밀번호 검증
