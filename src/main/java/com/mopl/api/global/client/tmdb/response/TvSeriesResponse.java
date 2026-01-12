@@ -9,7 +9,7 @@ public record TvSeriesResponse(
     @JsonProperty("id")
     Long apiId,
 
-    @JsonProperty("original_name")
+    @JsonProperty("name")
     String title,
 
     @JsonProperty("overview")
