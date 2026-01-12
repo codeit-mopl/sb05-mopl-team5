@@ -1,10 +1,10 @@
-
 package com.mopl.api.domain.conversation.repository;
 
-import static com.mopl.api.domain.conversation.entity.QDirectMessage.directMessage;
-
+import com.mopl.api.domain.conversation.entity.ConversationParticipant;
 import com.mopl.api.domain.conversation.entity.DirectMessage;
+import com.mopl.api.domain.conversation.entity.QConversationParticipant;
 import com.mopl.api.domain.conversation.entity.QDirectMessage;
+import com.mopl.api.domain.user.entity.QUser;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -13,11 +13,22 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
+@Repository
 @RequiredArgsConstructor
 public class DirectMessageRepositoryImpl implements DirectMessageRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
+
+    private static final QDirectMessage dm = QDirectMessage.directMessage;
+
+    private static final QConversationParticipant p = QConversationParticipant.conversationParticipant;
+    private static final QConversationParticipant pOther = new QConversationParticipant("pOther");
+
+    private static final QUser sender = new QUser("sender");
+    private static final QUser receiver = new QUser("receiver");
+    private static final QUser u = new QUser("u");
 
     @Override
     public List<DirectMessage> findMessageList(
@@ -27,45 +38,69 @@ public class DirectMessageRepositoryImpl implements DirectMessageRepositoryCusto
         int limit,
         String sortDirection
     ) {
-        QDirectMessage m = directMessage;
         boolean desc = "DESCENDING".equalsIgnoreCase(sortDirection);
 
-        // 1. 정렬 기준
-        OrderSpecifier<?> orderCreatedAt = desc ? m.createdAt.desc() : m.createdAt.asc();
-        OrderSpecifier<?> orderId = desc ? m.id.desc() : m.id.asc();
+        OrderSpecifier<?> orderCreatedAt = desc ? dm.createdAt.desc() : dm.createdAt.asc();
+        OrderSpecifier<?> orderId = desc ? dm.id.desc() : dm.id.asc();
 
-        // 2. 검색 조건 (Where)
         BooleanBuilder where = new BooleanBuilder();
-        where.and(m.conversation.id.eq(conversationId));
+        where.and(dm.conversation.id.eq(conversationId));
 
-        // 3. 커서 페이징 적용
+        // seek pagination (createdAt, id)
         if (cursorTime != null && idAfter != null) {
-            where.and(applyCursor(m, cursorTime, idAfter, desc));
+            where.and(applySeek(dm.createdAt, dm.id, cursorTime, idAfter, desc));
         }
 
-        // 4. 쿼리 실행 (Fetch Join 포함)
         return queryFactory
-            .selectFrom(m)
-            .join(m.sender).fetchJoin()   // N+1 방지
-            .join(m.receiver).fetchJoin() // N+1 방지
+            .selectFrom(dm)
+            // DTO에 sender/receiver 포함되므로 fetchJoin으로 N+1 제거
+            .join(dm.sender, sender).fetchJoin()
+            .join(dm.receiver, receiver).fetchJoin()
             .where(where)
             .orderBy(orderCreatedAt, orderId)
-            .limit(limit + 1L) // hasNext 확인용 +1
+            .limit(limit + 1L)
             .fetch();
     }
 
-    // 커서 조건 생성 (Impl 내부로 이동)
-    private BooleanExpression applyCursor(
-        QDirectMessage m,
+    @Override
+    public boolean existsParticipant(UUID conversationId, UUID userId) {
+        Integer one = queryFactory
+            .selectOne()
+            .from(p)
+            .where(
+                p.conversation.id.eq(conversationId),
+                p.user.id.eq(userId)
+            )
+            .fetchFirst();
+        return one != null;
+    }
+
+    @Override
+    public ConversationParticipant findOtherParticipant(UUID conversationId, UUID senderId) {
+        return queryFactory
+            .selectFrom(pOther)
+            .join(pOther.user, u).fetchJoin()
+            .where(
+                pOther.conversation.id.eq(conversationId),
+                pOther.user.id.ne(senderId)
+            )
+            .fetchFirst();
+    }
+
+    private BooleanExpression applySeek(
+        com.querydsl.core.types.dsl.DateTimePath<LocalDateTime> createdAtPath,
+        com.querydsl.core.types.dsl.ComparablePath<UUID> idPath,
         LocalDateTime cursorTime,
         UUID idAfter,
         boolean desc
     ) {
+        // DESC: (createdAt < cursor) OR (createdAt == cursor AND id < idAfter)
         if (desc) {
-            return m.createdAt.lt(cursorTime)
-                              .or(m.createdAt.eq(cursorTime).and(m.id.lt(idAfter)));
+            return createdAtPath.lt(cursorTime)
+                                .or(createdAtPath.eq(cursorTime).and(idPath.lt(idAfter)));
         }
-        return m.createdAt.gt(cursorTime)
-                          .or(m.createdAt.eq(cursorTime).and(m.id.gt(idAfter)));
+        // ASC : (createdAt > cursor) OR (createdAt == cursor AND id > idAfter)
+        return createdAtPath.gt(cursorTime)
+                            .or(createdAtPath.eq(cursorTime).and(idPath.gt(idAfter)));
     }
 }

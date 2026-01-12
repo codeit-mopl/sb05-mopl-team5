@@ -4,14 +4,17 @@ package com.mopl.api.domain.conversation.controller;
 import com.mopl.api.domain.conversation.dto.request.DirectMessageSendRequest;
 import com.mopl.api.domain.conversation.service.DirectMessageCommandService;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
+import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
 @Controller
@@ -24,16 +27,17 @@ public class DirectMessageSocketController {
 
     @MessageMapping("/conversations/{conversationId}/direct-messages")
     public void send(
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @DestinationVariable UUID conversationId,
-        @Valid DirectMessageSendRequest request,
-        Principal principal
+        @Payload DirectMessageSendRequest request
+
     ) {
-        UUID senderId = extractUserId(principal);
+        UUID senderId = userDetails.getUserDto().id();
 
         DirectMessageDto saved = directMessageCommandService.send(
             conversationId,
             senderId,
-            request.content()
+            request
         );
 
         // ✅ 구독자들에게 broadcast (활성 대화는 WS로 받음)
@@ -43,13 +47,5 @@ public class DirectMessageSocketController {
         );
     }
 
-    private UUID extractUserId(Principal principal) {
-        if (principal instanceof UsernamePasswordAuthenticationToken token) {
-            Object p = token.getPrincipal();
-            if (p instanceof UUID uuid) return uuid;
-            return UUID.fromString(p.toString());
-        }
-        return UUID.fromString(principal.getName());
-    }
 
 }
