@@ -39,7 +39,40 @@ public class ContentServiceImpl implements ContentService {
     @Override
     @Transactional(readOnly = true)
     public CursorResponseContentDto getContents(ContentSearchRequest request) {
-        return contentRepository.findContentsByCursor(request);
+        List<Content> contents = contentRepository.findContentsByCursor(request);
+        Long totalCount = contentRepository.countContents(request);
+
+        String nextCursor = null;
+        UUID nextIdAfter = null;
+
+        boolean hasNext = contents.size() > request.limit();
+        if (hasNext) {
+            contents = contents.subList(0, request.limit());
+
+            Content last = contents.get(contents.size() - 1);
+
+            nextCursor = switch (request.sortBy()) {
+                case "createdAt" -> last.getCreatedAt()
+                                        .toString();
+                case "watcherCount" -> last.getWatcherCount() + "|" + last.getReviewCount();
+                case "rate" -> last.getAverageRating()
+                                   .toString();
+                default -> throw new IllegalStateException("Unexpected value: " + request.sortBy());
+            };
+            nextIdAfter = last.getId();
+        }
+
+        return CursorResponseContentDto.builder()
+                                       .data(contents.stream()
+                                                     .map(contentMapper::toDto)
+                                                     .toList())
+                                       .nextCursor(nextCursor)
+                                       .nextIdAfter(nextIdAfter)
+                                       .hasNext(hasNext)
+                                       .totalCount(totalCount)
+                                       .sortDirection(request.sortDirection())
+                                       .sortBy(request.sortBy())
+                                       .build();
     }
 
     @Override
