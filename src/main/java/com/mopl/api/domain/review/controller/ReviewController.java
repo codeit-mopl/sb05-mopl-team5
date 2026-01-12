@@ -64,7 +64,7 @@ public class ReviewController {
         @RequestParam(required = false) UUID idAfter,
         @RequestParam(defaultValue = "20") int limit,
         @RequestParam(defaultValue = "createdAt") String sortBy,
-        @RequestParam(defaultValue = "DESC") String sortDirection,
+        @RequestParam(defaultValue = "DESCENDING") String sortDirection,
         @AuthenticationPrincipal CustomUserDetails user
     ) {
         UUID currentUserId = user != null ? user.getUserDto().id() : null;

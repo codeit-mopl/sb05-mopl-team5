@@ -20,7 +20,7 @@ import com.mopl.api.domain.playlist.repository.PlaylistRepository;
 import com.mopl.api.domain.playlist.repository.SubscriptionRepository;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -125,12 +125,16 @@ public class PlaylistServiceImpl implements PlaylistService {
         String sortDirection,
         UUID currentUserId
     ) {
-        Instant cursorInstant = null;
+        if ("subscribeCount".equals(sortBy)) {
+            sortBy = "subscriberCount";
+        }
+
+        LocalDateTime cursorDateTime = null;
         Long cursorLong = null;
 
         if (cursor != null && !cursor.isBlank() && idAfter != null) {
             if ("updatedAt".equals(sortBy)) {
-                cursorInstant = Instant.parse(cursor);
+                cursorDateTime = LocalDateTime.parse(cursor);
             } else if ("subscriberCount".equals(sortBy)) {
                 cursorLong = Long.parseLong(cursor);
             }
@@ -142,7 +146,7 @@ public class PlaylistServiceImpl implements PlaylistService {
             subscriberIdEqual,
             sortBy,
             sortDirection,
-            cursorInstant,
+            cursorDateTime,
             cursorLong,
             idAfter,
             limit

@@ -1,13 +1,13 @@
 package com.mopl.api.domain.playlist.repository.impl;
 
+import static com.mopl.api.domain.playlist.entity.QPlaylist.playlist;
+import static com.mopl.api.domain.playlist.entity.QSubscription.subscription;
+
 import com.mopl.api.domain.playlist.entity.Playlist;
-import com.mopl.api.domain.playlist.entity.QPlaylist;
-import com.mopl.api.domain.playlist.entity.QSubscription;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -25,13 +25,11 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
         UUID subscriberIdEqual,
         String sortBy,
         String sortDirection,
-        Instant cursorInstant,
+        LocalDateTime cursorDateTime,
         Long cursorLong,
         UUID idAfter,
         int limit
     ) {
-        QPlaylist playlist = QPlaylist.playlist;
-        QSubscription subscription = QSubscription.subscription;
 
         BooleanExpression predicate = playlist.isDeleted.eq(false);
 
@@ -62,10 +60,10 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
 
         if (idAfter != null) {
             predicate = predicate.and(
-                buildCursorPredicate(playlist, sortBy, sortDirection, cursorInstant, cursorLong, idAfter));
+                buildCursorPredicate(sortBy, sortDirection, cursorDateTime, cursorLong, idAfter));
         }
 
-        OrderSpecifier<?> primaryOrder = buildOrderSpecifier(playlist, sortBy, sortDirection);
+        OrderSpecifier<?> primaryOrder = buildOrderSpecifier(sortBy, sortDirection);
         OrderSpecifier<UUID> tieBreaker = new OrderSpecifier<>(
             "DESCENDING".equals(sortDirection) ? Order.DESC : Order.ASC,
             playlist.id
@@ -85,9 +83,6 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
         UUID ownerIdEqual,
         UUID subscriberIdEqual
     ) {
-        QPlaylist playlist = QPlaylist.playlist;
-        QSubscription subscription = QSubscription.subscription;
-
         BooleanExpression predicate = playlist.isDeleted.eq(false);
 
         if (keywordLike != null && !keywordLike.isBlank()) {
@@ -122,23 +117,22 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
     }
 
     private BooleanExpression buildCursorPredicate(
-        QPlaylist playlist,
         String sortBy,
         String sortDirection,
-        Instant cursorInstant,
+        LocalDateTime cursorDateTime,
         Long cursorLong,
         UUID idAfter
     ) {
         boolean isDescending = "DESCENDING".equals(sortDirection);
 
-        if ("updatedAt".equals(sortBy) && cursorInstant != null) {
+        if ("updatedAt".equals(sortBy) && cursorDateTime != null) {
             if (isDescending) {
-                return playlist.updatedAt.lt(LocalDateTime.MAX)
-                                         .or(playlist.updatedAt.eq(LocalDateTime.MAX)
+                return playlist.updatedAt.lt(cursorDateTime)
+                                         .or(playlist.updatedAt.eq(cursorDateTime)
                                                                .and(playlist.id.lt(idAfter)));
             } else {
-                return playlist.updatedAt.gt(LocalDateTime.MAX)
-                                         .or(playlist.updatedAt.eq(LocalDateTime.MAX)
+                return playlist.updatedAt.gt(cursorDateTime)
+                                         .or(playlist.updatedAt.eq(cursorDateTime)
                                                                .and(playlist.id.gt(idAfter)));
             }
         } else if ("subscriberCount".equals(sortBy) && cursorLong != null) {
@@ -156,7 +150,7 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
         return null;
     }
 
-    private OrderSpecifier<?> buildOrderSpecifier(QPlaylist playlist, String sortBy, String sortDirection) {
+    private OrderSpecifier<?> buildOrderSpecifier(String sortBy, String sortDirection) {
         Order order = "DESCENDING".equals(sortDirection) ? Order.DESC : Order.ASC;
 
         if ("updatedAt".equals(sortBy)) {

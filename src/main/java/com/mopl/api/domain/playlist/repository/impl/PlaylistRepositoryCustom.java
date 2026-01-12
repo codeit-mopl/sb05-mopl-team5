@@ -1,7 +1,7 @@
 package com.mopl.api.domain.playlist.repository.impl;
 
 import com.mopl.api.domain.playlist.entity.Playlist;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,7 +13,7 @@ public interface PlaylistRepositoryCustom {
         UUID subscriberIdEqual,
         String sortBy,
         String sortDirection,
-        Instant cursorInstant,
+        LocalDateTime cursorDateTime,
         Long cursorLong,
         UUID idAfter,
         int limit
