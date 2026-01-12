@@ -39,7 +39,7 @@ public class ContentServiceImpl implements ContentService {
     @Override
     @Transactional(readOnly = true)
     public CursorResponseContentDto getContents(ContentSearchRequest request) {
-        return null;
+        return contentRepository.findContentsByCursor(request);
     }
 
     @Override
