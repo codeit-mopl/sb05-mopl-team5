@@ -27,7 +27,7 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
             .where(content.isDeleted.eq(false))
             .where(request.typeEqual() != null ? content.type.eq(ContentType.findByValue(request.typeEqual())) : null)
             .where(request.keywordLike() != null ? content.title.containsIgnoreCase(request.keywordLike()) : null)
-            .where(buildOrderSpecifiers(request))
+            .where(buildCursorCondition(request))
             .orderBy(buildOrderSpecifiers(request.sortDirection(), request.sortBy()))
             .limit(request.limit() + 1)
             .fetch();
@@ -43,7 +43,7 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
             .fetchOne();
     }
 
-    public BooleanExpression buildOrderSpecifiers(ContentSearchRequest request) {
+    public BooleanExpression buildCursorCondition(ContentSearchRequest request) {
         if (request.cursor() == null || request.idAfter() == null) {
             return null;
         }
@@ -92,7 +92,7 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
     }
 
     public OrderSpecifier<?>[] buildOrderSpecifiers(String sortDirection, String sortBy) {
-        Order order = sortDirection.equals("DESCENDING") ? Order.DESC : Order.ASC;
+        Order order = "DESCENDING".equalsIgnoreCase(sortDirection) ? Order.DESC : Order.ASC;
 
         switch (sortBy) {
             case "createdAt" -> {
