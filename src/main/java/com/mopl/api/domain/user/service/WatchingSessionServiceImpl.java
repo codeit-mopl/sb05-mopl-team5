@@ -18,6 +18,7 @@ import com.mopl.api.domain.user.repository.WatchingSessionRepository;
 import com.mopl.api.global.config.websocket.dto.WatchingSessionChange;
 import com.mopl.api.global.config.websocket.dto.WatchingSessionChange.ChangeType;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,12 +43,14 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     @Override
     public WatchingSessionDto getWatchingSession(UUID watcherId) {
 
-        WatchingSession session = watchingSessionRepository.findByWatcherId(watcherId)
-                                                           .orElseThrow(
-                                                               () -> WatchingSessionNotFoundException.withWatcherId(
-                                                                   watcherId));
+        List<WatchingSession> sessions = watchingSessionRepository.findAllByWatcher_Id(watcherId);
 
-        return watchingSessionMapper.toDto(session);
+        WatchingSession latestSession = sessions.stream()
+                                                .max(Comparator.comparing(WatchingSession::getCreatedAt))
+                                                .orElseThrow(
+                                                    () -> WatchingSessionNotFoundException.withWatcherId(watcherId));
+
+        return watchingSessionMapper.toDto(latestSession);
     }
 
     @Override
@@ -95,7 +98,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         Content content = contentRepository.findById(contentId)
                                            .orElseThrow(() -> ContentNotFoundException.withContentId(contentId));
 
-        Optional<WatchingSession> existing = watchingSessionRepository.findByContentIdAndWatcherId(contentId,
+        Optional<WatchingSession> existing = watchingSessionRepository.findByContent_IdAndWatcher_Id(contentId,
             watcherId);
         if (existing.isPresent()) {
             return WatchingSessionChange.builder()
@@ -134,7 +137,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     @Transactional
     public WatchingSessionChange leaveWatchingSession(UUID contentId, UUID watcherId) {
 
-        WatchingSession session = watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)
+        WatchingSession session = watchingSessionRepository.findByContent_IdAndWatcher_Id(contentId, watcherId)
                                                            .orElse(null);
 
         if (session == null) {
