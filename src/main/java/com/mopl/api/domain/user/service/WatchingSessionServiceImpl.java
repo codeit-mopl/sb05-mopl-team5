@@ -111,8 +111,6 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         WatchingSession saved = watchingSessionRepository.saveAndFlush(session);
         log.debug("DB 저장 완료");
 
-        watchingSessionCacheRepository.addWatcher(contentId, watcherId);
-        log.debug("Redis 저장 완료");
         long count = watchingSessionCacheRepository.countWatchers(contentId);
 
         log.debug("세션 생성 완료");
@@ -145,8 +143,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
 
         watchingSessionRepository.delete(session);
         log.debug("DB 삭제 완료");
-        watchingSessionCacheRepository.removeWatcher(contentId, watcherId);
-        log.debug("Redis 삭제 완료");
+
         long count = watchingSessionCacheRepository.countWatchers(contentId);
 
         WatchingSessionChange change = WatchingSessionChange.builder()
