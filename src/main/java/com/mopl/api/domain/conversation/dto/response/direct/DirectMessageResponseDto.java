@@ -12,7 +12,7 @@ public record DirectMessageResponseDto(
     String nextCursor,
     UUID nextIdAfter,
     boolean hasNext,
-    int totalCount,
+    Long totalCount,
     String sortBy,
     String sortDirection
 

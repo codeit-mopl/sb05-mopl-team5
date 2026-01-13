@@ -21,6 +21,8 @@ public interface DirectMessageRepositoryCustom {
         String sortDirection
     );
 
+    long countMessageList(UUID conversationId);
+
     boolean existsParticipant(UUID conversationId, UUID userId);
 
     /**

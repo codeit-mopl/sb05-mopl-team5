@@ -7,6 +7,7 @@ import com.mopl.api.domain.conversation.dto.response.conversation.ConversationLi
 import com.mopl.api.domain.conversation.entity.QConversation;
 import com.mopl.api.domain.conversation.entity.QConversationParticipant;
 
+import com.mopl.api.domain.user.entity.QUser;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
@@ -34,6 +35,8 @@ public class ConversationRepositoryImpl implements ConversationRepositoryCustom 
         QConversation c = conversation;
         QConversationParticipant p = conversationParticipant; // 나
         QConversationParticipant p2 = new QConversationParticipant("p2"); // 상대방
+        QUser  sender = new QUser("sender");
+
 
         boolean desc = "DESCENDING".equalsIgnoreCase(sortDirection);
 
@@ -67,11 +70,16 @@ public class ConversationRepositoryImpl implements ConversationRepositoryCustom 
                 p2.user.profileImageUrl,
                 c.lastMessageContent,
                 c.lastMessageCreatedAt,
-                p.lastReadAt
+                p.lastReadAt,
+                c.lastMessageId,
+                c.lastMessageSenderId,
+                sender.name,
+                sender.profileImageUrl
             ))
             .from(c)
             .join(p).on(p.conversation.eq(c))
             .join(p2).on(p2.conversation.eq(c).and(p2.user.id.ne(myId)))
+            .leftJoin(sender).on(sender.id.eq(c.lastMessageSenderId))
             .where(where)
             .orderBy(orderTime, orderId)
             .limit(limit + 1L) // 다음 페이지 확인을 위해 +1 조회
@@ -92,4 +100,32 @@ public class ConversationRepositoryImpl implements ConversationRepositoryCustom 
         return c.lastMessageCreatedAt.gt(cursorTime)
                                      .or(c.lastMessageCreatedAt.eq(cursorTime).and(c.id.gt(idAfter)));
     }
+
+    @Override
+    public long countConversationList(UUID myId, String keywordLike) {
+        QConversation c = conversation;
+        QConversationParticipant p = conversationParticipant; // 나
+        QConversationParticipant p2 = new QConversationParticipant("p2"); // 상대방
+
+        // 1. 검색 조건 설정 (목록 조회랑 똑같이!)
+        BooleanBuilder where = new BooleanBuilder();
+        where.and(p.user.id.eq(myId));
+        where.and(p2.user.id.ne(myId));
+
+        if (keywordLike != null && !keywordLike.isBlank()) {
+            where.and(p2.user.name.containsIgnoreCase(keywordLike.trim()));
+        }
+
+        // 2. 개수 조회 (select count(c.id))
+        Long count = queryFactory
+            .select(c.count()) // 🔥 개수 세기
+            .from(c)
+            .join(p).on(p.conversation.eq(c))
+            .join(p2).on(p2.conversation.eq(c).and(p2.user.id.ne(myId)))
+            .where(where)
+            .fetchOne();
+
+        return count != null ? count : 0L;
+    }
+
 }

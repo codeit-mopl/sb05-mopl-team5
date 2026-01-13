@@ -26,6 +26,7 @@ import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -66,6 +67,8 @@ public class ConversationServiceImpl implements ConversationService {
 
         UUID conversationId = conversationRepository.findOneToOneConversationId(Set.of(me, other))
                                                     .orElse(null);
+
+
 
         if (conversationId == null) {
             // 성능: me는 proxy로 충분, other는 존재 검증이 필요하므로 findById
@@ -110,6 +113,8 @@ public class ConversationServiceImpl implements ConversationService {
             sortDirection
         );
 
+        long totalCount = conversationRepository.countConversationList(me, keywordLike);
+
         boolean hasNext = rows.size() > limit;
         if (hasNext) {
             rows = rows.subList(0, limit);
@@ -135,7 +140,7 @@ public class ConversationServiceImpl implements ConversationService {
                                       .nextCursor(nextCursor)
                                       .nextIdAfter(nextIdAfter)
                                       .hasNext(hasNext)
-                                      .totalCount(0)
+                                      .totalCount(totalCount)
                                       .sortBy(sortBy)
                                       .sortDirection(sortDirection)
                                       .build();
@@ -146,17 +151,15 @@ public class ConversationServiceImpl implements ConversationService {
     // -------------------------
     @Override
     @Transactional
-    public void conversationRead(UUID me, UUID conversationId, UUID directMessageId) {
+    public void conversationRead( UUID conversationId, UUID directMessageId) {
 
-        // 참가자 검증(읽음 처리도 권한 필요)
-        ensureParticipant(conversationId, me);
 
         LocalDateTime messageCreatedAt = directMessageRepository
             .findCreatedAtByIdAndConversationId(directMessageId, conversationId)
             .orElseThrow(() -> new IllegalArgumentException("메시지를 찾을 수 없습니다."));
 
         // 성능: "현재 lastReadAt보다 더 최신일 때만 갱신"을 DB에서 처리
-        conversationParticipantRepository.updateLastReadAtIfNewer(conversationId, me, messageCreatedAt);
+        conversationParticipantRepository.updateLastReadAtIfNewer(conversationId, conversationId, messageCreatedAt);
     }
 
     // -------------------------
@@ -251,6 +254,21 @@ public class ConversationServiceImpl implements ConversationService {
             limit,
             sortDirection
         );
+        long totalCount = directMessageRepository.countMessageList(conversationId);
+        if (!list.isEmpty()) {
+
+            LocalDateTime latestTime = list.stream()
+                                           .map(DirectMessage::getCreatedAt)
+                                           .max(LocalDateTime::compareTo) // 가장 미래의 시간 찾기
+                                           .orElse(null);
+
+            // "이 시간까지 다 읽었다"고 DB에 도장 쾅!
+            conversationParticipantRepository.updateLastReadAtIfNewer(
+                conversationId,
+                me,
+                latestTime
+            );
+        }
 
         boolean hasNext = list.size() > limit;
         if (hasNext) {
@@ -264,7 +282,7 @@ public class ConversationServiceImpl implements ConversationService {
         String nextCursor = null;
         UUID nextIdAfter = null;
 
-        if (!list.isEmpty()) {
+        if (hasNext && !list.isEmpty()) {
             DirectMessage last = list.get(list.size() - 1);
             nextCursor = last.getCreatedAt().toString();
             nextIdAfter = last.getId();
@@ -275,15 +293,13 @@ public class ConversationServiceImpl implements ConversationService {
                                        .nextCursor(nextCursor)
                                        .nextIdAfter(nextIdAfter)
                                        .hasNext(hasNext)
-                                       .totalCount(0)
+                                       .totalCount(totalCount)
                                        .sortDirection(sortDirection)
                                        .sortBy(sortBy)
                                        .build();
     }
 
-    // -------------------------
-    // 6) 특정 유저와의 1:1 방 조회(없으면 id=null로 반환)
-    // -------------------------
+
     @Override
     public DirectMessageWithDto getDirectMessageWith(UUID me, UUID other) {
         if (other == null) {

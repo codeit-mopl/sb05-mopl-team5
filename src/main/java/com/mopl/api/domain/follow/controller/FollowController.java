@@ -22,7 +22,7 @@ public class FollowController {
 
     private final FollowService followService;
 
-    @PostMapping("/api/follows")
+    @PostMapping
     public ResponseEntity<FollowDto> createFollow(
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestBody @Valid FollowRequest request
@@ -31,7 +31,7 @@ public class FollowController {
         return ResponseEntity.ok(followService.createFollow(me, request.followeeId()));
     }
 
-    @GetMapping("/api/follows/followed-by-me")
+    @GetMapping("/followed-by-me")
     public ResponseEntity<Boolean> isFollowedByMe(
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestParam UUID followeeId
@@ -40,7 +40,15 @@ public class FollowController {
         return ResponseEntity.ok(followService.isFollowedByMe(me, followeeId));
     }
 
-    @DeleteMapping("/api/follows/{followId}")
+    @GetMapping("/count")
+    public ResponseEntity<Long> getFollowerCount(
+        @RequestParam("followeeId") UUID followeeId // @RequestParam 필수
+    ) {
+        Long count = followService.getFollowerCount(followeeId);
+        return ResponseEntity.ok(count);
+    }
+
+    @DeleteMapping("/{followId}")
     public ResponseEntity<Void> cancelFollow(
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable UUID followId
@@ -49,4 +57,5 @@ public class FollowController {
         followService.cancelFollow(me, followId);
         return ResponseEntity.noContent().build();
     }
+
 }

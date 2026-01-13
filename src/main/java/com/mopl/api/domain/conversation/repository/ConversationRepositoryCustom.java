@@ -17,4 +17,6 @@ public interface ConversationRepositoryCustom {
         int limit,
         String sortDirection
     );
+
+    long countConversationList(UUID myId, String keywordLike);
 }

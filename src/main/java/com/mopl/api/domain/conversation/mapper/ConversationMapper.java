@@ -28,28 +28,26 @@ public interface ConversationMapper {
                                .build();
     }
 
-    /**
-     * 목록에서는 sender/receiver를 성능상 null/빈값으로 내려주고 있음(기존 Service 구현 그대로 유지)
-     */
+
     default ConversationLatestMessage mapLatestMessage(ConversationListRow row) {
         if (row == null) return null;
         if (row.lastMessageCreatedAt() == null && row.lastMessageContent() == null) return null;
 
         // 기존 서비스가 하던 방식(목록에서는 sender/receiver "빈 객체" 유지)을 그대로 반영
         ConversationSend sender = ConversationSend.builder()
-                                                  .userId(null)
-                                                  .name("")
-                                                  .profileImageUrl(null)
+                                                  .userId(row.lastMessageSenderId())
+                                                  .name(row.lastMessageSenderName())
+                                                  .profileImageUrl(row.lastMessageSenderProfileImageUrl())
                                                   .build();
 
         ConversationReceiver receiver = ConversationReceiver.builder()
-                                                            .userId(null)
-                                                            .name("")
-                                                            .profileImageUrl(null)
+                                                            .userId(row.otherUserId())
+                                                            .name(row.otherName())
+                                                            .profileImageUrl(row.otherProfileImageUrl())
                                                             .build();
 
         return ConversationLatestMessage.builder()
-                                        .id(null)
+                                        .id(row.lastMessageId())
                                         .conversationsId(row.conversationId())
                                         .createdAt(row.lastMessageCreatedAt())
                                         .sender(sender)

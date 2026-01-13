@@ -27,7 +27,7 @@ public interface ConversationService {
     ConversationDto conversationCheck(UUID me, UUID conversationId);
 
     // 읽음 처리
-    void conversationRead(UUID me, UUID conversationId, UUID directMessageId);
+    void conversationRead( UUID conversationId, UUID directMessageId);
 
 
     DirectMessageResponseDto getDirectMessageList(

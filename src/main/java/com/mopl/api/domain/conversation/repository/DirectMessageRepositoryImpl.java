@@ -61,6 +61,18 @@ public class DirectMessageRepositoryImpl implements DirectMessageRepositoryCusto
             .limit(limit + 1L)
             .fetch();
     }
+    @Override
+    public long countMessageList(UUID conversationId) {
+        QDirectMessage m = QDirectMessage.directMessage;
+
+        Long count = queryFactory
+            .select(m.count())
+            .from(m)
+            .where(m.conversation.id.eq(conversationId))
+            .fetchOne();
+
+        return count != null ? count : 0L;
+    }
 
     @Override
     public boolean existsParticipant(UUID conversationId, UUID userId) {

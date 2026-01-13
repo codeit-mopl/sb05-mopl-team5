@@ -42,12 +42,10 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     @Override
     public WatchingSessionDto getWatchingSession(UUID watcherId) {
 
-        WatchingSession session = watchingSessionRepository.findByWatcherId(watcherId)
-                                                           .orElseThrow(
-                                                               () -> WatchingSessionNotFoundException.withWatcherId(
-                                                                   watcherId));
-
-        return watchingSessionMapper.toDto(session);
+        //todo 임승택 :  nullable 스펙 으로 인한 코드 수정
+        return watchingSessionRepository.findByWatcherId(watcherId)
+                                        .map(watchingSessionMapper::toDto)
+                                        .orElse(null);
     }
 
     @Override

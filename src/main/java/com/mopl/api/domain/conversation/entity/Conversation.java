@@ -6,6 +6,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,16 +24,22 @@ public class Conversation extends BaseEntity {
 
     @Column(name = "last_message_created_at")
     private LocalDateTime lastMessageCreatedAt;
+    @Column(name = "last_message_sender_id")
+    private UUID lastMessageSenderId;
 
+    @Column(name = "last_message_id")
+    private UUID lastMessageId;
 
     public  static  Conversation create() {
         return new Conversation();
     }
 
     // [추가] 메시지 전송 시 호출하여 대화방 정보를 갱신하는 메서드
-    public void updateLastMessage(String content, LocalDateTime createdAt) {
+    public void updateLastMessage(UUID messageId, String content, LocalDateTime createdAt, UUID senderId) {
+        this.lastMessageId = messageId;       // 저장!
         this.lastMessageContent = content;
         this.lastMessageCreatedAt = createdAt;
+        this.lastMessageSenderId = senderId;  // 저장!
     }
 
 
