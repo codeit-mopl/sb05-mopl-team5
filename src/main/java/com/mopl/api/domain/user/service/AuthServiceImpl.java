@@ -44,6 +44,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public JwtInformation refreshToken(String refreshToken) {
+
+        log.info("[REFRESH] validateRefresh={}", jwtProvider.validateRefreshToken(refreshToken));
+        log.info("[REFRESH] registryHasRefresh={}", jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken));
+
         // 토큰 유효성 검증, JWT 세션에서도 유효한지 검증
         if(!jwtProvider.validateRefreshToken(refreshToken)
             || !jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
@@ -63,7 +67,8 @@ public class AuthServiceImpl implements AuthService {
             CustomUserDetails customDetails =  (CustomUserDetails) userDetails;
             String newAccessToken = jwtProvider.generateAccessToken(customDetails);
             String newRefreshToken = jwtProvider.generateRefreshToken(customDetails);
-            log.info("Refresh Token : {}", newAccessToken);
+            log.info("New Access Token : {}", newAccessToken.substring(0,10));
+            log.info("New Refresh Token : {}", newRefreshToken.substring(0,10));
 
             JwtInformation jwtInformation = new JwtInformation(
                 customDetails.getUserDto(), newAccessToken, newRefreshToken
