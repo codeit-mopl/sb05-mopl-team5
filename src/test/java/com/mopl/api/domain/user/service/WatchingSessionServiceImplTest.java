@@ -126,8 +126,6 @@ class WatchingSessionServiceImplTest {
 
         then(watchingSessionRepository).should()
                                        .saveAndFlush(any());
-        then(watchingSessionCacheRepository).should()
-                                            .addWatcher(contentId, watcherId);
         then(eventPublisher).should()
                             .publishEvent(any(WatchingSessionChangeEvent.class));
     }
@@ -163,8 +161,6 @@ class WatchingSessionServiceImplTest {
 
         then(watchingSessionRepository).should()
                                        .delete(session);
-        then(watchingSessionCacheRepository).should()
-                                            .removeWatcher(contentId, watcherId);
         then(eventPublisher).should()
                             .publishEvent(any(WatchingSessionChangeEvent.class));
     }
