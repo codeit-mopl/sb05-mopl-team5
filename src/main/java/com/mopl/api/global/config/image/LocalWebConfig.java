@@ -13,5 +13,8 @@ public class LocalWebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/contents/**")
                 .addResourceLocations("file:uploads/contents/");
+
+        registry.addResourceHandler("/static/**")
+                .addResourceLocations("classpath:/static/");
     }
 }

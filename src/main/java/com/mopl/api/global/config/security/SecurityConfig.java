@@ -74,7 +74,7 @@ public class SecurityConfig {
                 .permitAll()
                 .requestMatchers("/api/auth/reset-password")
                 .permitAll()
-                .requestMatchers("/contents/**")
+                .requestMatchers("/contents/**", "/static/thumbnail.png")
                 .permitAll()
                 .requestMatchers("*", "/swagger-resource/**"
                     , "/swagger-ui.html", "/swagger-ui/**", "/v3/**",
