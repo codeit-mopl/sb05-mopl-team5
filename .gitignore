@@ -273,3 +273,6 @@ credentials
 nohup.out
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows,gradle,intellij+all,visualstudiocode
+
+# 콘텐츠 로컬 이미지
+/uploads
