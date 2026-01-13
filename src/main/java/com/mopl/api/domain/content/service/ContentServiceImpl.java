@@ -7,12 +7,13 @@ import com.mopl.api.domain.content.dto.response.ContentDto;
 import com.mopl.api.domain.content.dto.response.CursorResponseContentDto;
 import com.mopl.api.domain.content.entity.Content;
 import com.mopl.api.domain.content.entity.ContentType;
+import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
+import com.mopl.api.domain.content.exception.detail.InvalidSortByException;
 import com.mopl.api.domain.content.mapper.ContentMapper;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.global.config.image.LocalUploader;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,7 @@ public class ContentServiceImpl implements ContentService {
     public ContentDto getContent(UUID id) {
         Content content = contentRepository.findByIdAndIsDeletedFalse(id)
                                            .orElseThrow(
-                                               () -> new NoSuchElementException("Content not found with id: " + id));
+                                               () -> ContentNotFoundException.withContentId(id));
         return contentMapper.toDto(content);
     }
 
@@ -57,7 +58,7 @@ public class ContentServiceImpl implements ContentService {
                 case "watcherCount" -> last.getWatcherCount() + "|" + last.getReviewCount();
                 case "rate" -> last.getAverageRating()
                                    .toString();
-                default -> throw new IllegalStateException("Unexpected value: " + request.sortBy());
+                default -> throw InvalidSortByException.withSortBy(request.sortBy());
             };
             nextIdAfter = last.getId();
         }
@@ -94,7 +95,7 @@ public class ContentServiceImpl implements ContentService {
     public ContentDto modifyContent(UUID id, ContentUpdateRequest request, MultipartFile file) {
         Content content = contentRepository.findByIdAndIsDeletedFalse(id)
                                            .orElseThrow(
-                                               () -> new NoSuchElementException("Content not found with id: " + id));
+                                               () -> ContentNotFoundException.withContentId(id));
 
         String thumbnail = null;
         String tags = tagToString(request.tags());
@@ -113,7 +114,7 @@ public class ContentServiceImpl implements ContentService {
     public void removeContent(UUID id) {
         Content content = contentRepository.findByIdAndIsDeletedFalse(id)
                                            .orElseThrow(
-                                               () -> new NoSuchElementException("Content not found with id: " + id));
+                                               () -> ContentNotFoundException.withContentId(id));
         content.softDelete();
     }
 

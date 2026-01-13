@@ -5,6 +5,7 @@ import static com.mopl.api.domain.content.entity.QContent.content;
 import com.mopl.api.domain.content.dto.request.ContentSearchRequest;
 import com.mopl.api.domain.content.entity.Content;
 import com.mopl.api.domain.content.entity.ContentType;
+import com.mopl.api.domain.content.exception.detail.InvalidSortByException;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -88,7 +89,7 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
                                                                     .and(content.id.gt(request.idAfter())));
             }
         }
-        throw new IllegalStateException("Unexpected value: " + request.sortBy());
+        throw InvalidSortByException.withSortBy(request.sortBy());
     }
 
     public OrderSpecifier<?>[] buildOrderSpecifiers(String sortDirection, String sortBy) {
@@ -109,6 +110,6 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
                     new OrderSpecifier<>(order, content.id)};
             }
         }
-        throw new IllegalStateException("Unexpected value: " + sortBy);
+        throw InvalidSortByException.withSortBy(sortBy);
     }
 }
