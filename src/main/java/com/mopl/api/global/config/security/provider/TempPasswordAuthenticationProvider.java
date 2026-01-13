@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -41,6 +42,11 @@ public class TempPasswordAuthenticationProvider implements AuthenticationProvide
 
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> UserNotFoundException.withUserEmail(email));
+
+        // 계정 잠김 체크 !!
+        if (Boolean.TRUE.equals(user.getLocked())) {
+            throw new LockedException("User is locked: " + email);
+        }
 
         // Redis에서 임시 비밀번호 해시값 조회
         String key = TEMP_PW_KEY_PREFIX + email;
