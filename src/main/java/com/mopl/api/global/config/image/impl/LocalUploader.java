@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-@Profile("dev")
+@Profile({"dev","test"})
 @Component
 public class LocalUploader implements Uploader {
 
