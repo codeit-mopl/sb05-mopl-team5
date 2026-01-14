@@ -4,8 +4,11 @@ package com.mopl.api.domain.conversation.entity;
 import com.mopl.api.global.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -17,8 +20,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Conversation extends BaseEntity {
 
+    @OneToMany(mappedBy = "conversation")
+    private List<ConversationParticipant> participants = new ArrayList<>();
 
-    // [추가] 역정규화 컬럼 매핑
+
     @Column(name = "last_message_content", length = 2000)
     private String lastMessageContent;
 
