@@ -47,8 +47,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
 
         WatchingSession latestSession = sessions.stream()
                                                 .max(Comparator.comparing(WatchingSession::getCreatedAt))
-                                                .orElseThrow(
-                                                    () -> WatchingSessionNotFoundException.withWatcherId(watcherId));
+                                                .orElse(null);
 
         return watchingSessionMapper.toDto(latestSession);
     }
