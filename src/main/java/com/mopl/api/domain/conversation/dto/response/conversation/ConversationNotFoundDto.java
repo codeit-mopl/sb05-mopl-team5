@@ -6,7 +6,7 @@ import lombok.Builder;
 public record ConversationNotFoundDto(
     String exceptionName,
     String message,
-    withUserIdDetail details
+    WithUserIdDetail details
 
 ) {
 

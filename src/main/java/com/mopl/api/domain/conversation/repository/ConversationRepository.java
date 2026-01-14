@@ -1,6 +1,7 @@
 package com.mopl.api.domain.conversation.repository;
 
 import com.mopl.api.domain.conversation.dto.response.conversation.ConversationListRow;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationSummary;
 import com.mopl.api.domain.conversation.entity.Conversation;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,38 +25,35 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
         "HAVING COUNT(DISTINCT p1.user.id) = 2")
     Optional<UUID> findOneToOneConversationId(@Param("userIds") Set<UUID> userIds);
 
-    // 2. 대화방 목록 조회 (QueryDSL -> JPQL 변환)
-    // 🔥 [핵심 2] new 패키지경로.Record명(...) 문법 사용
-    // 주의: ConversationListRow의 필드 순서와 일치해야 합니다.
+
     @Query("""
-    SELECT new com.mopl.api.domain.conversation.dto.response.conversation.ConversationListRow(
-        c.id,
-        otherUser.id,
-        otherUser.name,
-        otherUser.profileImageUrl,
+    SELECT 
+        c.id AS conversationId,
+        otherUser.id AS otherUserId,
+        otherUser.name AS otherName,
+        otherUser.profileImageUrl AS otherProfileImageUrl,
         
-        c.lastMessageId,
-        c.lastMessageContent,
-        c.lastMessageCreatedAt,
+        c.lastMessageId AS lastMessageId,
+        c.lastMessageContent AS lastMessageContent,
+        c.lastMessageCreatedAt AS lastMessageCreatedAt,
         
         (SELECT COUNT(dm) 
          FROM DirectMessage dm 
          WHERE dm.conversation.id = c.id 
-           AND dm.createdAt > myP.lastReadAt 
+           AND (myP.lastReadAt IS NULL OR dm.createdAt > myP.lastReadAt)
            AND dm.sender.id <> :me
-        )
-    )
+        ) AS unreadCount
     FROM Conversation c
     JOIN ConversationParticipant myP ON c.id = myP.conversation.id
     JOIN ConversationParticipant otherP ON c.id = otherP.conversation.id
     JOIN otherP.user otherUser
     WHERE myP.user.id = :me
       AND otherP.user.id <> :me
-      AND (:keyword IS NULL OR otherUser.name LIKE %:keyword%)
+      AND (:keyword IS NULL OR otherUser.name LIKE CONCAT('%', :keyword, '%'))
       AND (:cursorTime IS NULL OR c.lastMessageCreatedAt < :cursorTime)
     ORDER BY c.lastMessageCreatedAt DESC
 """)
-    List<ConversationListRow> findConversationList(
+    List<ConversationSummary> findConversationList(
         @Param("me") UUID me,
         @Param("keyword") String keyword,
         @Param("cursorTime") LocalDateTime cursorTime,

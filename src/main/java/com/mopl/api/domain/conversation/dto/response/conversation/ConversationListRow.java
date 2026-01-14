@@ -3,7 +3,6 @@ package com.mopl.api.domain.conversation.dto.response.conversation;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-
 public record ConversationListRow(
     UUID conversationId,
     UUID otherUserId,
@@ -14,5 +13,6 @@ public record ConversationListRow(
     String lastMessageContent,
     LocalDateTime lastMessageCreatedAt,
 
-    Long unreadCount // Count 쿼리 결과
-) {}
+    Long unreadCount
+) {
+}

@@ -4,6 +4,7 @@ import com.mopl.api.domain.conversation.dto.request.ConversationRequestDto;
 import com.mopl.api.domain.conversation.dto.response.conversation.ConversationDto;
 import com.mopl.api.domain.conversation.dto.response.conversation.ConversationListRow;
 import com.mopl.api.domain.conversation.dto.response.conversation.ConversationResponseDto;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationSummary;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageLastestMessage;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageResponseDto;
@@ -13,6 +14,7 @@ import com.mopl.api.domain.conversation.entity.Conversation;
 import com.mopl.api.domain.conversation.entity.ConversationParticipant;
 import com.mopl.api.domain.conversation.entity.DirectMessage;
 import com.mopl.api.domain.conversation.exception.ConversationNotFoundException;
+import com.mopl.api.domain.conversation.mapper.ConversationConverter;
 import com.mopl.api.domain.conversation.mapper.ConversationMapper;
 import com.mopl.api.domain.conversation.mapper.DirectMessageMapper;
 import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository;
@@ -46,6 +48,7 @@ public class ConversationServiceImpl implements ConversationService {
 
     private final ConversationMapper conversationMapper;
     private final DirectMessageMapper directMessageMapper;
+    private final ConversationConverter conversationConverter;
 
     // -------------------------
     // 1) 1:1 대화방 생성 (없으면 생성, 있으면 existing 반환)
@@ -117,41 +120,57 @@ public class ConversationServiceImpl implements ConversationService {
     public ConversationResponseDto getConversationList(
         UUID me, String keywordLike, String cursor, UUID idAfter, int limit, String sortDirection, String sortBy
     ) {
+        // 1. 커서 파싱
         LocalDateTime cursorTime = parseCursor(cursor);
 
+        // 2. Pageable 생성 (limit + 1로 다음 페이지 존재 여부 확인)
         Pageable pageable = PageRequest.of(0, limit + 1);
 
-        List<ConversationListRow> rows = conversationRepository.findConversationList(
+        // 3. Repository 호출 (반환 타입이 Interface인 Summary로 변경됨)
+        List<ConversationSummary> rows = conversationRepository.findConversationList(
             me, keywordLike, cursorTime, pageable
         );
 
+        // 4. 전체 카운트 조회
         long totalCount = conversationRepository.countConversationList(me, keywordLike);
+
+        // 5. 다음 페이지 여부 확인 및 리스트 자르기
         boolean hasNext = rows.size() > limit;
         if (hasNext) {
             rows = rows.subList(0, limit);
         }
 
+        // 6. 변환 (Converter 사용)
         List<ConversationDto> data = rows.stream()
-                                         .map(conversationMapper::toDto)
+                                         .map(conversationConverter::toDto) // Mapper 대신 Converter 사용
                                          .toList();
 
+        // 7. 다음 커서 계산 (Interface Getter 사용)
         String nextCursor = null;
         UUID nextIdAfter = null;
 
-        if (hasNext && !rows.isEmpty()) {
-            ConversationListRow lastRow = rows.get(rows.size() - 1);
-            if (lastRow.lastMessageCreatedAt() != null) {
-                nextCursor = lastRow.lastMessageCreatedAt()
+        if (!rows.isEmpty()) {
+            ConversationSummary lastRow = rows.get(rows.size() - 1);
+
+            // Interface의 Getter 메서드(get...) 사용
+            if (lastRow.getLastMessageCreatedAt() != null) {
+                nextCursor = lastRow.getLastMessageCreatedAt()
                                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
             }
-            nextIdAfter = lastRow.conversationId();
+            nextIdAfter = lastRow.getConversationId();
         }
 
-        return conversationMapper.toResponseDto(
-            data, nextCursor, nextIdAfter, hasNext, totalCount, sortBy, sortDirection
-        );
+        // 8. 응답 DTO 생성 (Builder 직접 사용)
+        return ConversationResponseDto.builder()
+                                      .data(data)
+                                      .nextCursor(nextCursor)
+                                      .nextIdAfter(nextIdAfter)
+                                      .hasNext(hasNext)
+                                      .totalCount(totalCount)
+                                      .sortBy(sortBy)
+                                      .sortDirection(sortDirection)
+                                      .build();
     }
-
     // -------------------------
     // 3) 읽음 처리
     // -------------------------
