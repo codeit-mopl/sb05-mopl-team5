@@ -16,7 +16,6 @@ import com.mopl.api.global.config.security.jwt.InMemoryJwtRegistry;
 import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
 import com.mopl.api.global.config.security.provider.TempPasswordAuthenticationProvider;
-import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -66,8 +65,6 @@ public class SecurityConfig {
                 .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
             )
             .authorizeHttpRequests(auth -> auth
-                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
-                .requestMatchers("/api/sse").authenticated()
                 .requestMatchers("/api/auth/csrf-token")
                 .permitAll()
                 .requestMatchers("/api/auth/sign-in")

@@ -11,7 +11,7 @@ public record DirectMessageDto(
     UUID id,
     UUID conversationId,
     LocalDateTime createdAt,
-    DirectMessageSender sender,
+    DirectMessageSend send,
     DirectMessageReceiver receiver,
     String content
 

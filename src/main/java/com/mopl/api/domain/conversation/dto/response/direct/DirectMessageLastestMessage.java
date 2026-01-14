@@ -10,7 +10,7 @@ public record DirectMessageLastestMessage(
     UUID id,
     UUID conversationId,
     LocalDateTime createdAt,
-    DirectMessageSender sender,
+    DirectMessageSend sender,
     DirectMessageReceiver receiver,
     String content
 ) {

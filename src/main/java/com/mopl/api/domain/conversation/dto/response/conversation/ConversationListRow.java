@@ -13,12 +13,7 @@ public record ConversationListRow(
     String otherProfileImageUrl,
     String lastMessageContent,
     LocalDateTime lastMessageCreatedAt,
-    LocalDateTime myLastReadAt,
-
-    UUID lastMessageId,
-    UUID lastMessageSenderId,
-    String lastMessageSenderName,
-    String lastMessageSenderProfileImageUrl
+    LocalDateTime myLastReadAt
 ) {
 
 }

@@ -7,57 +7,78 @@ import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/follows")
 @RequiredArgsConstructor
-
 public class FollowController {
 
     private final FollowService followService;
 
+    private UUID currentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new IllegalStateException("인증 정보가 없습니다.");
+        }
+
+        Object principal = auth.getPrincipal();
+
+        if (principal instanceof CustomUserDetails cud && cud.getUserDto() != null) {
+            return cud.getUserDto().id();
+        }
+
+        if (principal instanceof UUID uuid) {
+            return uuid;
+        }
+
+        String name = auth.getName();
+        try {
+            return UUID.fromString(name);
+        } catch (Exception ignored) {
+
+        }
+
+        throw  new IllegalStateException("현재 사용자 ID를 확인할 수 없습니다.");
+    }
+
+
     @PostMapping
     public ResponseEntity<FollowDto> createFollow(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestBody @Valid FollowRequest request
     ) {
-        UUID me = userDetails.getUserDto().id();
-        return ResponseEntity.status(HttpStatus.CREATED)
-                                      .body(followService.createFollow(me, request.followeeId()));
+        UUID followerId = currentUserId();
+
+        FollowDto dto = followService.createFollow(followerId, request.followeeId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @GetMapping("/followed-by-me")
     public ResponseEntity<Boolean> isFollowedByMe(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
+
         @RequestParam UUID followeeId
     ) {
-        UUID me = userDetails.getUserDto().id();
-        return ResponseEntity.ok(followService.isFollowedByMe(me, followeeId));
+        UUID followerId = currentUserId();
+        return ResponseEntity.ok(followService.isFollowedByMe(followerId, followeeId));
     }
 
     @GetMapping("/count")
-    public ResponseEntity<Long> getFollowerCount(
-        @RequestParam("followeeId") UUID followeeId // @RequestParam 필수
-    ) {
-        Long count = followService.getFollowerCount(followeeId);
-        return ResponseEntity.ok(count);
+    public ResponseEntity<Long> getFollowerCount(@RequestParam UUID followeeId) {
+        return ResponseEntity.ok(followService.getFollowerCount(followeeId));
     }
 
     @DeleteMapping("/{followId}")
     public ResponseEntity<Void> cancelFollow(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
+
         @PathVariable UUID followId
     ) {
-        UUID me = userDetails.getUserDto().id();
-        followService.cancelFollow(me, followId);
+        UUID followerId = currentUserId();
+        followService.cancelFollow(followerId, followId);
         return ResponseEntity.noContent().build();
     }
-
 }

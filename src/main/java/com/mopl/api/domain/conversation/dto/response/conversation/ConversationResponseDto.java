@@ -11,7 +11,7 @@ public record ConversationResponseDto(
     String nextCursor,
     UUID nextIdAfter,
     boolean hasNext,
-    Long totalCount,
+    int totalCount,
     String sortBy,
     String sortDirection
 ) {
