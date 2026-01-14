@@ -12,12 +12,14 @@ import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
 import com.mopl.api.domain.sse.SseEmitterRegistry;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -35,48 +37,45 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
         UUID conversationId,
         UUID senderId,
         DirectMessageSendRequest request
-    ) throws AccessDeniedException {
+    ) throws AccessDeniedException { // AccessDeniedException throws 명시 필요할 수 있음
         // 1. 대화방 조회
         Conversation conversation = conversationRepository.findById(conversationId)
                                                           .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대화방입니다."));
 
-        // 2. 참여자 검증 (Repository 최적화 가정)
-        // (참여자가 아니면 예외 발생)
+        // 2. 참여자 검증
         if (!directMessageRepository.existsParticipant(conversationId, senderId)) {
             throw new AccessDeniedException("대화방 참여자가 아닙니다.");
         }
 
-        // 3. 상대방 찾기 (1:1 대화 가정)
+        // 3. 상대방 찾기
         ConversationParticipant other = directMessageRepository.findOtherParticipant(conversationId, senderId);
         if (other == null) {
             throw new IllegalStateException("대화 상대방을 찾을 수 없습니다.");
         }
 
-
         User sender = userRepository.getReferenceById(senderId);
         User receiver = other.getUser();
 
 
-
-        // 6. 메시지 생성 및 저장
-        // (Entity에 create 메서드를 만들거나, 생성자에 now를 넘기는 것을 추천)
-        DirectMessage message = directMessageRepository.save(
+        DirectMessage message = directMessageRepository.saveAndFlush(
             DirectMessage.create(conversation, sender, receiver, request.content())
         );
 
-
+        // 7. 대화방 메타데이터 갱신
+        // 위에서 flush를 했기 때문에 message.getCreatedAt()이 더 이상 null이 아닙니다.
         conversation.updateLastMessage(
             message.getId(),
             request.content(),
-            message.getCreatedAt(),
+            message.getCreatedAt(), // ✅ 이제 정확한 시간이 들어갑니다.
             sender.getId()
         );
 
 
-        // 8. DTO 변환
         DirectMessageDto dto = mapper.toDto(message);
 
-        // 9. 실시간 알림 (SSE) - 보고 있지 않은 유저에게만 전송
+
+
+        // 9. 실시간 알림 (SSE)
         if (!activeConversationRegistry.isSubscribed(receiver.getId(), conversationId)) {
             sseEmitterRegistry.send(
                 receiver.getId(),

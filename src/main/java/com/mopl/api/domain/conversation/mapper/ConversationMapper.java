@@ -10,7 +10,7 @@ import com.mopl.api.domain.conversation.dto.response.conversation.ConversationWi
 import com.mopl.api.domain.conversation.entity.Conversation;
 import com.mopl.api.domain.conversation.entity.DirectMessage;
 import com.mopl.api.domain.user.entity.User;
-import java.time.LocalDateTime;
+
 import java.util.List;
 import java.util.UUID;
 import org.mapstruct.Mapper;
@@ -23,21 +23,21 @@ public interface ConversationMapper {
     // 1. 목록 조회용 (Row -> DTO)
     @Mapping(target = "id", source = "conversationId")
     @Mapping(target = "with", expression = "java(mapWith(row))")
-    @Mapping(target = "latestMessage", expression = "java(mapLatestMessage(row))")
+    @Mapping(target = "lastestMessage", expression = "java(mapLatestMessage(row))")
     @Mapping(target = "hasUnread", expression = "java(hasUnread(row))")
     ConversationDto toDto(ConversationListRow row);
 
     // 2. 단건 조회/생성용 (Entity -> DTO)
     @Mapping(target = "id", source = "conversation.id")
     @Mapping(target = "with", source = "otherUser", qualifiedByName = "mapWithUser")
-    @Mapping(target = "latestMessage", source = "lastMessage", qualifiedByName = "mapLatestMessageFromEntity")
+    @Mapping(target = "lastestMessage", source = "lastMessage", qualifiedByName = "mapLatestMessageFromEntity")
     @Mapping(target = "hasUnread", source = "hasUnread")
     ConversationDto toCheckDto(Conversation conversation, User otherUser, DirectMessage lastMessage, boolean hasUnread);
 
 
     @Mapping(target = "id", source = "conversation.id")
     @Mapping(target = "with", source = "otherUser", qualifiedByName = "mapWithUser")
-    @Mapping(target = "latestMessage", expression = "java(null)") // 메시지 없음
+    @Mapping(target = "lastestMessage", expression = "java(null)") // 메시지 없음
     @Mapping(target = "hasUnread", constant = "false") // 안 읽음 없음
     ConversationDto toEmptyDto(Conversation conversation, User otherUser);
 

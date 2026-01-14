@@ -18,6 +18,7 @@ import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWithDto
 import com.mopl.api.domain.conversation.entity.Conversation;
 import com.mopl.api.domain.conversation.entity.ConversationParticipant;
 import com.mopl.api.domain.conversation.entity.DirectMessage;
+import com.mopl.api.domain.conversation.exception.ConversationNotFoundException;
 import com.mopl.api.domain.conversation.mapper.ConversationMapper;
 import com.mopl.api.domain.conversation.mapper.DirectMessageMapper;
 import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository;
@@ -230,7 +231,7 @@ public class ConversationServiceImpl implements ConversationService {
         // 1. 권한 체크
         ensureParticipant(conversationId, me);
 
-        // 2. 커서 파싱 & 리스트 조회 & 전체 개수 조회
+        // 2. 리스트 조회 & Count
         LocalDateTime cursorTime = parseCursor(cursor);
         List<DirectMessage> list = directMessageRepository.findMessageList(
             conversationId, cursorTime, idAfter, limit, sortDirection
@@ -241,35 +242,51 @@ public class ConversationServiceImpl implements ConversationService {
         if (!list.isEmpty()) {
             boolean isDesc = "DESCENDING".equalsIgnoreCase(sortDirection);
             DirectMessage latestMessage = isDesc ? list.get(0) : list.get(list.size() - 1);
-
-            conversationParticipantRepository.updateLastReadAtIfNewer(
-                conversationId, me, latestMessage.getCreatedAt()
-            );
+            conversationParticipantRepository.updateLastReadAtIfNewer(conversationId, me, latestMessage.getCreatedAt());
         }
 
-        // 4. hasNext 계산 및 리스트 자르기
+        // 4. hasNext 계산 및 자르기
         boolean hasNext = list.size() > limit;
         if (hasNext) {
-            list = list.subList(0, limit);
+            // 리스트는 ArrayList 등 가변 리스트여야 합니다. (subList 결과는 ArrayList로 감싸는 게 안전)
+            list = new java.util.ArrayList<>(list.subList(0, limit));
         }
 
-        // 5. DTO 리스트 변환 (기존 Mapper 메서드 활용)
-        List<DirectMessageDto> data = list.stream()
-                                          .map(directMessageMapper::toDto)
-                                          .toList();
-
-        // 6. 다음 커서 계산
+        // 5. 커서 계산 (🔥 순서 뒤집기 전에 미리 계산!)
         String nextCursor = null;
         UUID nextIdAfter = null;
 
         if (hasNext && !list.isEmpty()) {
+            // DB에서 가져온 순서 그대로의 '마지막 요소'가 다음 커서임
             DirectMessage last = list.get(list.size() - 1);
-            // 포맷 고정
             nextCursor = last.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
             nextIdAfter = last.getId();
         }
 
-        // 7. 🔥 [수정] Mapper에게 조립 위임! (Builder 코드 제거)
+        if (!list.isEmpty()) {
+            log.info("DEBUG [Before Reverse] 첫번째(0): {}, 마지막: {}",
+                list.get(0).getCreatedAt(),
+                list.get(list.size() - 1).getCreatedAt());
+        }
+
+        // 6. 🔥 [핵심] 리스트 뒤집기 (UI를 위해 과거순으로 변경)
+        if ("DESCENDING".equalsIgnoreCase(sortDirection)) {
+            java.util.Collections.reverse(list);
+        }
+
+        // 🔥 [로그 2] 뒤집은 후: 프론트엔드로 나갈 순서 확인
+        if (!list.isEmpty()) {
+            log.info("DEBUG [After  Reverse] 첫번째(0): {}, 마지막: {}",
+                list.get(0).getCreatedAt(), list.get(0).getContent(),
+                list.get(list.size() - 1).getCreatedAt());
+        }
+
+        // 7. DTO 변환
+        List<DirectMessageDto> data = list.stream()
+                                          .map(directMessageMapper::toDto)
+                                          .toList();
+
+        // 8. 응답 반환
         return directMessageMapper.toResponseDto(
             data,
             nextCursor,
@@ -288,26 +305,24 @@ public class ConversationServiceImpl implements ConversationService {
         if (other == null) throw new IllegalArgumentException("withUserId는 필수입니다.");
         if (me.equals(other)) throw new IllegalArgumentException("자기 자신과 대화할 수 없습니다.");
 
-        // 2. 상대방 유저 정보 조회
+        // 2. 상대방 유저 정보 조회 (이건 404 에러 메시지 만들 때 필요할 수 있어서 유지)
         User otherUser = userRepository.findById(other)
                                        .orElseThrow(() -> new IllegalArgumentException("상대 유저가 존재하지 않습니다."));
 
-        // 🔥 [수정] Mapper 사용으로 코드가 깔끔해짐
+        // Mapper 사용 (깔끔함)
         DirectMessageWith withUserDto = directMessageMapper.toWithDto(otherUser);
 
         // 3. 1:1 대화방 ID 찾기
         UUID conversationId = conversationRepository.findOneToOneConversationId(Set.of(me, other))
                                                     .orElse(null);
 
-        // 4. 대화방이 없을 경우 (빈 방 리턴)
+        // 🔥 [핵심 수정] 빈 DTO 리턴 -> 예외 발생으로 변경!
         if (conversationId == null) {
-            return DirectMessageWithDto.builder()
-                                       .id(null)
-                                       .with(withUserDto)
-                                       .lastestMessage(null)
-                                       .hasUnread(false)
-                                       .build();
+            // 이 예외를 던져야 프론트가 404를 받고 생성 로직으로 넘어갑니다.
+            throw new ConversationNotFoundException(other);
         }
+
+        // --- (아래 로직은 '방이 있을 때'만 실행됩니다) ---
 
         // 5. 참여자 검증 및 읽은 시간 조회
         LocalDateTime myLastReadAt = conversationParticipantRepository
@@ -320,15 +335,12 @@ public class ConversationServiceImpl implements ConversationService {
 
         // 7. 안 읽음 여부 판별
         boolean hasUnread = false;
-        DirectMessageLastestMessage latestDto = null; // 오타 주의: Lastest -> Latest 권장
+        DirectMessageLastestMessage latestDto = null;
 
         if (latest != null) {
             latestDto = directMessageMapper.toLatestMessageDto(latest);
-
-            // ✅ 로직 좋음: 내가 보낸 게 아니고(상대방이 보냈고) && 내가 읽은 시간보다 최신이면 -> 안 읽음
             boolean iAmSender = latest.getSender().getId().equals(me);
             boolean newerThanRead = (myLastReadAt == null) || latest.getCreatedAt().isAfter(myLastReadAt);
-
             hasUnread = !iAmSender && newerThanRead;
         }
 
@@ -340,7 +352,6 @@ public class ConversationServiceImpl implements ConversationService {
                                    .hasUnread(hasUnread)
                                    .build();
     }
-
 
 
 
