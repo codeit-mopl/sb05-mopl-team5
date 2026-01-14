@@ -13,7 +13,6 @@ import com.mopl.api.domain.sse.SseEmitterRegistry;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
 import org.springframework.security.access.AccessDeniedException;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
