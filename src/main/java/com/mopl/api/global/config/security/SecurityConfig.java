@@ -142,10 +142,10 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public JwtRegistry jwtRegistry(JwtTokenProvider jwtTokenProvider) {
-        return new InMemoryJwtRegistry(1, jwtTokenProvider);
-    }
+//    @Bean
+//    public JwtRegistry jwtRegistry(JwtTokenProvider jwtTokenProvider) {
+//        return new InMemoryJwtRegistry(1, jwtTokenProvider);
+//    }
 
     @Bean
     public RoleHierarchy roleHierarchy() {
