@@ -48,6 +48,7 @@ public abstract class PlaylistMapper {
             return List.of();
         }
         return playlistContents.stream()
+            .filter(pc -> pc.getContent() != null && !pc.getContent().getIsDeleted())
             .map(pc -> contentMapper.toDto(pc.getContent()))
             .toList();
     }
