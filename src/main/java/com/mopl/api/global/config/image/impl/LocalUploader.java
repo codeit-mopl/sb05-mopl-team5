@@ -1,5 +1,6 @@
 package com.mopl.api.global.config.image.impl;
 
+import com.mopl.api.domain.content.exception.detail.MissingFilenameException;
 import com.mopl.api.global.config.image.Uploader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,7 +11,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-@Profile({"dev","test"})
+@Profile({"dev", "test"})
 @Component
 public class LocalUploader implements Uploader {
 
@@ -19,7 +20,14 @@ public class LocalUploader implements Uploader {
 
     public String upload(MultipartFile file) {
         try {
-            String fileName = UUID.randomUUID() + "-" + file.getOriginalFilename();
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isBlank()) {
+                throw MissingFilenameException.WithFilename(originalFilename);
+            }
+            String sanitizedFilename = Paths.get(originalFilename)
+                                            .getFileName()
+                                            .toString();
+            String fileName = UUID.randomUUID() + "_" + sanitizedFilename;
 
             Path path = Paths.get(UPLOAD_DIR);
             Files.createDirectories(path);
