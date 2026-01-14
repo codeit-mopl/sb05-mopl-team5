@@ -18,6 +18,8 @@ import com.mopl.api.domain.user.repository.WatchingSessionRepository;
 import com.mopl.api.global.config.websocket.dto.WatchingSessionChange;
 import com.mopl.api.global.config.websocket.dto.WatchingSessionChange.ChangeType;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,10 +44,13 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     @Override
     public WatchingSessionDto getWatchingSession(UUID watcherId) {
 
-        //todo 임승택 :  nullable 스펙 으로 인한 코드 수정
-        return watchingSessionRepository.findByWatcherId(watcherId)
-                                        .map(watchingSessionMapper::toDto)
-                                        .orElse(null);
+        List<WatchingSession> sessions = watchingSessionRepository.findAllByWatcher_Id(watcherId);
+
+        WatchingSession latestSession = sessions.stream()
+                                                .max(Comparator.comparing(WatchingSession::getCreatedAt))
+                                                .orElse(null);
+
+        return watchingSessionMapper.toDto(latestSession);
     }
 
     @Override
@@ -93,7 +98,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         Content content = contentRepository.findById(contentId)
                                            .orElseThrow(() -> ContentNotFoundException.withContentId(contentId));
 
-        Optional<WatchingSession> existing = watchingSessionRepository.findByContentIdAndWatcherId(contentId,
+        Optional<WatchingSession> existing = watchingSessionRepository.findByContent_IdAndWatcher_Id(contentId,
             watcherId);
         if (existing.isPresent()) {
             return WatchingSessionChange.builder()
@@ -109,8 +114,6 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
         WatchingSession saved = watchingSessionRepository.saveAndFlush(session);
         log.debug("DB 저장 완료");
 
-        watchingSessionCacheRepository.addWatcher(contentId, watcherId);
-        log.debug("Redis 저장 완료");
         long count = watchingSessionCacheRepository.countWatchers(contentId);
 
         log.debug("세션 생성 완료");
@@ -134,7 +137,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
     @Transactional
     public WatchingSessionChange leaveWatchingSession(UUID contentId, UUID watcherId) {
 
-        WatchingSession session = watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)
+        WatchingSession session = watchingSessionRepository.findByContent_IdAndWatcher_Id(contentId, watcherId)
                                                            .orElse(null);
 
         if (session == null) {
@@ -143,8 +146,7 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
 
         watchingSessionRepository.delete(session);
         log.debug("DB 삭제 완료");
-        watchingSessionCacheRepository.removeWatcher(contentId, watcherId);
-        log.debug("Redis 삭제 완료");
+
         long count = watchingSessionCacheRepository.countWatchers(contentId);
 
         WatchingSessionChange change = WatchingSessionChange.builder()

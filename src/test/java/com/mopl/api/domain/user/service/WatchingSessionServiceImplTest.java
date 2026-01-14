@@ -75,14 +75,14 @@ class WatchingSessionServiceImplTest {
     @Test
     @DisplayName("단일 세션 조회 성공: DB에서 데이터를 가져온다")
     void getWatchingSession_Success() {
-        given(watchingSessionRepository.findByWatcherId(watcherId)).willReturn(Optional.of(session));
+        given(watchingSessionRepository.findAllByWatcher_Id(watcherId)).willReturn(List.of(session));
         given(watchingSessionMapper.toDto(session)).willReturn(mock(WatchingSessionDto.class));
 
         WatchingSessionDto result = watchingSessionService.getWatchingSession(watcherId);
 
         assertThat(result).isNotNull();
         then(watchingSessionRepository).should()
-                                       .findByWatcherId(watcherId);
+                                       .findAllByWatcher_Id(watcherId);
     }
 
     @Test
@@ -118,7 +118,7 @@ class WatchingSessionServiceImplTest {
 
         given(userRepository.findById(watcherId)).willReturn(Optional.of(watcher));
         given(contentRepository.findById(contentId)).willReturn(Optional.of(content));
-        given(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)).willReturn(Optional.empty());
+        given(watchingSessionRepository.findByContent_IdAndWatcher_Id(contentId, watcherId)).willReturn(Optional.empty());
         given(watchingSessionRepository.saveAndFlush(any())).willReturn(session);
         given(watchingSessionCacheRepository.countWatchers(contentId)).willReturn(1L);
 
@@ -126,8 +126,6 @@ class WatchingSessionServiceImplTest {
 
         then(watchingSessionRepository).should()
                                        .saveAndFlush(any());
-        then(watchingSessionCacheRepository).should()
-                                            .addWatcher(contentId, watcherId);
         then(eventPublisher).should()
                             .publishEvent(any(WatchingSessionChangeEvent.class));
     }
@@ -138,7 +136,7 @@ class WatchingSessionServiceImplTest {
 
         given(userRepository.findById(watcherId)).willReturn(Optional.of(watcher));
         given(contentRepository.findById(contentId)).willReturn(Optional.of(content));
-        given(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)).willReturn(
+        given(watchingSessionRepository.findByContent_IdAndWatcher_Id(contentId, watcherId)).willReturn(
             Optional.of(session));
 
         watchingSessionService.joinWatchingSession(contentId, watcherId);
@@ -155,7 +153,7 @@ class WatchingSessionServiceImplTest {
     @DisplayName("세션 이탈: 정상 처리")
     void leaveWatchingSession_Success() {
 
-        given(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)).willReturn(
+        given(watchingSessionRepository.findByContent_IdAndWatcher_Id(contentId, watcherId)).willReturn(
             Optional.of(session));
         given(watchingSessionCacheRepository.countWatchers(contentId)).willReturn(5L);
 
@@ -163,8 +161,6 @@ class WatchingSessionServiceImplTest {
 
         then(watchingSessionRepository).should()
                                        .delete(session);
-        then(watchingSessionCacheRepository).should()
-                                            .removeWatcher(contentId, watcherId);
         then(eventPublisher).should()
                             .publishEvent(any(WatchingSessionChangeEvent.class));
     }
@@ -173,7 +169,7 @@ class WatchingSessionServiceImplTest {
     @DisplayName("세션 이탈: 존재하지 않는 세션일 경우 예외 발생")
     void leaveWatchingSession_NotFound_ThrowsException() {
 
-        given(watchingSessionRepository.findByContentIdAndWatcherId(contentId, watcherId)).willReturn(Optional.empty());
+        given(watchingSessionRepository.findByContent_IdAndWatcher_Id(contentId, watcherId)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> watchingSessionService.leaveWatchingSession(contentId, watcherId)).isInstanceOf(
             WatchingSessionNotFoundException.class);

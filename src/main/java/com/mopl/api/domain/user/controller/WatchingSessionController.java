@@ -25,7 +25,7 @@ public class WatchingSessionController {
     @GetMapping("/api/users/{watcherId}/watching-sessions")
     public ResponseEntity<WatchingSessionDto> watchingSessionDetail(@PathVariable UUID watcherId) {
 
-        log.debug("watcherId : {}", watcherId);
+            log.debug("watcherId : {}", watcherId);
 
         return ResponseEntity.ok(watchingSessionService.getWatchingSession(watcherId));
     }
