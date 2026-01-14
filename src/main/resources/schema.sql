@@ -179,14 +179,14 @@ CREATE TABLE `follows`
 -- ==========================================
 CREATE TABLE `conversations`
 (
-    `id`         BINARY(16)     NOT NULL COMMENT 'PK',
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `id`                      BINARY(16)     NOT NULL COMMENT 'PK',
+    `created_at`              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     -- [추가] 목록 조회를 위한 역정규화 컬럼 (최신 메시지 캐싱)
     `last_message_content`    VARCHAR(2000) NULL,
-    `last_message_created_at` DATETIME      NULL,
-
-
+    `last_message_created_at` DATETIME NULL,
+    `last_message_sender_id`  BINARY(16)    NULL,
+    `last_message_id`  BINARY(16)    NULL,
 
     CONSTRAINT `PK_CONVERSATIONS` PRIMARY KEY (`id`)
 );

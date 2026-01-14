@@ -1,42 +1,38 @@
 package com.mopl.api.domain.conversation.service;
 
-
-import com.mopl.api.domain.conversation.entity.Conversation;
-import com.mopl.api.domain.conversation.entity.ConversationParticipant;
-import com.mopl.api.domain.conversation.entity.DirectMessage;
-import com.mopl.api.domain.conversation.entity.QConversation;
-import com.mopl.api.domain.conversation.entity.QConversationParticipant;
-import com.mopl.api.domain.conversation.entity.QDirectMessage;
-import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository;
-import com.mopl.api.domain.conversation.repository.ConversationRepository;
-import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
 import com.mopl.api.domain.conversation.dto.request.ConversationRequestDto;
 import com.mopl.api.domain.conversation.dto.response.conversation.ConversationDto;
 import com.mopl.api.domain.conversation.dto.response.conversation.ConversationLatestMessage;
 import com.mopl.api.domain.conversation.dto.response.conversation.ConversationListRow;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationReceiver;
 import com.mopl.api.domain.conversation.dto.response.conversation.ConversationResponseDto;
+import com.mopl.api.domain.conversation.dto.response.conversation.ConversationSend;
 import com.mopl.api.domain.conversation.dto.response.conversation.ConversationWith;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageLastestMessage;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageReceiver;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageResponseDto;
-import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageSend;
+import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageSender;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWith;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageWithDto;
+import com.mopl.api.domain.conversation.entity.Conversation;
+import com.mopl.api.domain.conversation.entity.ConversationParticipant;
+import com.mopl.api.domain.conversation.entity.DirectMessage;
+import com.mopl.api.domain.conversation.mapper.ConversationMapper;
+import com.mopl.api.domain.conversation.mapper.DirectMessageMapper;
+import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository;
+import com.mopl.api.domain.conversation.repository.ConversationRepository;
+import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
-import com.mopl.api.global.config.security.claim.CustomUserDetails;
-import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.OrderSpecifier;
-import com.querydsl.core.types.Projections;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,72 +42,54 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ConversationServiceImpl implements ConversationService {
 
-    // TODO 권장사항, DB 조작 관련한 로직/기능이 Service 레이어에 작성된게 Repository로직으로 정리 되었으면 좋겠다.
-
-    private final JPAQueryFactory queryFactory;
     private final ConversationRepository conversationRepository;
     private final ConversationParticipantRepository conversationParticipantRepository;
     private final DirectMessageRepository directMessageRepository;
     private final UserRepository userRepository;
 
-    // Q-Type 정의 (QueryDSL 사용)
-    private static final QConversation c = QConversation.conversation;
-    private static final QConversationParticipant p = QConversationParticipant.conversationParticipant; // 나
-    private static final QConversationParticipant p2 = new QConversationParticipant("p2"); // 상대방
-    private static final QDirectMessage m = QDirectMessage.directMessage;
-
-    // 현재 로그인한 사용자 ID 추출
-    private UUID currentUserId() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        if (principal instanceof CustomUserDetails userDetails) {
-            return userDetails.getUserDto().id();
-        }
-        throw new IllegalStateException("인증 정보가 올바르지 않습니다.");
-    }
-
+    private final ConversationMapper conversationMapper;
+    private final DirectMessageMapper directMessageMapper;
 
     // -------------------------
-    // 1) 1:1 대화방 생성
+    // 1) 1:1 대화방 생성 (없으면 생성, 있으면 existing 반환)
     // -------------------------
-    @Override
-    @Transactional // 쓰기 트랜잭션 필요
-    public ConversationDto createConversation(ConversationRequestDto withUserId) {
-        UUID me = currentUserId();
-        UUID other = withUserId.withUserId();
-
-        if (other == null) {
-            throw new IllegalArgumentException("withUserId는 필수입니다.");
-        }
-        if (me.equals(other)) {
-            throw new IllegalArgumentException("자기 자신과 대화할 수 없습니다.");
-        }
-
-        UUID conversationId = findOneToOneConversationId(me, other);
-
-        // 방이 없으면 새로 생성
-        if (conversationId == null) {
-            User meUser = userRepository.getReferenceById(me); // Proxy 조회
-            User otherUser = userRepository.findById(other)
-                                           .orElseThrow(() -> new IllegalArgumentException("상대 유저가 존재하지 않습니다."));
-
-            // [수정] Conversation 생성자 문제 해결됨 (Entity 수정 덕분)
-            Conversation newConversation = conversationRepository.save(Conversation.create());
-
-            conversationParticipantRepository.save(new ConversationParticipant(newConversation, meUser));
-            conversationParticipantRepository.save(new ConversationParticipant(newConversation, otherUser));
-
-            // 새 방은 메시지가 없으므로 빈 DTO 반환
-            return buildEmptyConversationDto(newConversation, otherUser);
-        }
-
-        // 방이 있으면 해당 방 정보 반환
-        return conversationCheck(conversationId);
-    }
-
     @Override
     @Transactional
+    public ConversationDto createConversation(UUID me, ConversationRequestDto withUserId) {
+        UUID other = withUserId.withUserId();
+
+        // 1. 유효성 검사 (생략)
+
+        // 2. 이미 존재하는 방 확인
+        UUID existingConversationId = conversationRepository.findOneToOneConversationId(Set.of(me, other))
+                                                            .orElse(null);
+
+        // 🔥 [수정] 이미 방이 있다면? -> '빈 방'을 주면 안 되고, '상세 정보(메시지 포함)'를 줘야 함!
+        if (existingConversationId != null) {
+            // 꿀팁: 아까 만든 conversationCheck 메서드를 재사용하면 로직 중복을 없앨 수 있습니다.
+            // (같은 클래스 내에 있다면 호출, 다른 서비스라면 주입받거나 로직 복사)
+            return conversationCheck(me, existingConversationId);
+        }
+
+        // 3. 새 방 생성 (여기는 메시지가 없으니 null/false가 맞음)
+        User meUser = userRepository.getReferenceById(me);
+        User otherUser = userRepository.findById(other)
+                                       .orElseThrow(() -> new IllegalArgumentException("상대 유저가 존재하지 않습니다."));
+
+        Conversation newConversation = conversationRepository.save(Conversation.create());
+        conversationParticipantRepository.save(new ConversationParticipant(newConversation, meUser));
+        conversationParticipantRepository.save(new ConversationParticipant(newConversation, otherUser));
+
+        // 4. 새 방은 비어있으므로 toEmptyDto 사용 (이건 괜찮음)
+        return conversationMapper.toEmptyDto(newConversation, otherUser);
+    }
+
+    // -------------------------
+    // 2) 대화 목록 조회 (repo custom 최적쿼리 사용)
+    // -------------------------
+    @Override
     public ConversationResponseDto getConversationList(
+        UUID me,
         String keywordLike,
         String cursor,
         UUID idAfter,
@@ -119,181 +97,129 @@ public class ConversationServiceImpl implements ConversationService {
         String sortDirection,
         String sortBy
     ) {
-        UUID me = currentUserId();
+        // 1. 커서 파싱 & 리스트 조회 & 개수 조회
         LocalDateTime cursorTime = parseCursor(cursor);
+        List<ConversationListRow> rows = conversationRepository.findConversationList(
+            me, keywordLike, cursorTime, idAfter, limit, sortDirection
+        );
+        long totalCount = conversationRepository.countConversationList(me, keywordLike);
 
-        boolean desc = "DESCENDING".equalsIgnoreCase(sortDirection);
-
-        // ✅ 최신 메시지 시간 기준 정렬 + 안정적인 tie-break
-        OrderSpecifier<?> orderTime =
-            desc ? c.lastMessageCreatedAt.desc().nullsLast()
-                : c.lastMessageCreatedAt.asc().nullsLast();
-        OrderSpecifier<?> orderId =
-            desc ? c.id.desc() : c.id.asc();
-
-        BooleanBuilder where = new BooleanBuilder();
-        // 내가 참여한 방
-        where.and(p.user.id.eq(me));
-        // 상대(1:1)
-        where.and(p2.user.id.ne(me));
-
-        // 상대 이름 검색
-        if (keywordLike != null && !keywordLike.isBlank()) {
-            where.and(p2.user.name.containsIgnoreCase(keywordLike.trim()));
-        }
-
-        // ✅ 커서: lastMessageCreatedAt + id tie-break
-        // cursorTime이 null이면 커서 조건 미적용
-        if (cursorTime != null && idAfter != null) {
-            where.and(applyCursor(c.lastMessageCreatedAt, c.id, cursorTime, idAfter, desc));
-        }
-
-        // ✅ 1쿼리 Projection Row
-        List<ConversationListRow> rows = queryFactory
-            .select(Projections.constructor(
-                ConversationListRow.class,
-                c.id,
-                p2.user.id,
-                p2.user.name,
-                p2.user.profileImageUrl,
-                c.lastMessageContent,
-                c.lastMessageCreatedAt,
-                p.lastReadAt
-            ))
-            .from(c)
-            .join(p).on(p.conversation.eq(c))
-            .join(p2).on(p2.conversation.eq(c).and(p2.user.id.ne(me)))
-            .where(where)
-            .orderBy(orderTime, orderId)
-            .limit(limit + 1L)
-            .fetch();
-
+        // 2. hasNext 판단 및 자르기
         boolean hasNext = rows.size() > limit;
         if (hasNext) {
             rows = rows.subList(0, limit);
         }
 
-        // ✅ record DTO 조립 (너희 실제 record 시그니처 1:1)
-        List<ConversationDto> data = rows.stream().map(r -> {
+        // 3. DTO 리스트 변환 (기존 Mapper 활용)
+        List<ConversationDto> data = rows.stream()
+                                         .map(conversationMapper::toDto)
+                                         .toList();
 
-            // hasUnread: null-safe
-            // lastReadAt이 null이면 안 읽은 것으로 처리 (lastMessageCreatedAt이 존재할 때)
-            boolean hasUnread =
-                r.lastMessageCreatedAt() != null
-                    && (r.myLastReadAt() == null || r.myLastReadAt().isBefore(r.lastMessageCreatedAt()));
-
-            ConversationWith with = ConversationWith.builder()
-                                                    .userId(r.otherUserId())
-                                                    .name(r.otherName())
-                                                    .profileImageUrl(r.otherProfileImageUrl())
-                                                    .build();
-
-            // ConversationLatestMessage는 필드가 6개라서
-            // ✅ 우리가 가진 역정규화 정보(content/createdAt)만 채우고 나머지는 null
-            ConversationLatestMessage latest = (r.lastMessageCreatedAt() == null && r.lastMessageContent() == null)
-                ? null
-                : ConversationLatestMessage.builder()
-                                           .id(null)
-                                           .conversationsId(r.conversationId())
-                                           .createdAt(r.lastMessageCreatedAt())
-                                           .sender(null)
-                                           .receiver(null)
-                                           .content(r.lastMessageContent())
-                                           .build();
-
-            return ConversationDto.builder()
-                                  .id(r.conversationId())
-                                  .with(with)
-                                  .latestMessage(latest)
-                                  .hasUnread(hasUnread)
-                                  .build();
-        }).toList();
-
-        // next cursor
+        // 4. 다음 커서 계산
         String nextCursor = null;
         UUID nextIdAfter = null;
+
         if (hasNext && !rows.isEmpty()) {
-            ConversationListRow last = rows.get(rows.size() - 1);
-            nextCursor = last.lastMessageCreatedAt() != null ? last.lastMessageCreatedAt().toString() : null;
-            nextIdAfter = last.conversationId();
+            ConversationListRow lastRow = rows.get(rows.size() - 1);
+
+            // 포맷 고정 (잘하셨습니다!)
+            if (lastRow.lastMessageCreatedAt() != null) {
+                nextCursor = lastRow.lastMessageCreatedAt()
+                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
+            }
+            nextIdAfter = lastRow.conversationId();
         }
 
-        return ConversationResponseDto.builder()
-                                      .data(data)
-                                      .nextCursor(nextCursor)
-                                      .nextIdAfter(nextIdAfter)
-                                      .hasNext(hasNext)
-                                      .totalCount(0) // ✅ 무한스크롤 최적화: Count 쿼리 제거
-                                      .sortBy(sortBy)
-                                      .sortDirection(sortDirection)
-                                      .build();
+        // 5. 🔥 [수정] Mapper에게 조립 위임! (Builder 제거)
+        return conversationMapper.toResponseDto(
+            data,
+            nextCursor,
+            nextIdAfter,
+            hasNext,
+            totalCount,
+            sortBy,
+            sortDirection
+        );
     }
 
-
-
+    // -------------------------
+    // 3) 읽음 처리 (DB에서 메시지 createdAt만 가져와 조건 업데이트)
+    // -------------------------
     @Override
     @Transactional
-    public void conversationRead(UUID conversationId, UUID directMessageId) {
+    public void conversationRead(UUID userId, UUID conversationId, UUID directMessageId) {
 
-        UUID me = currentUserId();
+        ensureParticipant(conversationId, userId);
 
-        // 메시지 시간 확인 (단순 조회)
-        LocalDateTime messageCreatedAt = queryFactory
-            .select(m.createdAt)
-            .from(m)
-            .where(m.id.eq(directMessageId).and(m.conversation.id.eq(conversationId)))
-            .fetchOne();
+        LocalDateTime messageCreatedAt = directMessageRepository
+            .findCreatedAtByIdAndConversationId(directMessageId, conversationId)
+            .orElseThrow(() -> new IllegalArgumentException("메시지를 찾을 수 없습니다."));
 
-        if (messageCreatedAt == null) {
-            throw new IllegalArgumentException("메시지를 찾을 수 없습니다.");
-        }
-
-        // [최적화] Bulk Update: 영속성 컨텍스트를 거치지 않고 바로 DB 업데이트
-        queryFactory
-            .update(p)
-            .set(p.lastReadAt, messageCreatedAt)
-            .where(p.conversation.id.eq(conversationId)
-                                    .and(p.user.id.eq(me))
-                                    // 이미 읽은 시간이 더 최신이면 업데이트 안 함 (방어 로직)
-                                    .and(p.lastReadAt.isNull().or(p.lastReadAt.lt(messageCreatedAt))))
-            .execute();
-
+        // 성능: "현재 lastReadAt보다 더 최신일 때만 갱신"을 DB에서 처리
+        conversationParticipantRepository.updateLastReadAtIfNewer( conversationId, userId,messageCreatedAt);
     }
 
-    @Override
-    public ConversationDto conversationCheck(UUID conversationId) {
-        UUID me = currentUserId();
-
-        // [최적화] 단건 조회도 Projections 활용하여 쿼리 1방으로 해결
-        ConversationDto result = queryFactory
-            .select(Projections.constructor(ConversationDto.class,
-                c.id,
-                Projections.constructor(ConversationWith.class,
-                    p2.user.id,
-                    p2.user.name,
-                    p2.user.profileImageUrl
-                ),
-                Projections.constructor(ConversationLatestMessage.class,
-                    c.lastMessageContent,
-                    c.lastMessageCreatedAt
-                ),
-                p.lastReadAt.before(c.lastMessageCreatedAt).and(c.lastMessageCreatedAt.isNotNull())
-            ))
-            .from(c)
-            .join(p).on(p.conversation.eq(c).and(p.user.id.eq(me))) // 나
-            .join(p2).on(p2.conversation.eq(c).and(p2.user.id.ne(me))) // 상대방
-            .where(c.id.eq(conversationId))
-            .fetchOne();
-
-        if (result == null) {
-            throw new IllegalStateException("대화방에 참여하지 않았거나 존재하지 않습니다.");
-        }
-        return result;
-    }
-
+    // -------------------------
+    // 4) 대화방 단건 조회 (권한 + 최신 메시지 + hasUnread)
+    // -------------------------
     @Override
     @Transactional(readOnly = true)
+    public ConversationDto conversationCheck(UUID me, UUID conversationId) {
+
+        // 1. 대화방 존재 확인
+        Conversation conversation = conversationRepository.findById(conversationId)
+                                                          .orElseThrow(() -> new IllegalStateException("존재하지 않는 대화방입니다."));
+
+        // 2. 참여자 조회 (+ EntityGraph로 User 패치조인 권장)
+        List<ConversationParticipant> participants = conversationParticipantRepository.findAllByConversationId(conversationId);
+
+        // 3. 내 참여 정보 검증
+        ConversationParticipant myParticipant = participants.stream()
+                                                            .filter(p -> p.getUser().getId().equals(me))
+                                                            .findFirst()
+                                                            .orElseThrow(() -> new AccessDeniedException("대화방 참여자가 아닙니다."));
+
+        // 4. 상대방 찾기
+        User otherUser;
+        if (participants.size() == 1) {
+            otherUser = myParticipant.getUser(); // 나와의 채팅
+        } else {
+            otherUser = participants.stream()
+                                    .map(ConversationParticipant::getUser)
+                                    .filter(u -> !u.getId().equals(me))
+                                    .findFirst()
+                                    .orElseThrow(() -> new IllegalStateException("대화 상대방을 찾을 수 없습니다."));
+        }
+
+        // 5. 마지막 메시지 조회
+        DirectMessage lastMessage = directMessageRepository.findLatestByConversationId(conversationId)
+                                                           .orElse(null);
+
+        // 6. 안 읽음 여부 계산
+        boolean hasUnread = false;
+        if (lastMessage != null) {
+            boolean isMyMessage = lastMessage.getSender().getId().equals(me);
+            LocalDateTime lastReadAt = myParticipant.getLastReadAt();
+
+            if (!isMyMessage) {
+                hasUnread = (lastReadAt == null) || lastReadAt.isBefore(lastMessage.getCreatedAt());
+            }
+        }
+
+        // 7. 🔥 [핵심] Mapper 한 줄로 끝내기!
+        // 기존의 길었던 builder() 코드가 사라집니다.
+        return conversationMapper.toCheckDto(conversation, otherUser, lastMessage, hasUnread);
+    }
+
+
+
+    // -------------------------
+    // 5) DM 목록 조회 (✅ 참가자 검증 + repo seek pagination)
+    // -------------------------
+    @Override
+    @Transactional
     public DirectMessageResponseDto getDirectMessageList(
+        UUID me,
         UUID conversationId,
         String cursor,
         UUID idAfter,
@@ -301,202 +227,134 @@ public class ConversationServiceImpl implements ConversationService {
         String sortDirection,
         String sortBy
     ) {
-        UUID me = currentUserId();
+        // 1. 권한 체크
+        ensureParticipant(conversationId, me);
+
+        // 2. 커서 파싱 & 리스트 조회 & 전체 개수 조회
         LocalDateTime cursorTime = parseCursor(cursor);
+        List<DirectMessage> list = directMessageRepository.findMessageList(
+            conversationId, cursorTime, idAfter, limit, sortDirection
+        );
+        long totalCount = directMessageRepository.countMessageList(conversationId);
 
-        // 1) 참여자 검증 (1쿼리)
-        boolean isMember = queryFactory.selectOne()
-                                       .from(p)
-                                       .where(p.conversation.id.eq(conversationId).and(p.user.id.eq(me)))
-                                       .fetchFirst() != null;
+        // 3. 읽음 처리
+        if (!list.isEmpty()) {
+            boolean isDesc = "DESCENDING".equalsIgnoreCase(sortDirection);
+            DirectMessage latestMessage = isDesc ? list.get(0) : list.get(list.size() - 1);
 
-        if (!isMember) {
-            throw new IllegalStateException("대화방 참여자가 아닙니다.");
+            conversationParticipantRepository.updateLastReadAtIfNewer(
+                conversationId, me, latestMessage.getCreatedAt()
+            );
         }
 
-        boolean desc = "DESCENDING".equalsIgnoreCase(sortDirection);
-
-        OrderSpecifier<?> orderCreatedAt = desc ? m.createdAt.desc() : m.createdAt.asc();
-        OrderSpecifier<?> orderId = desc ? m.id.desc() : m.id.asc();
-
-        BooleanBuilder where = new BooleanBuilder()
-            .and(m.conversation.id.eq(conversationId));
-
-        if (cursorTime != null && idAfter != null) {
-            where.and(applyCursor(m.createdAt, m.id, cursorTime, idAfter, desc));
-        }
-
-        // 2) 메시지 조회 (fetchJoin으로 N+1 방지)
-        List<DirectMessage> messages = queryFactory
-            .selectFrom(m)
-            .join(m.sender).fetchJoin()
-            .join(m.receiver).fetchJoin()
-            .where(where)
-            .orderBy(orderCreatedAt, orderId)
-            .limit(limit + 1L)
-            .fetch();
-
-        boolean hasNext = messages.size() > limit;
+        // 4. hasNext 계산 및 리스트 자르기
+        boolean hasNext = list.size() > limit;
         if (hasNext) {
-            messages = messages.subList(0, limit);
+            list = list.subList(0, limit);
         }
 
-        List<DirectMessageDto> data = messages.stream()
-                                              .map(this::toDirectMessageDto)
-                                              .toList();
+        // 5. DTO 리스트 변환 (기존 Mapper 메서드 활용)
+        List<DirectMessageDto> data = list.stream()
+                                          .map(directMessageMapper::toDto)
+                                          .toList();
 
+        // 6. 다음 커서 계산
         String nextCursor = null;
         UUID nextIdAfter = null;
-        if (hasNext && !messages.isEmpty()) {
-            DirectMessage last = messages.get(messages.size() - 1);
-            nextCursor = last.getCreatedAt().toString();
+
+        if (hasNext && !list.isEmpty()) {
+            DirectMessage last = list.get(list.size() - 1);
+            // 포맷 고정
+            nextCursor = last.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
             nextIdAfter = last.getId();
         }
 
-        return DirectMessageResponseDto.builder()
-                                       .data(data)
-                                       .nextCursor(nextCursor)
-                                       .nextIdAfter(nextIdAfter)
-                                       .hasNext(hasNext)
-                                       .totalCount(0) // ✅ 무한스크롤 최적화: count 쿼리 제거(필요하면 별도 API 권장)
-                                       .sortBy(sortBy)
-                                       .sortDirection(sortDirection)
-                                       .build();
+        // 7. 🔥 [수정] Mapper에게 조립 위임! (Builder 코드 제거)
+        return directMessageMapper.toResponseDto(
+            data,
+            nextCursor,
+            nextIdAfter,
+            hasNext,
+            totalCount,
+            sortDirection,
+            sortBy
+        );
     }
-
 
     @Override
     @Transactional(readOnly = true)
-    public DirectMessageWithDto getDirectMessageWith(UUID userId) {
-        UUID me = currentUserId();
-        UUID other = userId;
+    public DirectMessageWithDto getDirectMessageWith(UUID me, UUID other) {
+        // 1. 유효성 검사
+        if (other == null) throw new IllegalArgumentException("withUserId는 필수입니다.");
+        if (me.equals(other)) throw new IllegalArgumentException("자기 자신과 대화할 수 없습니다.");
 
-        if (other == null) {
-            throw new IllegalArgumentException("userId는 필수입니다.");
-        }
-        if (me.equals(other)) {
-            throw new IllegalArgumentException("자기 자신과의 대화는 조회할 수 없습니다.");
-        }
-
+        // 2. 상대방 유저 정보 조회
         User otherUser = userRepository.findById(other)
                                        .orElseThrow(() -> new IllegalArgumentException("상대 유저가 존재하지 않습니다."));
 
-        UUID conversationId = findOneToOneConversationId(me, other);
+        // 🔥 [수정] Mapper 사용으로 코드가 깔끔해짐
+        DirectMessageWith withUserDto = directMessageMapper.toWithDto(otherUser);
 
-        // 대화방이 없으면 빈 응답
+        // 3. 1:1 대화방 ID 찾기
+        UUID conversationId = conversationRepository.findOneToOneConversationId(Set.of(me, other))
+                                                    .orElse(null);
+
+        // 4. 대화방이 없을 경우 (빈 방 리턴)
         if (conversationId == null) {
             return DirectMessageWithDto.builder()
                                        .id(null)
-                                       .with(DirectMessageWith.builder()
-                                                              .userId(otherUser.getId())
-                                                              .name(otherUser.getName())
-                                                              .profileImageUrl(otherUser.getProfileImageUrl())
-                                                              .build())
+                                       .with(withUserDto)
                                        .lastestMessage(null)
                                        .hasUnread(false)
                                        .build();
         }
 
-        // 내 lastReadAt (1쿼리)
-        LocalDateTime myLastReadAt = queryFactory
-            .select(p.lastReadAt)
-            .from(p)
-            .where(p.conversation.id.eq(conversationId).and(p.user.id.eq(me)))
-            .fetchOne();
+        // 5. 참여자 검증 및 읽은 시간 조회
+        LocalDateTime myLastReadAt = conversationParticipantRepository
+            .findLastReadAtByConversationIdAndUserId(conversationId, me)
+            .orElseThrow(() -> new AccessDeniedException("대화방 참여자가 아닙니다."));
 
-        // 최신 메시지 1건 (fetchJoin)
-        DirectMessage latest = queryFactory
-            .selectFrom(m)
-            .join(m.sender).fetchJoin()
-            .join(m.receiver).fetchJoin()
-            .where(m.conversation.id.eq(conversationId))
-            .orderBy(m.createdAt.desc(), m.id.desc())
-            .fetchFirst();
+        // 6. 마지막 메시지 조회
+        DirectMessage latest = directMessageRepository.findLatestByConversationId(conversationId)
+                                                      .orElse(null);
 
-        DirectMessageLastestMessage latestDto = (latest == null) ? null : toDirectMessageLastestMessage(latest);
-
-        // ✅ 현재 컬럼 구조에서 정확한 unread 계산(최신 메시지가 "내가 받은 것"일 때만)
+        // 7. 안 읽음 여부 판별
         boolean hasUnread = false;
+        DirectMessageLastestMessage latestDto = null; // 오타 주의: Lastest -> Latest 권장
+
         if (latest != null) {
-            boolean receiverIsMe = latest.getReceiver().getId().equals(me);
+            latestDto = directMessageMapper.toLatestMessageDto(latest);
+
+            // ✅ 로직 좋음: 내가 보낸 게 아니고(상대방이 보냈고) && 내가 읽은 시간보다 최신이면 -> 안 읽음
+            boolean iAmSender = latest.getSender().getId().equals(me);
             boolean newerThanRead = (myLastReadAt == null) || latest.getCreatedAt().isAfter(myLastReadAt);
-            hasUnread = receiverIsMe && newerThanRead;
+
+            hasUnread = !iAmSender && newerThanRead;
         }
 
+        // 8. 최종 반환
         return DirectMessageWithDto.builder()
                                    .id(conversationId)
-                                   .with(DirectMessageWith.builder()
-                                                          .userId(otherUser.getId())
-                                                          .name(otherUser.getName())
-                                                          .profileImageUrl(otherUser.getProfileImageUrl())
-                                                          .build())
+                                   .with(withUserDto)
                                    .lastestMessage(latestDto)
                                    .hasUnread(hasUnread)
                                    .build();
     }
 
 
-    private DirectMessageLastestMessage toDirectMessageLastestMessage(DirectMessage msg) {
-        return DirectMessageLastestMessage.builder()
-                                          .id(msg.getId())
-                                          .conversationId(msg.getConversation().getId())
-                                          .createdAt(msg.getCreatedAt())
-                                          .sender(DirectMessageSend.builder()
-                                                                   .userId(msg.getSender().getId())
-                                                                   .name(msg.getSender().getName())
-                                                                   .profileImageUrl(
-                                                                       msg.getSender().getProfileImageUrl())
-                                                                   .build())
-                                          .receiver(DirectMessageReceiver.builder()
-                                                                         .userId(msg.getReceiver().getId())
-                                                                         .name(msg.getReceiver().getName())
-                                                                         .profileImageUrl(
-                                                                             msg.getReceiver().getProfileImageUrl())
-                                                                         .build())
-                                          .content(msg.getContent())
-                                          .build();
-    }
 
 
-    private UUID findOneToOneConversationId(UUID me, UUID other) {
-
-        return queryFactory.select(p.conversation.id).from(p).where(p.user.id.in(me, other)).groupBy(p.conversation.id).
-                           having(p.user.id.countDistinct().eq(2L))
-                           .fetchFirst();
-
-    }
-
-
-    private ConversationDto buildEmptyConversationDto(Conversation conv, User other) {
-        return ConversationDto.builder()
-                              .id(conv.getId())
-                              .with(ConversationWith.builder()
-                                                    .userId(other.getId())
-                                                    .name(other.getName())
-                                                    .profileImageUrl(other.getProfileImageUrl())
-                                                    .build())
-                              .latestMessage(null)
-                              .hasUnread(false)
-                              .build();
-    }
-
-    private DirectMessageDto toDirectMessageDto(DirectMessage msg) {
-        return DirectMessageDto.builder()
-                               .id(msg.getId())
-                               .conversationId(msg.getConversation().getId())
-                               .createdAt(msg.getCreatedAt())
-                               .send(DirectMessageSend.builder()
-                                                      .userId(msg.getSender().getId())
-                                                      .name(msg.getSender().getName())
-                                                      .profileImageUrl(msg.getSender().getProfileImageUrl())
-                                                      .build())
-                               .receiver(DirectMessageReceiver.builder()
-                                                              .userId(msg.getReceiver().getId())
-                                                              .name(msg.getReceiver().getName())
-                                                              .profileImageUrl(msg.getReceiver().getProfileImageUrl())
-                                                              .build())
-                               .content(msg.getContent())
-                               .build();
+    /**
+     * 참가자 검증 - repo에 exists 메서드가 없더라도
+     * findLastReadAtByConversationIdAndUserId로 검증 가능.
+     */
+    private void ensureParticipant(UUID conversationId, UUID me) {
+        boolean ok = conversationParticipantRepository
+            .findLastReadAtByConversationIdAndUserId(conversationId, me)
+            .isPresent();
+        if (!ok) {
+            throw new AccessDeniedException("대화방 참여자가 아닙니다.");
+        }
     }
 
     private LocalDateTime parseCursor(String cursor) {
@@ -504,25 +362,10 @@ public class ConversationServiceImpl implements ConversationService {
             return null;
         }
         try {
-            return LocalDateTime.parse(cursor);
+            return LocalDateTime.parse(cursor.trim());
         } catch (Exception e) {
-            return null; // 포맷 에러 시 커서 무시
+            // ✅ cursor 잘못 들어오면 400이 나게 만드는 게 명세/테스트에 유리
+            throw new IllegalArgumentException("cursor 형식이 올바르지 않습니다. (예: 2026-01-01T12:30:00)");
         }
     }
-
-    private BooleanExpression applyCursor(
-        com.querydsl.core.types.dsl.DateTimePath<LocalDateTime> createdAtPath,
-        com.querydsl.core.types.dsl.ComparablePath<UUID> idPath,
-        LocalDateTime cursorTime,
-        UUID idAfter,
-        boolean desc
-    ) {
-        if (desc) {
-            return createdAtPath.lt(cursorTime)
-                                .or(createdAtPath.eq(cursorTime).and(idPath.lt(idAfter)));
-        }
-        return createdAtPath.gt(cursorTime)
-                            .or(createdAtPath.eq(cursorTime).and(idPath.gt(idAfter)));
-    }
-
 }
