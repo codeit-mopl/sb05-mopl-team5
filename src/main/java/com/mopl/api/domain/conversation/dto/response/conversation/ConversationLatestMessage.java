@@ -8,7 +8,7 @@ import lombok.Builder;
 public record ConversationLatestMessage(
 
     UUID id,
-    UUID conversationsId,
+    UUID conversationId,
     LocalDateTime createdAt,
     ConversationSend sender,
     ConversationReceiver receiver,

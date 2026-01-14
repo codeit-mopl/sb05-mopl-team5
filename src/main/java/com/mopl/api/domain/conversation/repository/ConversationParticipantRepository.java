@@ -20,14 +20,17 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
 
 
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE ConversationParticipant p SET p.lastReadAt = :readAt " +
-        "WHERE p.conversation.id = :conversationId " +
-        "AND p.user.id = :userId " +
-        "AND (p.lastReadAt IS NULL OR p.lastReadAt < :readAt)")
+    @Query("""
+        UPDATE ConversationParticipant cp
+        SET cp.lastReadAt = :createdAt
+        WHERE cp.conversation.id = :conversationId
+          AND cp.user.id = :userId
+          AND (cp.lastReadAt IS NULL OR cp.lastReadAt < :createdAt)
+    """)
     void updateLastReadAtIfNewer(
         @Param("conversationId") UUID conversationId,
         @Param("userId") UUID userId,
-        @Param("readAt") LocalDateTime readAt
+        @Param("createdAt") LocalDateTime createdAt
     );
 
     boolean existsByConversationIdAndUserId(UUID conversationId, UUID userId);

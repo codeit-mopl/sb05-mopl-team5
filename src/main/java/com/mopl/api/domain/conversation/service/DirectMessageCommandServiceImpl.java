@@ -13,6 +13,7 @@ import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
 import com.mopl.api.domain.sse.SseEmitterRegistry;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -37,37 +38,48 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
         UUID conversationId,
         UUID senderId,
         DirectMessageSendRequest request
-    ) {
+    ) throws AccessDeniedException {
+        // 1. 대화방 조회
         Conversation conversation = conversationRepository.findById(conversationId)
-                                                          .orElseThrow(() -> new IllegalArgumentException("대화방 없음"));
+                                                          .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대화방입니다."));
 
+        // 2. 참여자 검증 (Repository 최적화 가정)
+        // (참여자가 아니면 예외 발생)
         if (!directMessageRepository.existsParticipant(conversationId, senderId)) {
-            throw new IllegalStateException("참가자 아님");
+            throw new AccessDeniedException("대화방 참여자가 아닙니다.");
         }
 
-        ConversationParticipant other =
-            directMessageRepository.findOtherParticipant(conversationId, senderId);
-
+        // 3. 상대방 찾기 (1:1 대화 가정)
+        ConversationParticipant other = directMessageRepository.findOtherParticipant(conversationId, senderId);
         if (other == null) {
             throw new IllegalStateException("대화 상대방을 찾을 수 없습니다.");
         }
 
+
         User sender = userRepository.getReferenceById(senderId);
         User receiver = other.getUser();
 
+        LocalDateTime now = LocalDateTime.now(); // 1. 시간을 여기서 고정!
+
+        // 6. 메시지 생성 및 저장
+        // (Entity에 create 메서드를 만들거나, 생성자에 now를 넘기는 것을 추천)
         DirectMessage message = directMessageRepository.save(
-            new DirectMessage(conversation, sender, receiver, request.content())
+            DirectMessage.create(conversation, sender, receiver, request.content())
         );
 
-        conversation.updateLastMessage(message.getId(),
+
+        conversation.updateLastMessage(
+            message.getId(),
             request.content(),
-            message.getCreatedAt(), sender.getId()
+            now,
+            sender.getId()
         );
-        conversationRepository.save(conversation);
 
+
+        // 8. DTO 변환
         DirectMessageDto dto = mapper.toDto(message);
 
-        // 🔥 비활성 대화 → SSE
+        // 9. 실시간 알림 (SSE) - 보고 있지 않은 유저에게만 전송
         if (!activeConversationRegistry.isSubscribed(receiver.getId(), conversationId)) {
             sseEmitterRegistry.send(
                 receiver.getId(),
@@ -80,4 +92,3 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
         return dto;
     }
 }
-

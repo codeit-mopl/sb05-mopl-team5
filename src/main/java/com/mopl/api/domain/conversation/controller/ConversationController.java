@@ -84,12 +84,7 @@ public class ConversationController {
         @RequestParam UUID userId
     ) {
         UUID me = userDetails.getUserDto().id();
-        DirectMessageWithDto dto = service.getDirectMessageWith(me, userId);
-
-        if (dto == null || dto.id() == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(service.getDirectMessageWith(me, userId));
     }
 
 

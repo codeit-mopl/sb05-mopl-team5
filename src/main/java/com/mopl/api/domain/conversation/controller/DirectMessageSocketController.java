@@ -6,6 +6,7 @@ import com.mopl.api.domain.conversation.service.DirectMessageCommandService;
 import com.mopl.api.domain.conversation.dto.response.direct.DirectMessageDto;
 import com.mopl.api.global.config.security.claim.CustomUserDetails;
 import jakarta.validation.Valid;
+import java.nio.file.AccessDeniedException;
 import java.security.Principal;
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +30,7 @@ public class DirectMessageSocketController {
         Principal principal,
         @DestinationVariable UUID conversationId,
         @Payload DirectMessageSendRequest request
-    ) {
+    ) throws AccessDeniedException {
         UUID senderId = extractUserId(principal);
 
         DirectMessageDto saved =
