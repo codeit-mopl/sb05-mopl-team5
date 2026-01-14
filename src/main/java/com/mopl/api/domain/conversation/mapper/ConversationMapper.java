@@ -1,58 +1,80 @@
 package com.mopl.api.domain.conversation.mapper;
 
-import com.mopl.api.domain.conversation.dto.response.conversation.ConversationDto;
-import com.mopl.api.domain.conversation.dto.response.conversation.ConversationLatestMessage;
-import com.mopl.api.domain.conversation.dto.response.conversation.ConversationListRow;
-import com.mopl.api.domain.conversation.dto.response.conversation.ConversationReceiver;
-import com.mopl.api.domain.conversation.dto.response.conversation.ConversationResponseDto;
-import com.mopl.api.domain.conversation.dto.response.conversation.ConversationSend;
-import com.mopl.api.domain.conversation.dto.response.conversation.ConversationWith;
+import com.mopl.api.domain.conversation.dto.response.conversation.*;
 import com.mopl.api.domain.conversation.entity.Conversation;
 import com.mopl.api.domain.conversation.entity.DirectMessage;
 import com.mopl.api.domain.user.entity.User;
-
-import java.util.List;
-import java.util.UUID;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-@Mapper(componentModel = "spring")
+import java.util.List;
+import java.util.UUID;
+
+@Mapper(
+    componentModel = "spring",
+    imports = {
+        ConversationWith.class,
+        ConversationLatestMessage.class,
+        ConversationSend.class,
+        ConversationReceiver.class,
+        UUID.class
+    }
+)
 public interface ConversationMapper {
 
+    // ========================================================================
     // 1. 목록 조회용 (Row -> DTO)
+    // ========================================================================
     @Mapping(target = "id", source = "conversationId")
     @Mapping(target = "with", expression = "java(mapWith(row))")
     @Mapping(target = "lastestMessage", expression = "java(mapLatestMessage(row))")
-    @Mapping(target = "hasUnread", expression = "java(hasUnread(row))")
+    // Record의 unreadCount가 null일 수 있으므로 null safe 처리
+    @Mapping(target = "hasUnread", expression = "java(row.unreadCount() != null && row.unreadCount() > 0)")
     ConversationDto toDto(ConversationListRow row);
 
+
+    // ========================================================================
     // 2. 단건 조회/생성용 (Entity -> DTO)
+    // ========================================================================
     @Mapping(target = "id", source = "conversation.id")
     @Mapping(target = "with", source = "otherUser", qualifiedByName = "mapWithUser")
     @Mapping(target = "lastestMessage", source = "lastMessage", qualifiedByName = "mapLatestMessageFromEntity")
     @Mapping(target = "hasUnread", source = "hasUnread")
     ConversationDto toCheckDto(Conversation conversation, User otherUser, DirectMessage lastMessage, boolean hasUnread);
 
-
     @Mapping(target = "id", source = "conversation.id")
     @Mapping(target = "with", source = "otherUser", qualifiedByName = "mapWithUser")
-    @Mapping(target = "lastestMessage", expression = "java(null)") // 메시지 없음
-    @Mapping(target = "hasUnread", constant = "false") // 안 읽음 없음
+    @Mapping(target = "lastestMessage", expression = "java(null)")
+    @Mapping(target = "hasUnread", constant = "false")
     ConversationDto toEmptyDto(Conversation conversation, User otherUser);
 
 
-    ConversationResponseDto toResponseDto(
-        List<ConversationDto> data,
+    // ========================================================================
+    // 3. Response DTO 생성 (수정된 Record 필드 반영)
+    // ========================================================================
+    default ConversationResponseDto toResponseDto(
+        List<ConversationDto> data, // 파라미터 이름
         String nextCursor,
         UUID nextIdAfter,
         boolean hasNext,
-        long totalCount,
+        Long totalCount,
         String sortBy,
         String sortDirection
-    );
+    ) {
+        return ConversationResponseDto.builder()
+                                      .data(data) // Record 필드명: data
+                                      .nextCursor(nextCursor)
+                                      .nextIdAfter(nextIdAfter)
+                                      .hasNext(hasNext)
+                                      .totalCount(totalCount)
+                                      .sortBy(sortBy)
+                                      .sortDirection(sortDirection)
+                                      .build();
+    }
+
     // ========================================================================
-    // 💡 Helper Methods (목록 조회용)
+    // 💡 Helper Methods (목록 조회용 - Row 처리)
     // ========================================================================
 
     default ConversationWith mapWith(ConversationListRow row) {
@@ -64,40 +86,21 @@ public interface ConversationMapper {
                                .build();
     }
 
-    default boolean hasUnread(ConversationListRow row) {
-        if (row == null) return false;
-        return row.myLastReadAt() == null ||
-            (row.lastMessageCreatedAt() != null && row.lastMessageCreatedAt().isAfter(row.myLastReadAt()));
-    }
-
     default ConversationLatestMessage mapLatestMessage(ConversationListRow row) {
-        if (row == null) return null;
-        if (row.lastMessageCreatedAt() == null && row.lastMessageContent() == null) return null;
+        if (row == null || row.lastMessageId() == null) return null;
 
-        ConversationSend sender = ConversationSend.builder()
-                                                  .userId(row.lastMessageSenderId())
-                                                  .name(row.lastMessageSenderName())
-                                                  .profileImageUrl(row.lastMessageSenderProfileImageUrl())
-                                                  .build();
-
-        ConversationReceiver receiver = ConversationReceiver.builder()
-                                                            .userId(row.otherUserId())
-                                                            .name(row.otherName())
-                                                            .profileImageUrl(row.otherProfileImageUrl())
-                                                            .build();
-
+        // 목록 조회 성능을 위해 Sender 정보는 최소화
         return ConversationLatestMessage.builder()
                                         .id(row.lastMessageId())
                                         .conversationId(row.conversationId())
-                                        .createdAt(row.lastMessageCreatedAt())
-                                        .sender(sender)
-                                        .receiver(receiver)
                                         .content(row.lastMessageContent())
+                                        .createdAt(row.lastMessageCreatedAt())
+                                        // .sender(...) // 필요시 추가
                                         .build();
     }
 
     // ========================================================================
-    // 💡 Helper Methods (단건 조회용 - @Named 필수)
+    // 💡 Helper Methods (단건 조회용 - Entity 처리)
     // ========================================================================
 
     @Named("mapWithUser")
@@ -114,25 +117,21 @@ public interface ConversationMapper {
     default ConversationLatestMessage mapLatestMessageFromEntity(DirectMessage message) {
         if (message == null) return null;
 
-        ConversationSend sender = ConversationSend.builder()
-                                                  .userId(message.getSender().getId())
-                                                  .name(message.getSender().getName())
-                                                  .profileImageUrl(message.getSender().getProfileImageUrl())
-                                                  .build();
-
-        ConversationReceiver receiver = ConversationReceiver.builder()
-                                                            .userId(message.getReceiver().getId())
-                                                            .name(message.getReceiver().getName())
-                                                            .profileImageUrl(message.getReceiver().getProfileImageUrl())
-                                                            .build();
-
         return ConversationLatestMessage.builder()
                                         .id(message.getId())
                                         .conversationId(message.getConversation().getId())
                                         .content(message.getContent())
                                         .createdAt(message.getCreatedAt())
-                                        .sender(sender)
-                                        .receiver(receiver)
+                                        .sender(ConversationSend.builder()
+                                                                .userId(message.getSender().getId())
+                                                                .name(message.getSender().getName())
+                                                                .profileImageUrl(message.getSender().getProfileImageUrl())
+                                                                .build())
+                                        .receiver(ConversationReceiver.builder()
+                                                                      .userId(message.getReceiver().getId())
+                                                                      .name(message.getReceiver().getName())
+                                                                      .profileImageUrl(message.getReceiver().getProfileImageUrl())
+                                                                      .build())
                                         .build();
     }
 }
