@@ -9,9 +9,12 @@ import java.util.UUID;
 
 public interface ConversationService {
 
-    ConversationDto createConversation(ConversationRequestDto withUserId);
+    // 1:1 대화 생성/찾기
+    ConversationDto createConversation(UUID me, ConversationRequestDto request);
+
 
     ConversationResponseDto getConversationList(
+        UUID me,
         String keywordLike,
         String cursor,
         UUID idAfter,
@@ -20,11 +23,15 @@ public interface ConversationService {
         String sortBy
     );
 
-    void conversationRead(UUID conversationId, UUID directMessageId);
 
-    ConversationDto conversationCheck(UUID conversationId);
+    ConversationDto conversationCheck(UUID me, UUID conversationId);
+
+    // 읽음 처리
+    void conversationRead( UUID userId ,UUID conversationId, UUID directMessageId);
+
 
     DirectMessageResponseDto getDirectMessageList(
+        UUID me,
         UUID conversationId,
         String cursor,
         UUID idAfter,
@@ -33,5 +40,6 @@ public interface ConversationService {
         String sortBy
     );
 
-    DirectMessageWithDto getDirectMessageWith(UUID userId);
+
+    DirectMessageWithDto getDirectMessageWith(UUID me, UUID userId);
 }
