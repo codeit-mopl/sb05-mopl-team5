@@ -61,7 +61,7 @@ public class WatchingSessionRedisRepositoryImpl implements WatchingSessionRedisR
         String tempKey = SYNC_SET_KEY + ":" + UUID.randomUUID();
 
         Boolean hasKey = redisTemplate.hasKey(SYNC_SET_KEY);
-        if (Boolean.FALSE.equals(hasKey)) {
+        if (!hasKey) {
             return Collections.emptySet();
         }
 
