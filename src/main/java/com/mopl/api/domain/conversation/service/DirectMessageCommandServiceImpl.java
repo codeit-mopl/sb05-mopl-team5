@@ -7,17 +7,15 @@ import com.mopl.api.domain.conversation.entity.ConversationParticipant;
 import com.mopl.api.domain.conversation.entity.DirectMessage;
 import com.mopl.api.domain.conversation.mapper.DirectMessageMapper;
 import com.mopl.api.domain.conversation.realtime.ActiveConversationRegistry;
-import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository;
 import com.mopl.api.domain.conversation.repository.ConversationRepository;
 import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
 import com.mopl.api.domain.sse.SseEmitterRegistry;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
-import java.nio.file.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,7 +57,7 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
         User sender = userRepository.getReferenceById(senderId);
         User receiver = other.getUser();
 
-        LocalDateTime now = LocalDateTime.now(); // 1. 시간을 여기서 고정!
+
 
         // 6. 메시지 생성 및 저장
         // (Entity에 create 메서드를 만들거나, 생성자에 now를 넘기는 것을 추천)
@@ -71,7 +69,7 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
         conversation.updateLastMessage(
             message.getId(),
             request.content(),
-            now,
+            message.getCreatedAt(),
             sender.getId()
         );
 
