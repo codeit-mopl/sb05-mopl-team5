@@ -23,7 +23,11 @@ public class TvSeriesProcessor implements ItemProcessor<TvSeriesResponse, Conten
             genres.add(TmdbGenre.getNameById(id));
         }
 
-        return new Content(ContentType.TV_SERIES, item.apiId(), item.title(), item.description(), item.thumbnailUrl(),
+        String thumbnail = (item.thumbnailUrl() != null && !item.thumbnailUrl()
+                                                                .isBlank())
+            ? item.thumbnailUrl() : "/static/thumbnail.png";
+
+        return new Content(ContentType.TV_SERIES, item.apiId(), item.title(), item.description(), thumbnail,
             String.join("|", genres),
             BigDecimal.ZERO, 0L, 0L);
     }

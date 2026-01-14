@@ -23,11 +23,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
@@ -57,7 +57,7 @@ public class SecurityConfig {
         AccessDeniedHandlerImpl accessDeniedHandlerImpl,
         CustomOAuth2UserService oAuth2UserService,
         OAuth2UserSuccessHandler oAuth2UserSuccessHandler
-        ) throws Exception {
+    ) throws Exception {
         http
             .csrf(csrf -> csrf
                 // 쿠키에 CSRF 토큰 저장 : 쿠키명:XSRF-TOKEN 헤더명:X-XSRF-TOKEN
@@ -74,6 +74,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/refresh")
                 .permitAll()
                 .requestMatchers("/api/auth/reset-password")
+                .permitAll()
+                .requestMatchers("/contents/**", "/static/thumbnail.png")
                 .permitAll()
                 .requestMatchers("*", "/swagger-resource/**"
                     , "/swagger-ui.html", "/swagger-ui/**", "/v3/**",

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 public enum ContentErrorCode implements ErrorCode {
     CONTENT_NOT_FOUND("CT001", "존재하지 않는 콘텐츠입니다.", HttpStatus.NOT_FOUND),
     INVALID_SORT_BY("CT002", "유효한 정렬 기준을 입력해야 합니다", HttpStatus.BAD_REQUEST),
+    MISSING_FILENAME("CT003", "업로드된 파일의 이름이 없습니다", HttpStatus.BAD_REQUEST),
     ;
 
     private final String code;

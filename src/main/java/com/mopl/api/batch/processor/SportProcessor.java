@@ -12,8 +12,11 @@ public class SportProcessor implements ItemProcessor<SportResponse, Content> {
 
     @Override
     public Content process(SportResponse item) {
+        String thumbnail = (item.thumbnailUrl() != null && !item.thumbnailUrl()
+                                                                .isBlank())
+            ? item.thumbnailUrl() : "/static/thumbnail.png";
 
-        return new Content(ContentType.SPORT, item.apiId(), item.title(), item.description(), item.thumbnailUrl(),
-            item.getTags(), BigDecimal.ZERO, 0L,0L);
+        return new Content(ContentType.SPORT, item.apiId(), item.title(), item.description(), thumbnail,
+            item.getTags(), BigDecimal.ZERO, 0L, 0L);
     }
 }

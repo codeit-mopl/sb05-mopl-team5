@@ -11,7 +11,7 @@ import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.exception.detail.InvalidSortByException;
 import com.mopl.api.domain.content.mapper.ContentMapper;
 import com.mopl.api.domain.content.repository.ContentRepository;
-import com.mopl.api.global.config.image.LocalUploader;
+import com.mopl.api.global.config.image.impl.LocalUploader;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
