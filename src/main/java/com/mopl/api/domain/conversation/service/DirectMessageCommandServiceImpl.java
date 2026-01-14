@@ -48,6 +48,10 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
         ConversationParticipant other =
             directMessageRepository.findOtherParticipant(conversationId, senderId);
 
+        if (other == null) {
+            throw new IllegalStateException("대화 상대방을 찾을 수 없습니다.");
+        }
+
         User sender = userRepository.getReferenceById(senderId);
         User receiver = other.getUser();
 
@@ -55,9 +59,9 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
             new DirectMessage(conversation, sender, receiver, request.content())
         );
 
-        conversation.updateLastMessage( message.getId(),
+        conversation.updateLastMessage(message.getId(),
             request.content(),
-             sender.getCreatedAt() , sender.getId()
+            message.getCreatedAt(), sender.getId()
         );
         conversationRepository.save(conversation);
 

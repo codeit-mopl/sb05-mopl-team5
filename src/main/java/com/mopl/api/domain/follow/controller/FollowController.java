@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,7 +29,8 @@ public class FollowController {
         @RequestBody @Valid FollowRequest request
     ) {
         UUID me = userDetails.getUserDto().id();
-        return ResponseEntity.ok(followService.createFollow(me, request.followeeId()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                                      .body(followService.createFollow(me, request.followeeId()));
     }
 
     @GetMapping("/followed-by-me")

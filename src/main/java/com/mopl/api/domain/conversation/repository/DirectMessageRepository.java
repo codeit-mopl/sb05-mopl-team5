@@ -4,7 +4,7 @@ import com.mopl.api.domain.conversation.entity.DirectMessage;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
-import org.apache.ibatis.annotations.Param;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

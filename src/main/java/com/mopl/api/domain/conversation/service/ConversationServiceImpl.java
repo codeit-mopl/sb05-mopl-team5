@@ -151,15 +151,16 @@ public class ConversationServiceImpl implements ConversationService {
     // -------------------------
     @Override
     @Transactional
-    public void conversationRead( UUID conversationId, UUID directMessageId) {
+    public void conversationRead(UUID userId, UUID conversationId, UUID directMessageId) {
 
+        ensureParticipant(conversationId, userId);
 
         LocalDateTime messageCreatedAt = directMessageRepository
             .findCreatedAtByIdAndConversationId(directMessageId, conversationId)
             .orElseThrow(() -> new IllegalArgumentException("메시지를 찾을 수 없습니다."));
 
         // 성능: "현재 lastReadAt보다 더 최신일 때만 갱신"을 DB에서 처리
-        conversationParticipantRepository.updateLastReadAtIfNewer(conversationId, conversationId, messageCreatedAt);
+        conversationParticipantRepository.updateLastReadAtIfNewer( conversationId, userId,messageCreatedAt);
     }
 
     // -------------------------

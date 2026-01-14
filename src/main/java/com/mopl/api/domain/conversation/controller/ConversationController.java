@@ -93,23 +93,17 @@ public class ConversationController {
     }
 
 
-//    @PostMapping("/{conversationId}/direct-messages/{directMessageId}/read")
-//    public ResponseEntity<Void> readConversation(
-//        @AuthenticationPrincipal CustomUserDetails userDetails,
-//        @PathVariable UUID conversationId,
-//        @PathVariable UUID directMessageId
-//    ) {
-//        UUID me = userDetails.getUserDto().id();
-//        service.conversationRead(me, conversationId, directMessageId);
-//        return ResponseEntity.noContent().build();
-//    }
-
-
     @PostMapping("/{conversationId}/direct-messages/{directMessageId}/read")
-    public ResponseEntity<Void> directMessageRead(
+    public ResponseEntity<Void> readConversation(
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable UUID conversationId,
-        @PathVariable UUID directMessageId) {
-        service.conversationRead(conversationId, directMessageId);
+        @PathVariable UUID directMessageId
+    ) {
+        UUID me = userDetails.getUserDto().id();
+        service.conversationRead(me, conversationId, directMessageId);
         return ResponseEntity.noContent().build();
     }
+
+
+
 }

@@ -1,11 +1,12 @@
 package com.mopl.api.domain.conversation.repository;
 
 import com.mopl.api.domain.conversation.entity.ConversationParticipant;
+import com.mopl.api.domain.user.entity.User;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.apache.ibatis.annotations.Param;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -40,4 +41,5 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
         @Param("userId") UUID userId
     );
 
+    UUID user(User user);
 }
