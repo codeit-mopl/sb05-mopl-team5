@@ -97,38 +97,35 @@ public class RedisJwtRegistry implements JwtRegistry {
         }
 
         UUID userId = UUID.fromString(userIdStr);
-        redisTemplate.delete(oldRefreshKey);   // 기존 인덱스 정리(oldRefreshKey는 무조건 삭제!!)
-
-        // access 인덱스는 이전 accessToken이 뭔지 모르니 userKey에 accessToken을 저장한 후 삭제
         String userKey = getUserKey(userId);
-        Object oldAccessObj = redisTemplate.opsForValue()
-                                           .get(userKey);
 
-        if (oldAccessObj instanceof String oldAccessToken) {
-            redisTemplate.delete(getAccessTokenKey(oldAccessToken));
+        // 기존 세션 있으면 -> 인덱스 정리!
+        Object old = redisTemplate.opsForValue()
+                                           .get(userKey);
+        if (old instanceof JwtInformation oldJwtInfo) {
+          deleteIndexes(oldJwtInfo.getAccessToken(), oldJwtInfo.getRefreshToken());
         }
 
         // 새 토큰 등록
         Duration refreshTtl = Duration.ofMillis(refreshExpMs);
         Duration accessTtl = Duration.ofMillis(accessExpMs);
 
-        // userKey: 현재 accessToken만 저장
         redisTemplate.opsForValue()
-                     .set(userKey, newJwtInformation.getAccessToken(), refreshTtl);
-
+                     .set(userKey, newJwtInformation, refreshTtl);
         redisTemplate.opsForValue()
                      .set(
                          getRefreshTokenKey(newJwtInformation.getRefreshToken()),
                          userId.toString(),
                          refreshTtl
                      );
-
         redisTemplate.opsForValue()
                      .set(
                          getAccessTokenKey(newJwtInformation.getAccessToken()),
                          userId.toString(),
                          accessTtl
                      );
+
+        redisTemplate.delete(oldRefreshKey);
     }
 
     @Override
