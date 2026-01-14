@@ -1,13 +1,9 @@
 package com.mopl.api.domain.user.repository;
 
-import com.mopl.api.domain.user.entity.WatchingSession;
-import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface WatchingSessionRedisRepository {
-
-    List<UUID> findSessionsByContentId(UUID contentId);
 
     void addWatcher(UUID contentId, UUID userId);
 
@@ -16,4 +12,8 @@ public interface WatchingSessionRedisRepository {
     long countWatchers(UUID contentId);
 
     boolean isWatching(UUID contentId, UUID userId);
+
+    void addChangedContentId(UUID contentId);
+
+    Set<String> popAllChangedIds();
 }
