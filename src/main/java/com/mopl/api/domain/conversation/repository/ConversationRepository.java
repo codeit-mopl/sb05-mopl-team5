@@ -29,32 +29,33 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
 
     // 2. 목록 조회 (Interface Projection 사용)
     @Query("""
-        SELECT 
-            c.id AS conversationId,
-            otherUser.id AS otherUserId,
-            otherUser.name AS otherName,
-            otherUser.profileImageUrl AS otherProfileImageUrl,
-            
-            c.lastMessageId AS lastMessageId,
-            c.lastMessageContent AS lastMessageContent,
-            c.lastMessageCreatedAt AS lastMessageCreatedAt,
-            
-            (SELECT COUNT(dm) 
-             FROM DirectMessage dm 
-             WHERE dm.conversation.id = c.id 
-               AND (myP.lastReadAt IS NULL OR dm.createdAt > myP.lastReadAt)
-               AND dm.sender.id <> :me
-            ) AS unreadCount
-        FROM Conversation c
-        JOIN ConversationParticipant myP ON c.id = myP.conversation.id
-        JOIN ConversationParticipant otherP ON c.id = otherP.conversation.id
-        JOIN otherP.user otherUser
-        WHERE myP.user.id = :me
-          AND otherP.user.id <> :me
-          AND (:keyword IS NULL OR otherUser.name LIKE CONCAT('%', :keyword, '%'))
-          AND (:cursorTime IS NULL OR c.lastMessageCreatedAt < :cursorTime)
-        ORDER BY c.lastMessageCreatedAt DESC
-    """)
+            SELECT 
+                c.id AS conversationId,
+                otherUser.id AS otherUserId,
+                otherUser.name AS otherName,
+                otherUser.profileImageUrl AS otherProfileImageUrl,
+        
+                c.lastMessageId AS lastMessageId,
+                c.lastMessageContent AS lastMessageContent,
+                c.lastMessageCreatedAt AS lastMessageCreatedAt,
+                    c.createdAt AS createdAt,
+        
+                (SELECT COUNT(dm) 
+                 FROM DirectMessage dm 
+                 WHERE dm.conversation.id = c.id 
+                   AND (myP.lastReadAt IS NULL OR dm.createdAt > myP.lastReadAt)
+                   AND dm.sender.id <> :me
+                ) AS unreadCount
+            FROM Conversation c
+            JOIN ConversationParticipant myP ON c.id = myP.conversation.id
+            JOIN ConversationParticipant otherP ON c.id = otherP.conversation.id
+            JOIN otherP.user otherUser
+            WHERE myP.user.id = :me
+              AND otherP.user.id <> :me
+              AND (:keyword IS NULL OR otherUser.name LIKE CONCAT('%', :keyword, '%'))
+              AND (:cursorTime IS NULL OR c.createdAt < :cursorTime)
+            ORDER BY c.createdAt DESC
+        """)
     List<ConversationSummary> findConversationList(
         @Param("me") UUID me,
         @Param("keyword") String keyword,
