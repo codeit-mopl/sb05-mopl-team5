@@ -289,20 +289,6 @@ public class ConversationServiceImpl implements ConversationService {
             nextIdAfter = last.getId();
         }
 
-        if (!list.isEmpty()) {
-            log.info("DEBUG [Before Reverse] 첫번째: {}, 마지막: {}",
-                list.get(0).getCreatedAt(), list.get(list.size() - 1).getCreatedAt());
-        }
-
-        // 6. 🔥 리스트 뒤집기 (UI: 과거 -> 최신)
-        if ("DESCENDING".equalsIgnoreCase(sortDirection)) {
-            java.util.Collections.reverse(list);
-        }
-
-        if (!list.isEmpty()) {
-            log.info("DEBUG [After  Reverse] 첫번째: {}, 마지막: {}",
-                list.get(0).getCreatedAt(), list.get(list.size() - 1).getCreatedAt());
-        }
 
         // 7. DTO 변환
         List<DirectMessageDto> data = list.stream()
