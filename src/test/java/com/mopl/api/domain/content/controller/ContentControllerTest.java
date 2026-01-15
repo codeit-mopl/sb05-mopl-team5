@@ -85,6 +85,20 @@ public class ContentControllerTest {
                          .build();
     }
 
+    private ContentDto updateDto() {
+        return ContentDto.builder()
+                         .id(contentId)
+                         .type("MOVIE")
+                         .title("updated title")
+                         .description("updated desc")
+                         .thumbnailUrl("uploaded.png")
+                         .tags(List.of("tag1", "tag2"))
+                         .averageRating(0.0)
+                         .reviewCount(0L)
+                         .watcherCount(0L)
+                         .build();
+    }
+
 
     // ---------------- 조회 ----------------
     @Test
@@ -138,7 +152,9 @@ public class ContentControllerTest {
     @WithMockUser(roles = {"ADMIN"})
     @DisplayName("콘텐츠 수정 성공")
     void modifyContent_success() throws Exception {
-        when(contentService.modifyContent(Mockito.eq(contentId), Mockito.any(), Mockito.any())).thenReturn(sampleDto());
+        when(contentService.modifyContent(Mockito.eq(contentId), Mockito.any(), Mockito.any()))
+            .thenReturn(updateDto());
+
         MockMultipartFile json = new MockMultipartFile("request", "request.json", "application/json", """ 
             { "title":"updated title", "description":"updated desc", "tags":["a","b"] }""".getBytes());
         mockMvc.perform(multipart("/api/contents/{id}", contentId).file(json)
@@ -147,7 +163,7 @@ public class ContentControllerTest {
                                                                       return req;
                                                                   }))
                .andExpect(status().isOk())
-               .andExpect(jsonPath("$.title").value("sample title"));
+               .andExpect(jsonPath("$.title").value("updated title"));
     }
 
     @Test
