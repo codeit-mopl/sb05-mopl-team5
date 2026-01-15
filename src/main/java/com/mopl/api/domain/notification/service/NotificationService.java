@@ -9,7 +9,7 @@ public interface NotificationService {
 
     CursorResponseNotificationDto getNotifications(UUID receiverId, NotificationCursorPageRequest request);
 
-    NotificationDto createNotification(UUID receiverId, String title, String content);
+    NotificationDto addNotification(NotificationDto notificationDto);
 
     void removeNotification(UUID notificationId, UUID receiverId);
 }
