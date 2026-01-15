@@ -1,21 +1,23 @@
 package com.mopl.api.domain.follow;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.mopl.api.domain.follow.dto.response.FollowDto;
 import com.mopl.api.domain.follow.service.FollowService;
+import com.mopl.api.domain.notification.service.NotificationService;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.UserRole;
 import com.mopl.api.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import java.lang.reflect.Field;
-import java.util.Random;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -27,6 +29,8 @@ class FollowIntegrationTest {
     FollowService followService;
     @Autowired
     UserRepository userRepository;
+    @MockitoBean
+    private NotificationService notificationService;
     @Autowired
     EntityManager em;
 
@@ -39,7 +43,8 @@ class FollowIntegrationTest {
 
         // 1) 가장 흔한 기본 생성자 시도
         try {
-            user = User.class.getDeclaredConstructor().newInstance();
+            user = User.class.getDeclaredConstructor()
+                             .newInstance();
         } catch (Exception e) {
             // 2) 기본 생성자가 없으면 네가 쓰던 생성자 사용 (email, name, role)
             user = new User(
@@ -68,7 +73,8 @@ class FollowIntegrationTest {
         em.flush();
 
         // 안전장치: ID는 반드시 있어야 함
-        assertThat(saved.getId()).as("User ID must be generated/present").isNotNull();
+        assertThat(saved.getId()).as("User ID must be generated/present")
+                                 .isNotNull();
 
         return saved;
     }
@@ -78,8 +84,10 @@ class FollowIntegrationTest {
         String setter = "set" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
         try {
             // value가 enum/Boolean/String 등일 수 있으니 모든 메서드를 훑어서 이름 매칭
-            for (var m : target.getClass().getMethods()) {
-                if (m.getName().equals(setter) && m.getParameterCount() == 1) {
+            for (var m : target.getClass()
+                               .getMethods()) {
+                if (m.getName()
+                     .equals(setter) && m.getParameterCount() == 1) {
                     m.invoke(target, value);
                     return;
                 }
@@ -89,7 +97,8 @@ class FollowIntegrationTest {
 
         // 2) setter가 없으면 reflection으로 필드 직접 주입
         try {
-            Field f = target.getClass().getDeclaredField(fieldName);
+            Field f = target.getClass()
+                            .getDeclaredField(fieldName);
             f.setAccessible(true);
             f.set(target, value);
         } catch (Exception ignored) {

@@ -1,5 +1,13 @@
 package com.mopl.api.domain.playlist.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.playlist.entity.Subscription;
 import com.mopl.api.domain.playlist.exception.detail.DuplicateSubscriptionException;
@@ -12,6 +20,8 @@ import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.exception.user.UserErrorCode;
 import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,13 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SubscriptionService 단위 테스트")
@@ -39,6 +43,9 @@ class SubscriptionServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private SubscriptionServiceImpl subscriptionService;
@@ -161,7 +168,8 @@ class SubscriptionServiceImplTest {
         Subscription mockSubscription = mock(Subscription.class);
 
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(subscriptionRepository.findByUserIdAndPlaylistId(userId, playlistId)).thenReturn(Optional.of(mockSubscription));
+        when(subscriptionRepository.findByUserIdAndPlaylistId(userId, playlistId)).thenReturn(
+            Optional.of(mockSubscription));
         when(playlistRepository.save(mockPlaylist)).thenReturn(mockPlaylist);
 
         subscriptionService.unsubscribeFromPlaylist(playlistId, userId);
