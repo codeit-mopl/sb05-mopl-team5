@@ -6,7 +6,7 @@ import lombok.Builder;
 
 @Builder
 public record CursorResponseNotificationDto(
-    List<NotificationDto> notifications,
+    List<NotificationDto> data,
     String nextCursor,
     UUID nextIdAfter,
     boolean hasNext,

@@ -1,29 +1,32 @@
 package com.mopl.api.domain.playlist.service;
 
 import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
+import com.mopl.api.domain.notification.dto.event.FolloweePlaylistCreatedEvent;
+import com.mopl.api.domain.notification.dto.event.SubscribingPlaylistContentAddedEvent;
 import com.mopl.api.domain.playlist.dto.request.PlaylistCreateRequest;
 import com.mopl.api.domain.playlist.dto.request.PlaylistUpdateRequest;
 import com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto;
 import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
 import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.playlist.entity.PlaylistContent;
-import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.playlist.exception.detail.ContentAlreadyExistsException;
 import com.mopl.api.domain.playlist.exception.detail.ContentNotInPlaylistException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistNotFoundException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistUnauthorizedException;
-import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.playlist.mapper.PlaylistMapper;
 import com.mopl.api.domain.playlist.repository.PlaylistContentRepository;
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
 import com.mopl.api.domain.playlist.repository.SubscriptionRepository;
 import com.mopl.api.domain.user.entity.User;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +41,7 @@ public class PlaylistServiceImpl implements PlaylistService {
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final PlaylistMapper playlistMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -48,6 +52,17 @@ public class PlaylistServiceImpl implements PlaylistService {
 
         Playlist playlist = Playlist.create(user, request.title(), request.description());
         playlistRepository.save(playlist);
+
+        // 알림
+        eventPublisher.publishEvent(FolloweePlaylistCreatedEvent.builder()
+                                                                .playlistId(playlist.getId())
+                                                                .playlistTitle(playlist.getTitle())
+                                                                .playlistDescription(playlist.getDescription())
+                                                                .ownerId(playlist.getOwner()
+                                                                                 .getId())
+                                                                .ownerName(playlist.getOwner()
+                                                                                   .getName())
+                                                                .build());
 
         List<PlaylistContent> playlistContents = playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(
             playlist.getId());
@@ -220,6 +235,15 @@ public class PlaylistServiceImpl implements PlaylistService {
 
         PlaylistContent playlistContent = PlaylistContent.create(playlist, content);
         playlistContentRepository.save(playlistContent);
+
+        // 알림
+        eventPublisher.publishEvent(SubscribingPlaylistContentAddedEvent.builder()
+                                                                        .playlistId(playlist.getId())
+                                                                        .playlistTitle(playlist.getTitle())
+                                                                        .playlistDescription(playlist.getDescription())
+                                                                        .contentId(content.getId())
+                                                                        .contentTitle(content.getTitle())
+                                                                        .build());
     }
 
     @Override

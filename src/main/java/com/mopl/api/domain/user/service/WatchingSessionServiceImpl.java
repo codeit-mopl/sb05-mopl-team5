@@ -3,6 +3,7 @@ package com.mopl.api.domain.user.service;
 import com.mopl.api.domain.content.entity.Content;
 import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
+import com.mopl.api.domain.notification.dto.event.FolloweeWatchingStartedEvent;
 import com.mopl.api.domain.user.dto.event.WatchingSessionChangeEvent;
 import com.mopl.api.domain.user.dto.request.WatchingSessionSearchRequest;
 import com.mopl.api.domain.user.dto.response.CursorResponseWatchingSessionDto;
@@ -127,6 +128,18 @@ public class WatchingSessionServiceImpl implements WatchingSessionService {
                                                               .contentId(contentId)
                                                               .change(change)
                                                               .build());
+
+        // 알림
+        eventPublisher.publishEvent(FolloweeWatchingStartedEvent.builder()
+                                                                .watchingSessionId(session.getId())
+                                                                .watcherId(session.getWatcher()
+                                                                                  .getId())
+                                                                .contentId(session.getContent()
+                                                                                  .getId())
+                                                                .contentTitle(session.getContent()
+                                                                                     .getTitle())
+                                                                .build());
+
         log.debug("join 이벤트 발행 완료");
 
         return change;

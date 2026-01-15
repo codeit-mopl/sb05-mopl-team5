@@ -5,7 +5,7 @@ import java.util.UUID;
 import lombok.Builder;
 
 @Builder
-public record DirectMessageSend (
+public record DirectMessageSender(
     UUID userId,
     String name,
     String profileImageUrl

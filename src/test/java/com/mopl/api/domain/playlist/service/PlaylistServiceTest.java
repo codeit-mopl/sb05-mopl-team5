@@ -1,23 +1,40 @@
 package com.mopl.api.domain.playlist.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.playlist.dto.request.PlaylistCreateRequest;
 import com.mopl.api.domain.playlist.dto.request.PlaylistUpdateRequest;
 import com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto;
 import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
-import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
+import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.playlist.exception.detail.ContentAlreadyExistsException;
 import com.mopl.api.domain.playlist.exception.detail.ContentNotInPlaylistException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistNotFoundException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistUnauthorizedException;
-import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
-import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.playlist.mapper.PlaylistMapper;
 import com.mopl.api.domain.playlist.repository.PlaylistContentRepository;
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
 import com.mopl.api.domain.playlist.repository.SubscriptionRepository;
 import com.mopl.api.domain.user.entity.User;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,20 +42,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PlaylistService 단위 테스트")
@@ -61,6 +65,9 @@ class PlaylistServiceTest {
 
     @Mock
     private PlaylistMapper playlistMapper;
+
+    @Mock
+    ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PlaylistServiceImpl playlistService;
@@ -285,7 +292,8 @@ class PlaylistServiceTest {
         when(mockPlaylist.getOwner()).thenReturn(mockUser);
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
         when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
-        when(playlistContentRepository.existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(false);
+        when(playlistContentRepository.existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId,
+            contentId)).thenReturn(false);
 
         playlistService.addContentToPlaylist(playlistId, contentId, userId);
 
@@ -357,7 +365,8 @@ class PlaylistServiceTest {
         when(mockPlaylist.getOwner()).thenReturn(mockUser);
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
         when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
-        when(playlistContentRepository.existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(true);
+        when(playlistContentRepository.existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId,
+            contentId)).thenReturn(true);
 
         assertThatThrownBy(() -> playlistService.addContentToPlaylist(playlistId, contentId, userId))
             .isInstanceOf(ContentAlreadyExistsException.class);
@@ -373,12 +382,14 @@ class PlaylistServiceTest {
     void removeContentFromPlaylist_Success() {
         User mockUser = mock(User.class);
         Playlist mockPlaylist = mock(Playlist.class);
-        com.mopl.api.domain.playlist.entity.PlaylistContent mockPlaylistContent = mock(com.mopl.api.domain.playlist.entity.PlaylistContent.class);
+        com.mopl.api.domain.playlist.entity.PlaylistContent mockPlaylistContent = mock(
+            com.mopl.api.domain.playlist.entity.PlaylistContent.class);
 
         when(mockUser.getId()).thenReturn(userId);
         when(mockPlaylist.getOwner()).thenReturn(mockUser);
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(Optional.of(mockPlaylistContent));
+        when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(
+            Optional.of(mockPlaylistContent));
 
         playlistService.removeContentFromPlaylist(playlistId, contentId, userId);
 
@@ -429,7 +440,8 @@ class PlaylistServiceTest {
         when(mockUser.getId()).thenReturn(userId);
         when(mockPlaylist.getOwner()).thenReturn(mockUser);
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(Optional.empty());
+        when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(
+            Optional.empty());
 
         assertThatThrownBy(() -> playlistService.removeContentFromPlaylist(playlistId, contentId, userId))
             .isInstanceOf(ContentNotInPlaylistException.class);
