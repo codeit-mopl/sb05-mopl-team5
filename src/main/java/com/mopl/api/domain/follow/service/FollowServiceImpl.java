@@ -4,6 +4,8 @@ import com.mopl.api.domain.follow.dto.response.FollowDto;
 import com.mopl.api.domain.follow.entity.Follow;
 import com.mopl.api.domain.follow.mapper.FollowMapper;
 import com.mopl.api.domain.follow.repository.FollowRepository;
+import com.mopl.api.domain.notification.dto.response.NotificationDto;
+import com.mopl.api.domain.notification.service.NotificationService;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.util.UUID;
@@ -19,6 +21,7 @@ public class FollowServiceImpl implements FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final FollowMapper followMapper;
+    private final NotificationService notificationService;
 
     @Override
     public FollowDto createFollow(UUID followerId, UUID followeeId) {
@@ -39,6 +42,12 @@ public class FollowServiceImpl implements FollowService {
                                       .orElseThrow(() -> new IllegalArgumentException("followee 사용자가 존재하지 않습니다."));
 
         Follow saved = followRepository.save(new Follow(follower, followee));
+
+        // 알림
+        notificationService.addNotification(NotificationDto.builder()
+                                                           .receiverId(followeeId)
+                                                           .title(follower.getName() + "님이 나를 팔로우 했어요.")
+                                                           .build());
 
         return followMapper.toDto(saved);
     }
