@@ -4,10 +4,12 @@ import com.mopl.api.domain.follow.dto.response.FollowDto;
 import com.mopl.api.domain.follow.entity.Follow;
 import com.mopl.api.domain.follow.mapper.FollowMapper;
 import com.mopl.api.domain.follow.repository.FollowRepository;
+import com.mopl.api.domain.notification.dto.event.NewFollowerEvent;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ public class FollowServiceImpl implements FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final FollowMapper followMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public FollowDto createFollow(UUID followerId, UUID followeeId) {
@@ -39,6 +42,14 @@ public class FollowServiceImpl implements FollowService {
                                       .orElseThrow(() -> new IllegalArgumentException("followee 사용자가 존재하지 않습니다."));
 
         Follow saved = followRepository.save(new Follow(follower, followee));
+
+        // 알림
+
+        eventPublisher.publishEvent(NewFollowerEvent.builder()
+                                                    .followeeId(followee.getId())
+                                                    .followerId(follower.getId())
+                                                    .followerName(follower.getName())
+                                                    .build());
 
         return followMapper.toDto(saved);
     }

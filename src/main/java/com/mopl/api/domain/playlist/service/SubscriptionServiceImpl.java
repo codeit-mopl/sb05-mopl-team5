@@ -1,5 +1,6 @@
 package com.mopl.api.domain.playlist.service;
 
+import com.mopl.api.domain.notification.dto.event.PlaylistSubscribedEvent;
 import com.mopl.api.domain.playlist.entity.Playlist;
 import com.mopl.api.domain.playlist.entity.Subscription;
 import com.mopl.api.domain.playlist.exception.detail.DuplicateSubscriptionException;
@@ -13,6 +14,7 @@ import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final PlaylistRepository playlistRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -47,6 +50,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Subscription subscription = Subscription.create(user, playlist);
         subscriptionRepository.save(subscription);
 
+        // 알림
+        eventPublisher.publishEvent(PlaylistSubscribedEvent.builder()
+                                                           .playlistId(playlist.getId())
+                                                           .playlistTitle(playlist.getTitle())
+                                                           .playlistDescription(playlist.getDescription())
+                                                           .ownerId(playlist.getOwner()
+                                                                            .getId())
+                                                           .subscriberId(user.getId())
+                                                           .subscriberName(user.getName())
+                                                           .build());
+
         playlist.incrementSubscriberCount();
         playlistRepository.save(playlist);
     }
@@ -58,7 +72,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                                               .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
 
         Subscription subscription = subscriptionRepository.findByUserIdAndPlaylistId(userId, playlistId)
-                                                          .orElseThrow(() -> SubscriptionNotFoundException.withDetails(playlistId, userId));
+                                                          .orElseThrow(() -> SubscriptionNotFoundException.withDetails(
+                                                              playlistId, userId));
 
         subscriptionRepository.delete(subscription);
 
