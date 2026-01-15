@@ -12,11 +12,9 @@ import com.mopl.api.global.config.security.handler.JwtLogoutHandler;
 import com.mopl.api.global.config.security.handler.LoginFailureHandler;
 import com.mopl.api.global.config.security.handler.LoginSuccessHandler;
 import com.mopl.api.global.config.security.handler.SpaCsrfTokenRequestHandler;
-import com.mopl.api.global.config.security.jwt.InMemoryJwtRegistry;
-import com.mopl.api.global.config.security.jwt.JwtRegistry;
-import com.mopl.api.global.config.security.jwt.JwtTokenProvider;
 import com.mopl.api.global.config.security.provider.TempPasswordAuthenticationProvider;
 import jakarta.servlet.DispatcherType;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,12 +29,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.web.cors.CorsConfiguration;
 
 @Configuration
 @EnableWebSecurity
@@ -66,8 +64,10 @@ public class SecurityConfig {
                 .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
             )
             .authorizeHttpRequests(auth -> auth
-                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
-                .requestMatchers("/api/sse").authenticated()
+                .dispatcherTypeMatchers(DispatcherType.ASYNC)
+                .permitAll()
+                .requestMatchers("/api/sse")
+                .authenticated()
                 .requestMatchers("/api/auth/csrf-token")
                 .permitAll()
                 .requestMatchers("/api/auth/sign-in")
@@ -137,6 +137,17 @@ public class SecurityConfig {
         authBuilder.authenticationProvider(tempPasswordAuthenticationProvider)
                    .userDetailsService(customUserDetailsService)
                    .passwordEncoder(passwordEncoder);
+
+        // CORS 설정
+        http.cors(cors -> cors.configurationSource(request -> {
+            CorsConfiguration config = new CorsConfiguration();
+            config.setAllowedOrigins(List.of("http://localhost:8080"));
+            config.addAllowedHeader("*");
+            config.setAllowedMethods(List.of("GET"));
+            config.setAllowCredentials(true);
+            config.setExposedHeaders(List.of("Last-Event-ID"));
+            return config;
+        }));
 
         return http.build();
     }
