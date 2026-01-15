@@ -1,5 +1,6 @@
 package com.mopl.api.domain.user.service;
 
+import com.mopl.api.domain.notification.dto.event.RoleChangedEvent;
 import com.mopl.api.domain.user.dto.request.ChangePasswordRequest;
 import com.mopl.api.domain.user.dto.request.CursorRequestUserDto;
 import com.mopl.api.domain.user.dto.request.UserCreateRequest;
@@ -10,14 +11,15 @@ import com.mopl.api.domain.user.dto.response.CursorResponseUserDto;
 import com.mopl.api.domain.user.dto.response.UserDto;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.entity.UserRole;
-import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.exception.user.detail.DuplicateEmailException;
+import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.mapper.UserMapper;
 import com.mopl.api.domain.user.repository.UserRepository;
 import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +35,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final JwtRegistry jwtRegistry;
     private final ProfileImageStorageService profileImageStorageService;
-
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     @Override
@@ -83,6 +85,14 @@ public class UserServiceImpl implements UserService {
                                   .orElseThrow(() -> UserNotFoundException.withUserId(userId));
         UserRole before = user.getRole();
         user.updateUserRole(request.role());
+
+        // 알림
+        eventPublisher.publishEvent(RoleChangedEvent.builder()
+                                                    .userId(userId)
+                                                    .beforeRole(String.valueOf(before))
+                                                    .currentRole(String.valueOf(request.role()))
+                                                    .build());
+
         // 자동 로그아웃
         jwtRegistry.invalidateJwtInformationByUserId(userId);
         log.info("User role updated! role: {} -> {}", before, user.getRole());

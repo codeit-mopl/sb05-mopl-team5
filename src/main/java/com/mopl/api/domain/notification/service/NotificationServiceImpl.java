@@ -1,6 +1,7 @@
 package com.mopl.api.domain.notification.service;
 
 import com.mopl.api.domain.notification.dto.event.NotificationCreatedEvent;
+import com.mopl.api.domain.notification.dto.request.NotificationCreateRequest;
 import com.mopl.api.domain.notification.dto.request.NotificationCursorPageRequest;
 import com.mopl.api.domain.notification.dto.response.CursorResponseNotificationDto;
 import com.mopl.api.domain.notification.dto.response.NotificationDto;
@@ -12,12 +13,14 @@ import com.mopl.api.domain.notification.mapper.NotificationMapper;
 import com.mopl.api.domain.notification.repository.NotificationRepository;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -28,8 +31,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
-    private final ApplicationEventPublisher eventPublisher;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 알림 목록 조회 (커서 페이지네이션)
@@ -71,22 +74,23 @@ public class NotificationServiceImpl implements NotificationService {
      * 알림 생성
      */
     @Override
-    @Transactional
-    public NotificationDto createNotification(
-        UUID receiverId,
-        String title,
-        String content
-    ) {
-        User receiver = userRepository.getReferenceById(receiverId);
-        Notification notification = new Notification(receiver, title, content, NotificationLevel.INFO);
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public NotificationDto addNotification(NotificationCreateRequest request) {
+        User receiver = userRepository.getReferenceById(request.receiverId());
 
-        notification = notificationRepository.save(notification);
+        Notification notification = new Notification(
+            receiver,
+            request.title(),
+            Objects.requireNonNullElse(request.content(), ""),
+            NotificationLevel.INFO);
 
-        // 이벤트 발행 (NotificationEventListener에서 처리)
-        NotificationDto dto = notificationMapper.toDto(notification);
-        eventPublisher.publishEvent(new NotificationCreatedEvent(dto));
+        Notification saved = notificationRepository.save(notification);
+        NotificationDto dto = notificationMapper.toDto(saved);
+        eventPublisher.publishEvent(NotificationCreatedEvent.builder()
+                                                            .notification(dto)
+                                                            .build());
 
-        log.info("알림 생성: {}", notification.getId());
+        log.info("알림 생성 notificationId={}", notification.getId());
 
         return dto;
     }

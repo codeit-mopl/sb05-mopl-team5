@@ -8,7 +8,7 @@ import jakarta.persistence.PrePersist;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Getter;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
@@ -20,7 +20,7 @@ public abstract class BaseEntity {
     @Column(columnDefinition = "BINARY(16)")
     private UUID id;
 
-    @CreationTimestamp
+    @CreatedDate
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
