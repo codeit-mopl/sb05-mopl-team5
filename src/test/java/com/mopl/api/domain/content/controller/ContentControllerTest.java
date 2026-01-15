@@ -193,7 +193,7 @@ public class ContentControllerTest {
     @Test
     @WithMockUser(roles = {"ADMIN"})
     @DisplayName("콘텐츠 삭제 실패 - 존재하지 않는 ID")
-    void removeContent_fail_forbidden() throws Exception {
+    void removeContent_fail_notFound() throws Exception {
         Mockito.doThrow(new RuntimeException("not found"))
                .when(contentService)
                .removeContent(contentId);
@@ -204,7 +204,7 @@ public class ContentControllerTest {
     @Test
     @WithMockUser(roles = {"USER"})
     @DisplayName("콘텐츠 삭제 실패 - USER 접근 시 Forbidden")
-    void removeContent_fail_notFound() throws Exception {
+    void removeContent_fail_forbidden() throws Exception {
         mockMvc.perform(delete("/api/contents/{id}", contentId))
                .andExpect(status().isForbidden());
     }
