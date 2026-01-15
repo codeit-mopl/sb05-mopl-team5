@@ -7,12 +7,15 @@ import com.mopl.api.domain.conversation.entity.ConversationParticipant;
 import com.mopl.api.domain.conversation.entity.DirectMessage;
 import com.mopl.api.domain.conversation.mapper.DirectMessageMapper;
 import com.mopl.api.domain.conversation.realtime.ActiveConversationRegistry;
-import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository; // 👈 추가
+import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository;
 import com.mopl.api.domain.conversation.repository.ConversationRepository;
 import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
-import com.mopl.api.domain.sse.SseEmitterRegistry;
+import com.mopl.api.domain.notification.dto.response.NotificationDto;
+import com.mopl.api.domain.notification.service.NotificationService;
+import com.mopl.api.domain.sse.service.SseService;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +36,8 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
     private final UserRepository userRepository;
     private final DirectMessageMapper mapper;
     private final ActiveConversationRegistry activeConversationRegistry;
-    private final SseEmitterRegistry sseEmitterRegistry;
+    private final SseService sseService;
+    private final NotificationService notificationService;
 
     @Override
     public DirectMessageDto send(
@@ -43,7 +47,8 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
     ) throws AccessDeniedException {
         // 1. 대화방 조회
         Conversation conversation = conversationRepository.findById(conversationId)
-                                                          .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대화방입니다."));
+                                                          .orElseThrow(
+                                                              () -> new IllegalArgumentException("존재하지 않는 대화방입니다."));
 
         // 2. 참여자 검증 (레포지토리 변경: DirectMessageRepo -> ConversationParticipantRepo)
         // existsParticipant -> existsByConversationIdAndUserId 로 변경됨
@@ -78,12 +83,17 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
 
         // 7. 실시간 알림 (SSE)
         if (!activeConversationRegistry.isSubscribed(receiver.getId(), conversationId)) {
-            sseEmitterRegistry.send(
-                receiver.getId(),
+            sseService.send(
+                Set.of(receiver.getId()),
                 "direct-messages",
-                "dm-" + message.getId(),
                 dto
             );
+
+            notificationService.addNotification(NotificationDto.builder()
+                                                               .receiverId(receiver.getId())
+                                                               .title("[DM] " + sender.getName())
+                                                               .content(message.getContent())
+                                                               .build());
         }
 
         return dto;
