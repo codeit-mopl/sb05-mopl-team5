@@ -4,12 +4,12 @@ import com.mopl.api.domain.follow.dto.response.FollowDto;
 import com.mopl.api.domain.follow.entity.Follow;
 import com.mopl.api.domain.follow.mapper.FollowMapper;
 import com.mopl.api.domain.follow.repository.FollowRepository;
-import com.mopl.api.domain.notification.dto.request.NotificationCreateRequest;
-import com.mopl.api.domain.notification.service.NotificationService;
+import com.mopl.api.domain.notification.dto.event.NewFollowerEvent;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +21,7 @@ public class FollowServiceImpl implements FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final FollowMapper followMapper;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public FollowDto createFollow(UUID followerId, UUID followeeId) {
@@ -44,10 +44,12 @@ public class FollowServiceImpl implements FollowService {
         Follow saved = followRepository.save(new Follow(follower, followee));
 
         // 알림
-        notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                     .receiverId(followeeId)
-                                                                     .title(follower.getName() + "님이 나를 팔로우 했어요.")
-                                                                     .build());
+
+        eventPublisher.publishEvent(NewFollowerEvent.builder()
+                                                    .followeeId(followee.getId())
+                                                    .followerId(follower.getId())
+                                                    .followerName(follower.getName())
+                                                    .build());
 
         return followMapper.toDto(saved);
     }

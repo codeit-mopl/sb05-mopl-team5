@@ -30,7 +30,7 @@ class FollowIntegrationTest {
     @Autowired
     UserRepository userRepository;
     @MockitoBean
-    private NotificationService notificationService;
+    NotificationService notificationService;
     @Autowired
     EntityManager em;
 

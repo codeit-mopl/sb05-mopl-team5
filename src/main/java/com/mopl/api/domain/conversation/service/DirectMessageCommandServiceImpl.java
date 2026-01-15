@@ -10,15 +10,14 @@ import com.mopl.api.domain.conversation.realtime.ActiveConversationRegistry;
 import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository;
 import com.mopl.api.domain.conversation.repository.ConversationRepository;
 import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
-import com.mopl.api.domain.notification.dto.request.NotificationCreateRequest;
-import com.mopl.api.domain.notification.service.NotificationService;
+import com.mopl.api.domain.notification.dto.event.DmReceivedEvent;
 import com.mopl.api.domain.sse.service.SseService;
 import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
-import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +36,7 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
     private final DirectMessageMapper mapper;
     private final ActiveConversationRegistry activeConversationRegistry;
     private final SseService sseService;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public DirectMessageDto send(
@@ -83,17 +82,15 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
 
         // 7. 실시간 알림 (SSE)
         if (!activeConversationRegistry.isSubscribed(receiver.getId(), conversationId)) {
-            sseService.send(
-                Set.of(receiver.getId()),
-                "direct-messages",
-                dto
-            );
-
-            notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                         .receiverId(receiver.getId())
-                                                                         .title("[DM] " + sender.getName())
-                                                                         .content(message.getContent())
-                                                                         .build());
+            // 알림
+            eventPublisher.publishEvent(DmReceivedEvent.builder()
+                                                       .conversationId(conversation.getId())
+                                                       .receiverId(receiver.getId())
+                                                       .senderId(sender.getId())
+                                                       .senderName(sender.getName())
+                                                       .content(message.getContent())
+                                                       .directMessageDto(dto)
+                                                       .build());
         }
 
         return dto;

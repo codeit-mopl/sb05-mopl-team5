@@ -2,10 +2,13 @@ package com.mopl.api.domain.notification.event;
 
 import com.mopl.api.domain.follow.entity.Follow;
 import com.mopl.api.domain.follow.repository.FollowRepository;
+import com.mopl.api.domain.notification.dto.event.DmReceivedEvent;
 import com.mopl.api.domain.notification.dto.event.FolloweePlaylistCreatedEvent;
 import com.mopl.api.domain.notification.dto.event.FolloweeWatchingStartedEvent;
+import com.mopl.api.domain.notification.dto.event.NewFollowerEvent;
 import com.mopl.api.domain.notification.dto.event.NotificationCreatedEvent;
 import com.mopl.api.domain.notification.dto.event.PlaylistSubscribedEvent;
+import com.mopl.api.domain.notification.dto.event.RoleChangedEvent;
 import com.mopl.api.domain.notification.dto.event.SubscribingPlaylistContentAddedEvent;
 import com.mopl.api.domain.notification.dto.request.NotificationCreateRequest;
 import com.mopl.api.domain.notification.service.NotificationService;
@@ -33,7 +36,7 @@ public class NotificationEventListener {
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleNotificationCreatedEvent(NotificationCreatedEvent event) {
+    public void onNotificationCreatedEvent(NotificationCreatedEvent event) {
         // SSE 알림 발송
         sseService.send(
             Set.of(event.notification()
@@ -51,7 +54,53 @@ public class NotificationEventListener {
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handlePlaylistSubscribedEvent(PlaylistSubscribedEvent event) {
+    public void onRoleChangedEvent(RoleChangedEvent event) {
+        notificationService.addNotification(NotificationCreateRequest.builder()
+                                                                     .receiverId(event.userId())
+                                                                     .title("내 권한이 변경되었어요.")
+                                                                     .content(
+                                                                         "내 권한이 [" + event.beforeRole() + "]에서 "
+                                                                             + "[" + event.currentRole()
+                                                                             + "](으)로 변경되었어요.")
+                                                                     .build());
+
+        log.info("RoleChangedEvent 처리 완료: receiverId={}", event.userId());
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onNewFollowerEvent(NewFollowerEvent event) {
+        notificationService.addNotification(NotificationCreateRequest.builder()
+                                                                     .receiverId(event.followeeId())
+                                                                     .title(event.followerName() + "님이 나를 팔로우 했어요.")
+                                                                     .build());
+
+        log.info("NewFollowerEvent 처리 완료: receiver(followee)Id={}, followerId={}", event.followeeId(),
+            event.followerId());
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onDmReceivedEvent(DmReceivedEvent event) {
+        sseService.send(
+            Set.of(event.receiverId()),
+            "direct-messages",
+            event.directMessageDto()
+        );
+
+        notificationService.addNotification(NotificationCreateRequest.builder()
+                                                                     .receiverId(event.receiverId())
+                                                                     .title("[DM] " + event.senderName())
+                                                                     .content(event.content())
+                                                                     .build());
+
+        log.info("DmReceivedEvent 처리 완료: conversationId={}, receiverId={}, senderId={}", event.conversationId(),
+            event.receiverId(), event.senderId());
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onPlaylistSubscribedEvent(PlaylistSubscribedEvent event) {
         notificationService.addNotification(NotificationCreateRequest.builder()
                                                                      .receiverId(event.ownerId())
                                                                      .title("플레이리스트 [" + event.playlistTitle()
@@ -68,7 +117,7 @@ public class NotificationEventListener {
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleSubscribingPlaylistContentAddedEvent(SubscribingPlaylistContentAddedEvent event) {
+    public void onSubscribingPlaylistContentAddedEvent(SubscribingPlaylistContentAddedEvent event) {
         List<Subscription> subscriptions = subscriptionRepository.findSubscriptionsByPlaylistId(event.playlistId());
 
         if (subscriptions.isEmpty()) {
@@ -92,7 +141,7 @@ public class NotificationEventListener {
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleFolloweePlaylistCreated(FolloweePlaylistCreatedEvent event) {
+    public void onFolloweePlaylistCreated(FolloweePlaylistCreatedEvent event) {
         List<Follow> follows = followRepository.findFollowsByFolloweeId(event.ownerId());
 
         if (follows.isEmpty()) {

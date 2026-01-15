@@ -1,7 +1,6 @@
 package com.mopl.api.domain.user.service;
 
-import com.mopl.api.domain.notification.dto.request.NotificationCreateRequest;
-import com.mopl.api.domain.notification.service.NotificationService;
+import com.mopl.api.domain.notification.dto.event.RoleChangedEvent;
 import com.mopl.api.domain.user.dto.request.ChangePasswordRequest;
 import com.mopl.api.domain.user.dto.request.CursorRequestUserDto;
 import com.mopl.api.domain.user.dto.request.UserCreateRequest;
@@ -20,6 +19,7 @@ import com.mopl.api.global.config.security.jwt.JwtRegistry;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +35,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final JwtRegistry jwtRegistry;
     private final ProfileImageStorageService profileImageStorageService;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     @Override
@@ -87,13 +87,11 @@ public class UserServiceImpl implements UserService {
         user.updateUserRole(request.role());
 
         // 알림
-        notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                     .receiverId(userId)
-                                                                     .title("내 권한이 변경되었어요.")
-                                                                     .content(
-                                                                         "내 권한이 [" + before + "]에서 "
-                                                                             + "[" + request.role() + "](으)로 변경되었어요.")
-                                                                     .build());
+        eventPublisher.publishEvent(RoleChangedEvent.builder()
+                                                    .userId(userId)
+                                                    .beforeRole(String.valueOf(before))
+                                                    .currentRole(String.valueOf(request.role()))
+                                                    .build());
 
         // 자동 로그아웃
         jwtRegistry.invalidateJwtInformationByUserId(userId);
