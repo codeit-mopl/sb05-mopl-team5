@@ -10,7 +10,7 @@ import com.mopl.api.domain.conversation.realtime.ActiveConversationRegistry;
 import com.mopl.api.domain.conversation.repository.ConversationParticipantRepository;
 import com.mopl.api.domain.conversation.repository.ConversationRepository;
 import com.mopl.api.domain.conversation.repository.DirectMessageRepository;
-import com.mopl.api.domain.notification.dto.response.NotificationDto;
+import com.mopl.api.domain.notification.dto.request.NotificationCreateRequest;
 import com.mopl.api.domain.notification.service.NotificationService;
 import com.mopl.api.domain.sse.service.SseService;
 import com.mopl.api.domain.user.entity.User;
@@ -89,11 +89,11 @@ public class DirectMessageCommandServiceImpl implements DirectMessageCommandServ
                 dto
             );
 
-            notificationService.addNotification(NotificationDto.builder()
-                                                               .receiverId(receiver.getId())
-                                                               .title("[DM] " + sender.getName())
-                                                               .content(message.getContent())
-                                                               .build());
+            notificationService.addNotification(NotificationCreateRequest.builder()
+                                                                         .receiverId(receiver.getId())
+                                                                         .title("[DM] " + sender.getName())
+                                                                         .content(message.getContent())
+                                                                         .build());
         }
 
         return dto;

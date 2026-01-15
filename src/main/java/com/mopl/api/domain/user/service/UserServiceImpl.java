@@ -1,6 +1,6 @@
 package com.mopl.api.domain.user.service;
 
-import com.mopl.api.domain.notification.dto.response.NotificationDto;
+import com.mopl.api.domain.notification.dto.request.NotificationCreateRequest;
 import com.mopl.api.domain.notification.service.NotificationService;
 import com.mopl.api.domain.user.dto.request.ChangePasswordRequest;
 import com.mopl.api.domain.user.dto.request.CursorRequestUserDto;
@@ -87,13 +87,13 @@ public class UserServiceImpl implements UserService {
         user.updateUserRole(request.role());
 
         // 알림
-        notificationService.addNotification(NotificationDto.builder()
-                                                           .receiverId(userId)
-                                                           .title("내 권한이 변경되었어요.")
-                                                           .content(
-                                                               "내 권한이 [" + before + "]에서 "
-                                                                   + "[" + request.role() + "](으)로 변경되었어요.")
-                                                           .build());
+        notificationService.addNotification(NotificationCreateRequest.builder()
+                                                                     .receiverId(userId)
+                                                                     .title("내 권한이 변경되었어요.")
+                                                                     .content(
+                                                                         "내 권한이 [" + before + "]에서 "
+                                                                             + "[" + request.role() + "](으)로 변경되었어요.")
+                                                                     .build());
 
         // 자동 로그아웃
         jwtRegistry.invalidateJwtInformationByUserId(userId);

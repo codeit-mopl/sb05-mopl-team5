@@ -6,27 +6,32 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@NoArgsConstructor
 public class SseMessageRepositoryImpl implements SseMessageRepository {
 
-    @Value("${sse.event-queue-capacity:100}")
-    private int eventQueueCapacity;
+    private final int eventQueueCapacity;
+    private final Object lock = new Object();
 
     private final ConcurrentLinkedDeque<UUID> eventIdQueue = new ConcurrentLinkedDeque<>();
     private final Map<UUID, SseMessage> messages = new ConcurrentHashMap<>();
 
-    public SseMessage save(SseMessage message) {
-        makeAvailableCapacity();
+    public SseMessageRepositoryImpl(
+        @Value("${sse.event-queue-capacity:100}") int eventQueueCapacity) {
+        this.eventQueueCapacity = eventQueueCapacity;
+    }
 
-        UUID eventId = message.getEventId();
-        eventIdQueue.addLast(eventId);
-        messages.put(eventId, message);
-        return message;
+    public SseMessage save(SseMessage message) {
+        synchronized (lock) {
+            makeAvailableCapacity();
+
+            UUID eventId = message.getEventId();
+            eventIdQueue.addLast(eventId);
+            messages.put(eventId, message);
+            return message;
+        }
     }
 
     public List<SseMessage> findAllByEventIdAfterAndReceiverId(UUID eventId, UUID receiverId) {

@@ -7,7 +7,7 @@ import com.mopl.api.domain.notification.dto.event.FolloweeWatchingStartedEvent;
 import com.mopl.api.domain.notification.dto.event.NotificationCreatedEvent;
 import com.mopl.api.domain.notification.dto.event.PlaylistSubscribedEvent;
 import com.mopl.api.domain.notification.dto.event.SubscribingPlaylistContentAddedEvent;
-import com.mopl.api.domain.notification.dto.response.NotificationDto;
+import com.mopl.api.domain.notification.dto.request.NotificationCreateRequest;
 import com.mopl.api.domain.notification.service.NotificationService;
 import com.mopl.api.domain.playlist.entity.Subscription;
 import com.mopl.api.domain.playlist.repository.SubscriptionRepository;
@@ -52,15 +52,15 @@ public class NotificationEventListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePlaylistSubscribedEvent(PlaylistSubscribedEvent event) {
-        notificationService.addNotification(NotificationDto.builder()
-                                                           .receiverId(event.ownerId())
-                                                           .title("플레이리스트 [" + event.playlistTitle()
-                                                               + "](이)가 구독되었어요.")
-                                                           .content(event.subscriberName() + "님이 "
-                                                               + "[" + event.playlistTitle() + "] "
-                                                               + event.playlistDescription()
-                                                               + "(을)를 구독했어요.")
-                                                           .build());
+        notificationService.addNotification(NotificationCreateRequest.builder()
+                                                                     .receiverId(event.ownerId())
+                                                                     .title("플레이리스트 [" + event.playlistTitle()
+                                                                         + "](이)가 구독되었어요.")
+                                                                     .content(event.subscriberName() + "님이 "
+                                                                         + "[" + event.playlistTitle() + "] "
+                                                                         + event.playlistDescription()
+                                                                         + "(을)를 구독했어요.")
+                                                                     .build());
 
         log.info("PlaylistSubscribedEvent 처리 완료: playlistId={}, ownerId={}, subscriberId={}",
             event.playlistId(), event.ownerId(), event.subscriberId());
@@ -76,14 +76,14 @@ public class NotificationEventListener {
         }
 
         subscriptions.forEach(s ->
-            notificationService.addNotification(NotificationDto.builder()
-                                                               .receiverId(s.getUser()
-                                                                            .getId())
-                                                               .title("구독 중인 플레이리스트에 콘텐츠가 추가되었어요.")
-                                                               .content("[" + event.playlistTitle() + "] "
-                                                                   + event.playlistDescription() + "에 "
-                                                                   + event.contentTitle() + "(이)가 추가되었어요.")
-                                                               .build())
+            notificationService.addNotification(NotificationCreateRequest.builder()
+                                                                         .receiverId(s.getUser()
+                                                                                      .getId())
+                                                                         .title("구독 중인 플레이리스트에 콘텐츠가 추가되었어요.")
+                                                                         .content("[" + event.playlistTitle() + "] "
+                                                                             + event.playlistDescription() + "에 "
+                                                                             + event.contentTitle() + "(이)가 추가되었어요.")
+                                                                         .build())
         );
 
         log.info("SubscribingPlaylistContentAddedEvent 처리 완료: playlistId={}, contentId={}",
@@ -100,13 +100,13 @@ public class NotificationEventListener {
         }
 
         follows.forEach(f ->
-            notificationService.addNotification(NotificationDto.builder()
-                                                               .receiverId(f.getFollower()
-                                                                            .getId())
-                                                               .title(event.ownerName() + "님이 플레이스트를 만들었어요.")
-                                                               .content("[" + event.playlistTitle() + "] "
-                                                                   + event.playlistDescription())
-                                                               .build())
+            notificationService.addNotification(NotificationCreateRequest.builder()
+                                                                         .receiverId(f.getFollower()
+                                                                                      .getId())
+                                                                         .title(event.ownerName() + "님이 플레이리스트를 만들었어요.")
+                                                                         .content("[" + event.playlistTitle() + "] "
+                                                                             + event.playlistDescription())
+                                                                         .build())
         );
 
         log.info("FolloweePlaylistCreatedEvent 처리 완료: playlistId={}, followeeId={}", event.playlistId(),
@@ -123,13 +123,13 @@ public class NotificationEventListener {
         }
 
         follows.forEach(f ->
-            notificationService.addNotification(NotificationDto.builder()
-                                                               .receiverId(f.getFollower()
-                                                                            .getId())
-                                                               .title(f.getFollowee()
-                                                                       .getName() + "님이 콘텐츠 시청을 시작했어요.")
-                                                               .content("[" + event.contentTitle() + "]")
-                                                               .build())
+            notificationService.addNotification(NotificationCreateRequest.builder()
+                                                                         .receiverId(f.getFollower()
+                                                                                      .getId())
+                                                                         .title(f.getFollowee()
+                                                                                 .getName() + "님이 콘텐츠 시청을 시작했어요.")
+                                                                         .content("[" + event.contentTitle() + "]")
+                                                                         .build())
         );
 
         log.info("FolloweeWatchingStartedEvent 처리 완료: watchingSessionId={}, contentId={}", event.watchingSessionId(),

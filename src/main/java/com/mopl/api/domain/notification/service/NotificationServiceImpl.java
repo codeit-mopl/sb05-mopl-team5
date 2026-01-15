@@ -1,6 +1,7 @@
 package com.mopl.api.domain.notification.service;
 
 import com.mopl.api.domain.notification.dto.event.NotificationCreatedEvent;
+import com.mopl.api.domain.notification.dto.request.NotificationCreateRequest;
 import com.mopl.api.domain.notification.dto.request.NotificationCursorPageRequest;
 import com.mopl.api.domain.notification.dto.response.CursorResponseNotificationDto;
 import com.mopl.api.domain.notification.dto.response.NotificationDto;
@@ -74,13 +75,13 @@ public class NotificationServiceImpl implements NotificationService {
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public NotificationDto addNotification(NotificationDto notificationDto) {
-        User receiver = userRepository.getReferenceById(notificationDto.receiverId());
+    public NotificationDto addNotification(NotificationCreateRequest request) {
+        User receiver = userRepository.getReferenceById(request.receiverId());
 
         Notification notification = new Notification(
             receiver,
-            notificationDto.title(),
-            Objects.requireNonNullElse(notificationDto.content(), ""),
+            request.title(),
+            Objects.requireNonNullElse(request.content(), ""),
             NotificationLevel.INFO);
 
         Notification saved = notificationRepository.save(notification);

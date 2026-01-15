@@ -25,7 +25,11 @@ public class SseController {
     ) {
         UUID last = null;
         if (lastEventId != null && !lastEventId.isBlank()) {
-            last = UUID.fromString(lastEventId);
+            try {
+                last = UUID.fromString(lastEventId);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid LastEventId format: " + lastEventId);
+            }
         }
         UUID userId = user.getUserDto()
                           .id();
