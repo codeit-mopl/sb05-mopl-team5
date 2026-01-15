@@ -8,6 +8,7 @@ import com.mopl.api.domain.notification.dto.request.NotificationCursorPageReques
 import com.mopl.api.domain.notification.entity.Notification;
 import com.mopl.api.domain.notification.entity.NotificationLevel;
 import com.mopl.api.domain.user.entity.User;
+import com.mopl.api.global.config.JpaConfig;
 import com.mopl.api.global.config.QuerydslConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Slice;
 
 @DataJpaTest
-@Import(QuerydslConfig.class)
+@Import({QuerydslConfig.class, JpaConfig.class})
 @DisplayName("NotificationRepository 테스트")
 class NotificationRepositoryTest {
 
