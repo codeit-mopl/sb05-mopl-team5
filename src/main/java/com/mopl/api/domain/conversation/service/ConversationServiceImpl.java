@@ -116,6 +116,9 @@ public class ConversationServiceImpl implements ConversationService {
     // -------------------------
     // 2) 대화 목록 조회
     // -------------------------
+    // -------------------------
+    // 2) 대화 목록 조회
+    // -------------------------
     @Override
     public ConversationResponseDto getConversationList(
         UUID me, String keywordLike, String cursor, UUID idAfter, int limit, String sortDirection, String sortBy
@@ -126,7 +129,7 @@ public class ConversationServiceImpl implements ConversationService {
         // 2. Pageable 생성 (limit + 1로 다음 페이지 존재 여부 확인)
         Pageable pageable = PageRequest.of(0, limit + 1);
 
-        // 3. Repository 호출 (반환 타입이 Interface인 Summary로 변경됨)
+        // 3. Repository 호출
         List<ConversationSummary> rows = conversationRepository.findConversationList(
             me, keywordLike, cursorTime, pageable
         );
@@ -140,19 +143,19 @@ public class ConversationServiceImpl implements ConversationService {
             rows = rows.subList(0, limit);
         }
 
-        // 6. 변환 (Converter 사용)
+        // 6. 변환
         List<ConversationDto> data = rows.stream()
-                                         .map(conversationConverter::toDto) // Mapper 대신 Converter 사용
+                                         .map(conversationConverter::toDto)
                                          .toList();
 
-        // 7. 다음 커서 계산 (Interface Getter 사용)
+        // 7. 다음 커서 계산 (🔥 수정된 부분)
         String nextCursor = null;
         UUID nextIdAfter = null;
 
-        if (!rows.isEmpty()) {
+        // [중요] hasNext가 true일 때만 계산! (마지막 페이지면 null 유지)
+        if (hasNext && !rows.isEmpty()) {
             ConversationSummary lastRow = rows.get(rows.size() - 1);
 
-            // Interface의 Getter 메서드(get...) 사용
             if (lastRow.getLastMessageCreatedAt() != null) {
                 nextCursor = lastRow.getLastMessageCreatedAt()
                                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
@@ -160,7 +163,7 @@ public class ConversationServiceImpl implements ConversationService {
             nextIdAfter = lastRow.getConversationId();
         }
 
-        // 8. 응답 DTO 생성 (Builder 직접 사용)
+        // 8. 응답 DTO 생성
         return ConversationResponseDto.builder()
                                       .data(data)
                                       .nextCursor(nextCursor)
@@ -244,53 +247,57 @@ public class ConversationServiceImpl implements ConversationService {
     public DirectMessageResponseDto getDirectMessageList(
         UUID me, UUID conversationId, String cursor, UUID idAfter, int limit, String sortDirection, String sortBy
     ) {
-        // 1. 권한 체크 (JPA 메서드 사용)
+        // 1. 권한 체크
         if (!conversationParticipantRepository.existsByConversationIdAndUserId(conversationId, me)) {
             throw new AccessDeniedException("대화방 참여자가 아닙니다.");
         }
 
-        // 2. 리스트 조회 (ASC / DESC 분기)
+        // 2. 리스트 조회 (limit + 1개 조회)
         LocalDateTime cursorTime = parseCursor(cursor);
-
-        // Pageable로 Limit 처리 (+1 해서 hasNext 체크용)
         Pageable pageable = PageRequest.of(0, limit + 1);
-        List<DirectMessage> list;
 
+        List<DirectMessage> list;
         if ("DESCENDING".equalsIgnoreCase(sortDirection)) {
             list = directMessageRepository.findMessageListDesc(conversationId, cursorTime, idAfter, pageable);
         } else {
             list = directMessageRepository.findMessageListAsc(conversationId, cursorTime, idAfter, pageable);
         }
 
-        // 전체 개수 조회 (메서드명 변경됨)
+        // 전체 개수
         long totalCount = directMessageRepository.countByConversationId(conversationId);
 
         // 3. 읽음 처리
         if (!list.isEmpty()) {
             boolean isDesc = "DESCENDING".equalsIgnoreCase(sortDirection);
-            // 리스트가 뒤집히기 전이므로 0번이 최신(DESC 기준)
             DirectMessage latestMessage = isDesc ? list.get(0) : list.get(list.size() - 1);
             conversationParticipantRepository.updateLastReadAtIfNewer(conversationId, me, latestMessage.getCreatedAt());
         }
 
-        // 4. hasNext 계산 및 자르기
+        // 4. hasNext 판단
         boolean hasNext = list.size() > limit;
-        if (hasNext) {
-            list = new java.util.ArrayList<>(list.subList(0, limit));
-        }
 
-        // 5. 커서 계산 (뒤집기 전에 미리!)
+        // 5. 커서 및 리스트 데이터 처리
         String nextCursor = null;
         UUID nextIdAfter = null;
 
-        if (hasNext && !list.isEmpty()) {
-            DirectMessage last = list.get(list.size() - 1);
-            nextCursor = last.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
-            nextIdAfter = last.getId();
+        if (hasNext) {
+            // (1) 다음 페이지가 있는 경우에만!
+            // 리스트를 limit 개수로 자르고
+            list = new java.util.ArrayList<>(list.subList(0, limit));
+
+            // 자른 리스트의 마지막 요소를 다음 커서로 설정
+            if (!list.isEmpty()) {
+                DirectMessage last = list.get(list.size() - 1);
+                nextCursor = last.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
+                nextIdAfter = last.getId();
+            }
         }
+        // else {
+        //    (2) 다음 페이지가 없으면(hasNext == false)
+        //    nextCursor, nextIdAfter는 초기값인 null 유지
+        // }
 
-
-        // 7. DTO 변환
+        // 6. DTO 변환
         List<DirectMessageDto> data = list.stream()
                                           .map(directMessageMapper::toDto)
                                           .toList();
