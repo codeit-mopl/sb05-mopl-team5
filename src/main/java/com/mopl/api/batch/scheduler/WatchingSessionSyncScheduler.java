@@ -20,6 +20,7 @@ public class WatchingSessionSyncScheduler {
 
     @Scheduled(fixedDelay = 3000)
     public void syncToDb() {
+        // TODO 서버 부하를 줄이기 위해 우선 3초
         Set<String> changedIds = redisRepository.popAllChangedIds();
         if (changedIds.isEmpty()) return;
 
