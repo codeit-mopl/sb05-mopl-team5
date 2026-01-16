@@ -44,5 +44,11 @@ public class ConversationParticipant extends BaseUpdatableEntity {
 
     public void updateLastReadAt() {
         this.lastReadAt = LocalDateTime.now();
+   }
+
+    public void updateLastReadAt(LocalDateTime time) {
+        this.lastReadAt = time;
     }
+
+
 }
