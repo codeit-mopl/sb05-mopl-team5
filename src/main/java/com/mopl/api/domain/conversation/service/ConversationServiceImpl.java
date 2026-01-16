@@ -24,9 +24,11 @@ import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.ArrayList; // ArrayList import 추가
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -51,14 +53,13 @@ public class ConversationServiceImpl implements ConversationService {
     private final ConversationConverter conversationConverter;
 
     // -------------------------
-    // 1) 1:1 대화방 생성 (없으면 생성, 있으면 existing 반환)
+    // 1) 1:1 대화방 생성
     // -------------------------
     @Override
     @Transactional
     public ConversationDto createConversation(UUID me, ConversationRequestDto withUserId) {
         UUID other = withUserId.withUserId();
 
-        // 1. 유효성 검사
         if (other == null) {
             throw new IllegalArgumentException("withUserId는 필수입니다.");
         }
@@ -66,28 +67,21 @@ public class ConversationServiceImpl implements ConversationService {
             throw new IllegalArgumentException("자기 자신과 대화할 수 없습니다.");
         }
 
-        // 2. 상대방 정보 조회 (어차피 필요함)
         User otherUser = userRepository.findById(other)
                                        .orElseThrow(() -> new IllegalArgumentException("상대 유저가 존재하지 않습니다."));
 
-        // 3. 이미 존재하는 방 확인
-        UUID existingConversationId = conversationRepository.findOneToOneConversationId(Set.of(me, other))
-                                                            .orElse(null);
+        // ID 대신 엔티티를 바로 조회 (최적화)
+        Conversation existingConversation = conversationRepository.findOneToOneConversation(Set.of(me, other))
+                                                                  .orElse(null);
 
-        // 🔥 [Case 1] 이미 방이 있는 경우 -> "상세 정보"를 조회해서 리턴 (내부 호출 제거)
-        if (existingConversationId != null) {
-            Conversation conversation = conversationRepository.findById(existingConversationId)
-                                                              .orElseThrow(() -> new IllegalStateException(
-                                                                  "데이터 무결성 오류: 방 ID는 있는데 데이터가 없음"));
-
-            // (1) 마지막 메시지 조회 (JPA 메서드 사용)
+        // [Case 1] 이미 방이 있는 경우
+        if (existingConversation != null) {
             DirectMessage lastMessage = directMessageRepository
-                .findTopByConversationIdOrderByCreatedAtDesc(existingConversationId)
+                .findTopByConversationIdOrderByCreatedAtDesc(existingConversation.getId())
                 .orElse(null);
 
-            // (2) 안 읽음 여부 계산 (참여자 정보 필요)
             ConversationParticipant myParticipant = conversationParticipantRepository
-                .findByConversationIdAndUserId(existingConversationId, me)
+                .findByConversationIdAndUserId(existingConversation.getId(), me)
                 .orElseThrow(() -> new IllegalStateException("참여자 정보 누락"));
 
             boolean hasUnread = false;
@@ -98,12 +92,10 @@ public class ConversationServiceImpl implements ConversationService {
                     hasUnread = (lastReadAt == null) || lastReadAt.isBefore(lastMessage.getCreatedAt());
                 }
             }
-
-            // (3) Mapper로 DTO 변환
-            return conversationMapper.toCheckDto(conversation, otherUser, lastMessage, hasUnread);
+            return conversationMapper.toCheckDto(existingConversation, otherUser, lastMessage, hasUnread);
         }
 
-        // 🔥 [Case 2] 방이 없는 경우 -> "새로 생성" 후 "빈 방 정보" 리턴
+        // [Case 2] 방이 없는 경우
         User meUser = userRepository.getReferenceById(me);
 
         Conversation newConversation = conversationRepository.save(Conversation.create());
@@ -113,9 +105,7 @@ public class ConversationServiceImpl implements ConversationService {
         return conversationMapper.toEmptyDto(newConversation, otherUser);
     }
 
-    // -------------------------
-    // 2) 대화 목록 조회
-    // -------------------------
+
     // -------------------------
     // 2) 대화 목록 조회
     // -------------------------
@@ -123,39 +113,29 @@ public class ConversationServiceImpl implements ConversationService {
     public ConversationResponseDto getConversationList(
         UUID me, String keywordLike, String cursor, UUID idAfter, int limit, String sortDirection, String sortBy
     ) {
-        // 1. 커서 파싱
         LocalDateTime cursorTime = parseCursor(cursor);
-
-        // 2. Pageable 생성 (limit + 1로 다음 페이지 존재 여부 확인)
         Pageable pageable = PageRequest.of(0, limit + 1);
 
-        // 3. Repository 호출
         List<ConversationSummary> rows = conversationRepository.findConversationList(
             me, keywordLike, cursorTime, pageable
         );
 
-        // 4. 전체 카운트 조회
         long totalCount = conversationRepository.countConversationList(me, keywordLike);
 
-        // 5. 다음 페이지 여부 확인 및 리스트 자르기
         boolean hasNext = rows.size() > limit;
         if (hasNext) {
             rows = rows.subList(0, limit);
         }
 
-        // 6. 변환
         List<ConversationDto> data = rows.stream()
                                          .map(conversationConverter::toDto)
                                          .toList();
 
-        // 7. 다음 커서 계산 (🔥 수정된 부분)
         String nextCursor = null;
         UUID nextIdAfter = null;
 
-        // [중요] hasNext가 true일 때만 계산! (마지막 페이지면 null 유지)
         if (hasNext && !rows.isEmpty()) {
             ConversationSummary lastRow = rows.get(rows.size() - 1);
-
             if (lastRow.getLastMessageCreatedAt() != null) {
                 nextCursor = lastRow.getLastMessageCreatedAt()
                                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
@@ -163,7 +143,6 @@ public class ConversationServiceImpl implements ConversationService {
             nextIdAfter = lastRow.getConversationId();
         }
 
-        // 8. 응답 DTO 생성
         return ConversationResponseDto.builder()
                                       .data(data)
                                       .nextCursor(nextCursor)
@@ -174,22 +153,30 @@ public class ConversationServiceImpl implements ConversationService {
                                       .sortDirection(sortDirection)
                                       .build();
     }
+
     // -------------------------
-    // 3) 읽음 처리
+    // 3) 읽음 처리 (🔥 수정됨: 최적화 적용)
     // -------------------------
     @Override
     @Transactional
     public void conversationRead(UUID userId, UUID conversationId, UUID directMessageId) {
-        // 참여자 검증 (새로운 Repository 메서드 사용 가능, 혹은 기존 로직 유지)
-        if (!conversationParticipantRepository.existsByConversationIdAndUserId(conversationId, userId)) {
-            throw new AccessDeniedException("대화방 참여자가 아닙니다.");
-        }
+        // 1. 참여자 조회 (권한 체크 및 Entity 확보)
+        // existsBy 대신 findBy를 사용하여 DB 접근 1회 감소 및 403 에러 원인 파악 용이
+        ConversationParticipant participant = conversationParticipantRepository
+            .findByConversationIdAndUserId(conversationId, userId)
+            .orElseThrow(() -> new AccessDeniedException("대화방 참여자가 아닙니다."));
 
+        // 2. 메시지 생성 시간 조회
         LocalDateTime messageCreatedAt = directMessageRepository
             .findCreatedAtByIdAndConversationId(directMessageId, conversationId)
-            .orElseThrow(() -> new IllegalArgumentException("메시지를 찾을 수 없습니다."));
+            .orElseThrow(() -> new IllegalArgumentException("해당 대화방에 존재하지 않는 메시지입니다."));
 
-        conversationParticipantRepository.updateLastReadAtIfNewer(conversationId, userId, messageCreatedAt);
+        // 3. 읽음 처리 업데이트 (내 읽음 시간보다 최신일 경우에만 업데이트)
+        LocalDateTime currentReadAt = participant.getLastReadAt();
+        if (currentReadAt == null || messageCreatedAt.isAfter(currentReadAt)) {
+            // Entity의 updateLastReadAt(LocalDateTime time) 호출
+            participant.updateLastReadAt(messageCreatedAt);
+        }
     }
 
     // -------------------------
@@ -222,7 +209,6 @@ public class ConversationServiceImpl implements ConversationService {
                                     .orElseThrow(() -> new IllegalStateException("대화 상대방을 찾을 수 없습니다."));
         }
 
-        // JPA 메서드 사용 (Top 1)
         DirectMessage lastMessage = directMessageRepository
             .findTopByConversationIdOrderByCreatedAtDesc(conversationId)
             .orElse(null);
@@ -240,19 +226,19 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     // -------------------------
-    // 5) DM 목록 조회 (🔥 핵심 수정: QueryDSL 제거 -> JPA 분기 처리)
+    // 5) DM 목록 조회 (🔥 수정됨: 리스트 뒤집기 & 최적화)
     // -------------------------
     @Override
     @Transactional
     public DirectMessageResponseDto getDirectMessageList(
         UUID me, UUID conversationId, String cursor, UUID idAfter, int limit, String sortDirection, String sortBy
     ) {
-        // 1. 권한 체크
-        if (!conversationParticipantRepository.existsByConversationIdAndUserId(conversationId, me)) {
-            throw new AccessDeniedException("대화방 참여자가 아닙니다.");
-        }
+        // 1. [최적화] 참여자 Entity 바로 조회 (권한 체크 + 읽음 시간 확인)
+        ConversationParticipant myParticipant = conversationParticipantRepository
+            .findByConversationIdAndUserId(conversationId, me)
+            .orElseThrow(() -> new AccessDeniedException("대화방 참여자가 아닙니다."));
 
-        // 2. 리스트 조회 (limit + 1개 조회)
+        // 2. 메시지 목록 조회 (페이징을 위해 항상 DESC 등 정렬된 상태로 가져옴)
         LocalDateTime cursorTime = parseCursor(cursor);
         Pageable pageable = PageRequest.of(0, limit + 1);
 
@@ -263,41 +249,39 @@ public class ConversationServiceImpl implements ConversationService {
             list = directMessageRepository.findMessageListAsc(conversationId, cursorTime, idAfter, pageable);
         }
 
-        // 전체 개수
-        long totalCount = directMessageRepository.countByConversationId(conversationId);
-
-        // 3. 읽음 처리
+        // 3. [최적화] 읽음 처리 (DB Update 최소화)
         if (!list.isEmpty()) {
+            // DESC 기준 0번째가 가장 최신 메시지
             boolean isDesc = "DESCENDING".equalsIgnoreCase(sortDirection);
             DirectMessage latestMessage = isDesc ? list.get(0) : list.get(list.size() - 1);
-            conversationParticipantRepository.updateLastReadAtIfNewer(conversationId, me, latestMessage.getCreatedAt());
+
+            LocalDateTime myLastReadAt = myParticipant.getLastReadAt();
+            LocalDateTime messageCreatedAt = latestMessage.getCreatedAt();
+
+            if (myLastReadAt == null || messageCreatedAt.isAfter(myLastReadAt)) {
+                myParticipant.updateLastReadAt(messageCreatedAt);
+            }
         }
 
-        // 4. hasNext 판단
+        // 4. hasNext 및 커서 계산
+        long totalCount = directMessageRepository.countByConversationId(conversationId);
         boolean hasNext = list.size() > limit;
+        if (hasNext) {
+            // 원본 리스트를 건드리지 않기 위해 복사본 생성 혹은 subList 사용
+            list = new ArrayList<>(list.subList(0, limit));
+        }
 
-        // 5. 커서 및 리스트 데이터 처리
         String nextCursor = null;
         UUID nextIdAfter = null;
 
-        if (hasNext) {
-            // (1) 다음 페이지가 있는 경우에만!
-            // 리스트를 limit 개수로 자르고
-            list = new java.util.ArrayList<>(list.subList(0, limit));
-
-            // 자른 리스트의 마지막 요소를 다음 커서로 설정
-            if (!list.isEmpty()) {
-                DirectMessage last = list.get(list.size() - 1);
-                nextCursor = last.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
-                nextIdAfter = last.getId();
-            }
+        if (hasNext && !list.isEmpty()) {
+            DirectMessage last = list.get(list.size() - 1);
+            nextCursor = last.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"));
+            nextIdAfter = last.getId();
         }
-        // else {
-        //    (2) 다음 페이지가 없으면(hasNext == false)
-        //    nextCursor, nextIdAfter는 초기값인 null 유지
-        // }
 
-        // 6. DTO 변환
+
+        // 5. DTO 변환 및 반환
         List<DirectMessageDto> data = list.stream()
                                           .map(directMessageMapper::toDto)
                                           .toList();
@@ -325,21 +309,19 @@ public class ConversationServiceImpl implements ConversationService {
 
         DirectMessageWith withUserDto = directMessageMapper.toWithDto(otherUser);
 
-        UUID conversationId = conversationRepository.findOneToOneConversationId(Set.of(me, other))
-                                                    .orElse(null);
+        Conversation conversation = conversationRepository.findOneToOneConversation(Set.of(me, other))
+                                                          .orElse(null);
 
-        // 🔥 [핵심] 404 예외 발생 (프론트엔드 생성 유도)
-        if (conversationId == null) {
+        if (conversation == null) {
             throw new ConversationNotFoundException(other);
         }
 
         LocalDateTime myLastReadAt = conversationParticipantRepository
-            .findLastReadAtByConversationIdAndUserId(conversationId, me)
+            .findLastReadAtByConversationIdAndUserId(conversation.getId(), me)
             .orElseThrow(() -> new AccessDeniedException("대화방 참여자가 아닙니다."));
 
-        // JPA 메서드 사용
         DirectMessage latest = directMessageRepository
-            .findTopByConversationIdOrderByCreatedAtDesc(conversationId)
+            .findTopByConversationIdOrderByCreatedAtDesc(conversation.getId())
             .orElse(null);
 
         boolean hasUnread = false;
@@ -353,9 +335,9 @@ public class ConversationServiceImpl implements ConversationService {
         }
 
         return DirectMessageWithDto.builder()
-                                   .id(conversationId)
+                                   .id(conversation.getId())
                                    .with(withUserDto)
-                                   .lastestMessage(latestDto) // DTO 필드명 lastestMessage 주의
+                                   .lastestMessage(latestDto)
                                    .hasUnread(hasUnread)
                                    .build();
     }
