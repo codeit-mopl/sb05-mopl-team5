@@ -2,6 +2,7 @@ package com.mopl.api.global.config.websocket.listener;
 
 import com.mopl.api.domain.user.service.WatchingSessionService;
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -10,11 +11,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
-import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
+import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 
 @Slf4j
 @Component
@@ -23,25 +24,21 @@ public class WatchingSessionStompListener {
 
     private static final String DEST_PREFIX = "/sub/contents/";
     private static final String DEST_SUFFIX = "/watch";
+    private static final String WATCH_KEY = "watchingContentIds";
+    private static final String SUB_KEY = "subMapping";
 
     private final WatchingSessionService watchingSessionService;
 
     @EventListener
     public void handleSubscribe(SessionSubscribeEvent event) {
-        // JOIN
-        StompHeaderAccessor accessor =
-            MessageHeaderAccessor.getAccessor(event.getMessage(), StompHeaderAccessor.class);
-        if (accessor == null) {
-            return;
-        }
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
+        String destination = accessor.getDestination();
+        String subscriptionId = accessor.getSubscriptionId();
 
-        UUID contentId = parseContentId(accessor.getDestination());
-        if (contentId == null) {
-            return;
-        }
-
+        UUID contentId = parseContentId(destination);
         UUID userId = extractUserId(accessor.getUser());
-        if (userId == null) {
+
+        if (contentId == null || userId == null || subscriptionId == null) {
             return;
         }
 
@@ -50,55 +47,67 @@ public class WatchingSessionStompListener {
             return;
         }
 
-        @SuppressWarnings("unchecked")
-        Set<UUID> watchingContents =
-            (Set<UUID>) attrs.computeIfAbsent(
-                "watchingContentIds",
-                k -> new HashSet<UUID>()
-            );
+        Set<UUID> watchingContents = (Set<UUID>) attrs.computeIfAbsent(WATCH_KEY, k -> new HashSet<UUID>());
+        watchingContents.add(contentId);
 
-        // 이미 보고 있으면 무시 (중복 방지, 나중에 정교화 가능)
-        if (!watchingContents.add(contentId)) {
+        Map<String, UUID> subMap = (Map<String, UUID>) attrs.computeIfAbsent(SUB_KEY,
+            k -> new HashMap<String, UUID>());
+        subMap.put(subscriptionId, contentId);
+
+        watchingSessionService.joinWatchingSession(contentId, userId);
+        log.debug("[JOIN] userId: {}, contentId: {}, subId: {}", userId, contentId, subscriptionId);
+    }
+
+    @EventListener
+    public void handleUnsubscribe(SessionUnsubscribeEvent event) {
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
+        String subscriptionId = accessor.getSubscriptionId();
+        UUID userId = extractUserId(accessor.getUser());
+
+        Map<String, Object> attrs = accessor.getSessionAttributes();
+        if (attrs == null || userId == null || subscriptionId == null) {
             return;
         }
 
-        watchingSessionService.joinWatchingSession(contentId, userId);
+        Map<String, UUID> subMap = (Map<String, UUID>) attrs.get(SUB_KEY);
+        if (subMap != null && subMap.containsKey(subscriptionId)) {
+            UUID contentId = subMap.remove(subscriptionId);
+
+            Set<UUID> watchingContents = (Set<UUID>) attrs.get(WATCH_KEY);
+            if (watchingContents != null) {
+                watchingContents.remove(contentId);
+            }
+
+            watchingSessionService.leaveWatchingSession(contentId, userId);
+            log.debug("[LEAVE by Unsubscribe] userId: {}, contentId: {}", userId, contentId);
+        }
     }
 
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
-        //LEAVE
-        StompHeaderAccessor accessor =
-            MessageHeaderAccessor.getAccessor(event.getMessage(), StompHeaderAccessor.class);
-        if (accessor == null) {
-            return;
-        }
-
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         UUID userId = extractUserId(accessor.getUser());
-        if (userId == null) {
-            return;
-        }
-
         Map<String, Object> attrs = accessor.getSessionAttributes();
-        if (attrs == null) {
+
+        if (attrs == null || userId == null) {
             return;
         }
 
-        @SuppressWarnings("unchecked")
-        Set<UUID> watchingContents =
-            (Set<UUID>) attrs.get("watchingContentIds");
-
-        if (watchingContents == null || watchingContents.isEmpty()) {
+        Set<UUID> watchingContents = (Set<UUID>) attrs.get(WATCH_KEY);
+        if (watchingContents == null) {
             return;
         }
 
         for (UUID contentId : watchingContents) {
             try {
                 watchingSessionService.leaveWatchingSession(contentId, userId);
+                log.debug("[LEAVE by Disconnect] userId: {}, contentId: {}", userId, contentId);
             } catch (Exception e) {
-                log.warn("LEAVE 처리 실패 contentId={}, userId={}", contentId, userId, e);
+                log.error("Disconnect LEAVE 처리 실패", e);
             }
         }
+        attrs.remove(WATCH_KEY);
+        attrs.remove(SUB_KEY);
     }
 
     private UUID parseContentId(String destination) {
@@ -123,7 +132,6 @@ public class WatchingSessionStompListener {
         }
     }
 
-    // TODO 나중에 dm stomp 쪽 같이 추출
     private UUID extractUserId(Principal principal) {
         if (principal instanceof UsernamePasswordAuthenticationToken token) {
             Object p = token.getPrincipal();

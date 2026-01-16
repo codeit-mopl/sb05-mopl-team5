@@ -2,6 +2,7 @@ package com.mopl.api.domain.user.repository.impl;
 
 import com.mopl.api.domain.user.repository.WatchingSessionRedisRepository;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -58,26 +59,16 @@ public class WatchingSessionRedisRepositoryImpl implements WatchingSessionRedisR
 
     @Override
     public Set<String> popAllChangedIds() {
-        String tempKey = SYNC_SET_KEY + ":" + UUID.randomUUID();
+        List<Object> popped = redisTemplate.opsForSet()
+                                           .pop(SYNC_SET_KEY, 1000);
 
-        Boolean hasKey = redisTemplate.hasKey(SYNC_SET_KEY);
-        if (!hasKey) {
+        if (popped == null || popped.isEmpty()) {
             return Collections.emptySet();
         }
 
-        redisTemplate.rename(SYNC_SET_KEY, tempKey);
-
-        Set<Object> members = redisTemplate.opsForSet()
-                                           .members(tempKey);
-        redisTemplate.delete(tempKey);
-
-        if (members == null || members.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        return members.stream()
-                      .map(String::valueOf)
-                      .collect(Collectors.toSet());
+        return popped.stream()
+                     .map(String::valueOf)
+                     .collect(Collectors.toSet());
     }
 
     private String key(UUID contentId) {
