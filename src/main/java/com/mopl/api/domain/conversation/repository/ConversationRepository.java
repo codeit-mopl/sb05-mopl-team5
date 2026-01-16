@@ -16,16 +16,18 @@ import java.util.UUID;
 public interface ConversationRepository extends JpaRepository<Conversation, UUID> {
 
     // 1. 1:1 대화방 조회 (엄격한 모드: 정확히 두 명만 있는 방)
+    // 기존: Optional<UUID> 반환 (ID만 조회)
+// 변경: Optional<Conversation> 반환 (엔티티 조회)
     @Query("""
-        SELECT c.id 
-        FROM Conversation c
-        JOIN c.participants p
-        WHERE p.user.id IN :userIds
-        GROUP BY c.id
-        HAVING COUNT(DISTINCT p.user.id) = 2
-           AND (SELECT COUNT(cp) FROM ConversationParticipant cp WHERE cp.conversation.id = c.id) = 2
-    """)
-    Optional<UUID> findOneToOneConversationId(@Param("userIds") Set<UUID> userIds);
+    SELECT c 
+    FROM Conversation c
+    JOIN c.participants p
+    WHERE p.user.id IN :userIds
+    GROUP BY c.id
+    HAVING COUNT(DISTINCT p.user.id) = 2
+       AND (SELECT COUNT(cp) FROM ConversationParticipant cp WHERE cp.conversation.id = c.id) = 2
+""")
+    Optional<Conversation> findOneToOneConversation(@Param("userIds") Set<UUID> userIds);
 
     // 2. 목록 조회 (Interface Projection 사용)
     @Query("""
