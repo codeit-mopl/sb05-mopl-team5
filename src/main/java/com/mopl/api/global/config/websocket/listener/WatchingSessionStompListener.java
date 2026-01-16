@@ -73,13 +73,15 @@ public class WatchingSessionStompListener {
         if (subMap != null && subMap.containsKey(subscriptionId)) {
             UUID contentId = subMap.remove(subscriptionId);
 
-            Set<UUID> watchingContents = (Set<UUID>) attrs.get(WATCH_KEY);
-            if (watchingContents != null) {
-                watchingContents.remove(contentId);
-            }
+            if (!subMap.containsValue(contentId)) {
+                Set<UUID> watchingContents = (Set<UUID>) attrs.get(WATCH_KEY);
+                if (watchingContents != null) {
+                    watchingContents.remove(contentId);
+                }
 
-            watchingSessionService.leaveWatchingSession(contentId, userId);
-            log.debug("[LEAVE by Unsubscribe] userId: {}, contentId: {}", userId, contentId);
+                watchingSessionService.leaveWatchingSession(contentId, userId);
+                log.debug("[LEAVE by Unsubscribe] userId: {}, contentId: {}", userId, contentId);
+            }
         }
     }
 
