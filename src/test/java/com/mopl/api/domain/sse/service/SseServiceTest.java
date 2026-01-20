@@ -90,7 +90,7 @@ class SseServiceTest {
         verify(sseMessageRepository).save(any(SseMessage.class));
         try {
             verify(mockEmitter, atLeastOnce()).send(any(SseEmitter.SseEventBuilder.class));
-        } catch (IOException e) {
+        } catch (IOException ignored) {
         }
     }
 }
