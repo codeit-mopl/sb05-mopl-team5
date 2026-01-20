@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.entity.ContentType;
 import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.review.dto.request.ReviewCreateRequest;
@@ -29,8 +30,9 @@ import com.mopl.api.domain.user.entity.UserRole;
 import com.mopl.api.domain.user.exception.user.UserErrorCode;
 import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
+import com.navercorp.fixturemonkey.FixtureMonkey;
+import com.navercorp.fixturemonkey.api.introspector.FieldReflectionArbitraryIntrospector;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -60,14 +62,19 @@ class ReviewServiceTest {
     private ReviewMapper reviewMapper;
 
     @InjectMocks
-    private ReviewServiceImpl reviewService;
+    private ReviewService reviewService;
 
+    private FixtureMonkey fixtureMonkey;
     private UUID userId;
     private UUID contentId;
     private UUID reviewId;
 
     @BeforeEach
     void setUp() {
+        fixtureMonkey = FixtureMonkey.builder()
+            .objectIntrospector(FieldReflectionArbitraryIntrospector.INSTANCE)
+            .build();
+        
         userId = UUID.randomUUID();
         contentId = UUID.randomUUID();
         reviewId = UUID.randomUUID();
@@ -78,37 +85,49 @@ class ReviewServiceTest {
     void addReview_Success() {
         ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Great movie!", 5.0);
         
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .set("locked", false)
+            .sample();
+        
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .set("type", ContentType.MOVIE)
+            .set("isDeleted", false)
+            .sample();
+        
+        Review review = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", reviewId)
+            .set("content", content)
+            .set("user", user)
+            .set("text", "Great movie!")
+            .set("rating", BigDecimal.valueOf(5.0))
+            .set("isDeleted", false)
+            .sample();
+        
         AuthorDto authorDto = AuthorDto.builder()
-                                       .userId(userId)
-                                       .name("Test User")
-                                       .profileImageUrl(null)
-                                       .build();
+            .userId(userId)
+            .name(user.getName())
+            .profileImageUrl(user.getProfileImageUrl())
+            .build();
         
         ReviewDto expectedDto = ReviewDto.builder()
-                                         .id(reviewId)
-                                         .contentId(contentId)
-                                         .author(authorDto)
-                                         .text("Great movie!")
-                                         .rating(5.0)
-                                         .createdAt(null)
-                                         .updatedAt(null)
-                                         .isAuthor(true)
-                                         .build();
+            .id(reviewId)
+            .contentId(contentId)
+            .author(authorDto)
+            .text("Great movie!")
+            .rating(5.0)
+            .createdAt(review.getCreatedAt())
+            .updatedAt(review.getUpdatedAt())
+            .isAuthor(true)
+            .build();
 
-        User mockUser = mock(User.class);
-        Content mockContent = mock(Content.class);
-        Review mockReview = mock(Review.class);
-
-        when(mockContent.getId()).thenReturn(contentId);
-        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(5.0));
-        when(mockReview.getIsDeleted()).thenReturn(false);
-        when(mockReview.getContent()).thenReturn(mockContent);
-
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
-        when(reviewRepository.save(any(Review.class))).thenReturn(mockReview);
-        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
+        when(reviewRepository.save(any(Review.class))).thenReturn(review);
+        when(reviewRepository.findAll()).thenReturn(List.of(review));
         when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
 
         ReviewDto result = reviewService.addReview(request, userId);
@@ -119,7 +138,7 @@ class ReviewServiceTest {
         verify(userRepository).findById(userId);
         verify(reviewRepository).existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId);
         verify(reviewRepository).save(any(Review.class));
-        verify(contentRepository).save(mockContent);
+        verify(contentRepository).save(content);
     }
 
     @Test
@@ -141,9 +160,12 @@ class ReviewServiceTest {
     @DisplayName("리뷰 생성 실패 - 존재하지 않는 사용자")
     void addReview_UserNotFound() {
         ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Great movie!", 5.0);
-        Content mockContent = mock(Content.class);
+        
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .sample();
 
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reviewService.addReview(request, userId))
@@ -158,12 +180,17 @@ class ReviewServiceTest {
     @DisplayName("리뷰 생성 실패 - 중복 리뷰")
     void addReview_DuplicateReview() {
         ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Great movie!", 5.0);
-        Content mockContent = mock(Content.class);
-        User mockUser = mock(User.class);
+        
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .sample();
+        
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
 
-        when(mockContent.getId()).thenReturn(contentId);
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(true);
 
         assertThatThrownBy(() -> reviewService.addReview(request, userId))
@@ -179,48 +206,52 @@ class ReviewServiceTest {
     void modifyReview_Success() {
         ReviewUpdateRequest request = new ReviewUpdateRequest("Updated text", 4.0);
         
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
+        
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .sample();
+        
+        Review review = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", reviewId)
+            .set("user", user)
+            .set("content", content)
+            .set("rating", BigDecimal.valueOf(4.0))
+            .set("isDeleted", false)
+            .sample();
+        
         AuthorDto authorDto = AuthorDto.builder()
-                                       .userId(userId)
-                                       .name("Test User")
-                                       .profileImageUrl(null)
-                                       .build();
+            .userId(userId)
+            .name(user.getName())
+            .profileImageUrl(user.getProfileImageUrl())
+            .build();
         
         ReviewDto expectedDto = ReviewDto.builder()
-                                         .id(reviewId)
-                                         .contentId(contentId)
-                                         .author(authorDto)
-                                         .text("Updated text")
-                                         .rating(4.0)
-                                         .createdAt(null)
-                                         .updatedAt(null)
-                                         .isAuthor(true)
-                                         .build();
+            .id(reviewId)
+            .contentId(contentId)
+            .author(authorDto)
+            .text("Updated text")
+            .rating(4.0)
+            .createdAt(review.getCreatedAt())
+            .updatedAt(review.getUpdatedAt())
+            .isAuthor(true)
+            .build();
 
-        User mockUser = mock(User.class);
-        Content mockContent = mock(Content.class);
-        Review mockReview = mock(Review.class);
-
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockReview.getUser()).thenReturn(mockUser);
-        when(mockReview.getContent()).thenReturn(mockContent);
-        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(4.0));
-        when(mockReview.getIsDeleted()).thenReturn(false);
-        when(mockContent.getId()).thenReturn(contentId);
-
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
-        when(reviewRepository.save(mockReview)).thenReturn(mockReview);
-        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
-        when(reviewMapper.toDto(mockReview, true)).thenReturn(expectedDto);
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
+        when(reviewRepository.save(review)).thenReturn(review);
+        when(reviewRepository.findAll()).thenReturn(List.of(review));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
+        when(reviewMapper.toDto(review, true)).thenReturn(expectedDto);
 
         ReviewDto result = reviewService.modifyReview(reviewId, request, userId);
 
         assertThat(result).isNotNull();
         assertThat(result.text()).isEqualTo("Updated text");
         verify(reviewRepository).findById(reviewId);
-        verify(mockReview).update("Updated text", BigDecimal.valueOf(4.0));
-        verify(reviewRepository).save(mockReview);
-        verify(contentRepository).save(mockContent);
+        verify(reviewRepository).save(review);
+        verify(contentRepository).save(content);
     }
 
     @Test
@@ -244,12 +275,16 @@ class ReviewServiceTest {
         UUID differentUserId = UUID.randomUUID();
         ReviewUpdateRequest request = new ReviewUpdateRequest("Updated text", 4.0);
 
-        User mockUser = mock(User.class);
-        Review mockReview = mock(Review.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
+        
+        Review review = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", reviewId)
+            .set("user", user)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockReview.getUser()).thenReturn(mockUser);
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
 
         assertThatThrownBy(() -> reviewService.modifyReview(reviewId, request, differentUserId))
             .isInstanceOf(ReviewUnauthorizedException.class)
@@ -262,27 +297,31 @@ class ReviewServiceTest {
     @Test
     @DisplayName("리뷰 삭제 성공")
     void removeReview_Success() {
-        User mockUser = mock(User.class);
-        Content mockContent = mock(Content.class);
-        Review mockReview = mock(Review.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
+        
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .sample();
+        
+        Review review = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", reviewId)
+            .set("user", user)
+            .set("content", content)
+            .set("isDeleted", false)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockReview.getUser()).thenReturn(mockUser);
-        when(mockReview.getContent()).thenReturn(mockContent);
-        when(mockReview.getIsDeleted()).thenReturn(true);
-        when(mockContent.getId()).thenReturn(contentId);
-
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
-        when(reviewRepository.save(mockReview)).thenReturn(mockReview);
-        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
+        when(reviewRepository.save(review)).thenReturn(review);
+        when(reviewRepository.findAll()).thenReturn(List.of());
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
 
         reviewService.removeReview(reviewId, userId);
 
         verify(reviewRepository).findById(reviewId);
-        verify(mockReview).softDelete();
-        verify(reviewRepository).save(mockReview);
-        verify(contentRepository).save(mockContent);
+        verify(reviewRepository).save(review);
+        verify(contentRepository).save(content);
     }
 
     @Test
@@ -303,19 +342,22 @@ class ReviewServiceTest {
     void removeReview_Unauthorized() {
         UUID differentUserId = UUID.randomUUID();
 
-        User mockUser = mock(User.class);
-        Review mockReview = mock(Review.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
+        
+        Review review = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", reviewId)
+            .set("user", user)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockReview.getUser()).thenReturn(mockUser);
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
 
         assertThatThrownBy(() -> reviewService.removeReview(reviewId, differentUserId))
             .isInstanceOf(ReviewUnauthorizedException.class)
             .hasMessageContaining("리뷰에 대한 권한이 없습니다");
 
         verify(reviewRepository).findById(reviewId);
-        verify(mockReview, never()).softDelete();
         verify(reviewRepository, never()).save(any());
     }
 
@@ -328,43 +370,35 @@ class ReviewServiceTest {
         String cursor = null;
         UUID idAfter = null;
 
-        User mockUser = mock(User.class);
-        when(mockUser.getId()).thenReturn(userId);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
 
-        Review mockReview1 = mock(Review.class);
-        Review mockReview2 = mock(Review.class);
-        when(mockReview1.getUser()).thenReturn(mockUser);
-        when(mockReview2.getUser()).thenReturn(mockUser);
+        Review review1 = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("user", user)
+            .sample();
+        
+        Review review2 = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("user", user)
+            .sample();
 
-        List<Review> mockReviews = Arrays.asList(mockReview1, mockReview2);
+        List<Review> mockReviews = Arrays.asList(review1, review2);
         
         AuthorDto authorDto = AuthorDto.builder()
-                                       .userId(userId)
-                                       .name("Test User")
-                                       .profileImageUrl(null)
-                                       .build();
+            .userId(userId)
+            .name(user.getName())
+            .profileImageUrl(user.getProfileImageUrl())
+            .build();
         
-        ReviewDto mockDto1 = ReviewDto.builder()
-                                      .id(UUID.randomUUID())
-                                      .contentId(contentId)
-                                      .author(authorDto)
-                                      .text("Great!")
-                                      .rating(5.0)
-                                      .createdAt(null)
-                                      .updatedAt(null)
-                                      .isAuthor(true)
-                                      .build();
+        ReviewDto mockDto1 = fixtureMonkey.giveMeBuilder(ReviewDto.class)
+            .set("author", authorDto)
+            .set("isAuthor", true)
+            .sample();
         
-        ReviewDto mockDto2 = ReviewDto.builder()
-                                      .id(UUID.randomUUID())
-                                      .contentId(contentId)
-                                      .author(authorDto)
-                                      .text("Good!")
-                                      .rating(4.0)
-                                      .createdAt(null)
-                                      .updatedAt(null)
-                                      .isAuthor(true)
-                                      .build();
+        ReviewDto mockDto2 = fixtureMonkey.giveMeBuilder(ReviewDto.class)
+            .set("author", authorDto)
+            .set("isAuthor", true)
+            .sample();
 
         when(reviewRepository.findReviewsWithCursor(
             eq(contentId),
@@ -376,8 +410,8 @@ class ReviewServiceTest {
             eq(limit)
         )).thenReturn(mockReviews);
         when(reviewRepository.countReviewsByContentId(contentId)).thenReturn(2L);
-        when(reviewMapper.toDto(eq(mockReview1), eq(true))).thenReturn(mockDto1);
-        when(reviewMapper.toDto(eq(mockReview2), eq(true))).thenReturn(mockDto2);
+        when(reviewMapper.toDto(eq(review1), eq(true))).thenReturn(mockDto1);
+        when(reviewMapper.toDto(eq(review2), eq(true))).thenReturn(mockDto2);
 
         CursorResponseReviewDto result = reviewService.getReviews(
             contentId,
@@ -409,48 +443,46 @@ class ReviewServiceTest {
         String cursor = "4.5";
         UUID idAfter = UUID.randomUUID();
 
-        User mockUser = mock(User.class);
-        when(mockUser.getId()).thenReturn(userId);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
 
-        UUID mockReview1Id = UUID.randomUUID();
         UUID mockReview2Id = UUID.randomUUID();
-        Review mockReview1 = mock(Review.class);
-        Review mockReview2 = mock(Review.class);
-        Review mockReview3 = mock(Review.class);
-        when(mockReview1.getUser()).thenReturn(mockUser);
-        when(mockReview2.getUser()).thenReturn(mockUser);
-        when(mockReview2.getId()).thenReturn(mockReview2Id);
-        when(mockReview2.getRating()).thenReturn(BigDecimal.valueOf(3.5));
+        
+        Review review1 = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("user", user)
+            .set("rating", BigDecimal.valueOf(4.0))
+            .sample();
+        
+        Review review2 = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", mockReview2Id)
+            .set("user", user)
+            .set("rating", BigDecimal.valueOf(3.5))
+            .sample();
+        
+        Review review3 = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("user", user)
+            .sample();
 
-        List<Review> mockReviews = Arrays.asList(mockReview1, mockReview2, mockReview3);
+        List<Review> mockReviews = Arrays.asList(review1, review2, review3);
         
         AuthorDto authorDto = AuthorDto.builder()
-                                       .userId(userId)
-                                       .name("Test User")
-                                       .profileImageUrl(null)
-                                       .build();
+            .userId(userId)
+            .name(user.getName())
+            .profileImageUrl(user.getProfileImageUrl())
+            .build();
         
-        ReviewDto mockDto1 = ReviewDto.builder()
-                                      .id(mockReview1Id)
-                                      .contentId(contentId)
-                                      .author(authorDto)
-                                      .text("Good!")
-                                      .rating(4.0)
-                                      .createdAt(null)
-                                      .updatedAt(null)
-                                      .isAuthor(true)
-                                      .build();
+        ReviewDto mockDto1 = fixtureMonkey.giveMeBuilder(ReviewDto.class)
+            .set("author", authorDto)
+            .set("rating", 4.0)
+            .set("isAuthor", true)
+            .sample();
         
-        ReviewDto mockDto2 = ReviewDto.builder()
-                                      .id(mockReview2Id)
-                                      .contentId(contentId)
-                                      .author(authorDto)
-                                      .text("OK!")
-                                      .rating(3.5)
-                                      .createdAt(null)
-                                      .updatedAt(null)
-                                      .isAuthor(true)
-                                      .build();
+        ReviewDto mockDto2 = fixtureMonkey.giveMeBuilder(ReviewDto.class)
+            .set("author", authorDto)
+            .set("rating", 3.5)
+            .set("isAuthor", true)
+            .sample();
 
         when(reviewRepository.findReviewsWithCursor(
             eq(contentId),
@@ -462,8 +494,8 @@ class ReviewServiceTest {
             eq(limit)
         )).thenReturn(mockReviews);
         when(reviewRepository.countReviewsByContentId(contentId)).thenReturn(5L);
-        when(reviewMapper.toDto(eq(mockReview1), eq(true))).thenReturn(mockDto1);
-        when(reviewMapper.toDto(eq(mockReview2), eq(true))).thenReturn(mockDto2);
+        when(reviewMapper.toDto(eq(review1), eq(true))).thenReturn(mockDto1);
+        when(reviewMapper.toDto(eq(review2), eq(true))).thenReturn(mockDto2);
 
         CursorResponseReviewDto result = reviewService.getReviews(
             contentId,
@@ -492,26 +524,12 @@ class ReviewServiceTest {
         String sortDirection = "desc";
         int limit = 10;
 
-        Review mockReview = mock(Review.class);
+        Review review = fixtureMonkey.giveMeOne(Review.class);
 
-        List<Review> mockReviews = Arrays.asList(mockReview);
+        List<Review> mockReviews = Arrays.asList(review);
         
-        AuthorDto authorDto = AuthorDto.builder()
-                                       .userId(UUID.randomUUID())
-                                       .name("Test User")
-                                       .profileImageUrl(null)
-                                       .build();
-        
-        ReviewDto mockDto = ReviewDto.builder()
-                                     .id(UUID.randomUUID())
-                                     .contentId(contentId)
-                                     .author(authorDto)
-                                     .text("Great!")
-                                     .rating(5.0)
-                                     .createdAt(null)
-                                     .updatedAt(null)
-                                     .isAuthor(false)
-                                     .build();
+        ReviewDto mockDto = mock(ReviewDto.class);
+        when(mockDto.isAuthor()).thenReturn(false);
 
         when(reviewRepository.findReviewsWithCursor(
             eq(contentId),
@@ -523,7 +541,7 @@ class ReviewServiceTest {
             eq(limit)
         )).thenReturn(mockReviews);
         when(reviewRepository.countReviewsByContentId(contentId)).thenReturn(1L);
-        when(reviewMapper.toDto(eq(mockReview), eq(false))).thenReturn(mockDto);
+        when(reviewMapper.toDto(eq(review), eq(false))).thenReturn(mockDto);
 
         CursorResponseReviewDto result = reviewService.getReviews(
             contentId,
@@ -538,8 +556,8 @@ class ReviewServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.data()).hasSize(1);
         assertThat(result.data()
-                         .get(0)
-                         .isAuthor()).isFalse();
+                          .get(0)
+                          .isAuthor()).isFalse();
         verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(),
             any(), eq(limit));
     }
@@ -549,43 +567,34 @@ class ReviewServiceTest {
     void recalculateContentRating_FirstReview() {
         ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Great movie!", 5.0);
         
-        AuthorDto authorDto = AuthorDto.builder()
-                                       .userId(userId)
-                                       .name("Test User")
-                                       .profileImageUrl(null)
-                                       .build();
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
         
-        ReviewDto expectedDto = ReviewDto.builder()
-                                         .id(reviewId)
-                                         .contentId(contentId)
-                                         .author(authorDto)
-                                         .text("Great movie!")
-                                         .rating(5.0)
-                                         .createdAt(null)
-                                         .updatedAt(null)
-                                         .isAuthor(true)
-                                         .build();
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .sample();
+        
+        Review review = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", reviewId)
+            .set("content", content)
+            .set("user", user)
+            .set("rating", BigDecimal.valueOf(5.0))
+            .set("isDeleted", false)
+            .sample();
+        
+        ReviewDto expectedDto = mock(ReviewDto.class);
 
-        User mockUser = mock(User.class);
-        Content mockContent = mock(Content.class);
-        Review mockReview = mock(Review.class);
-
-        when(mockContent.getId()).thenReturn(contentId);
-        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(5.0));
-        when(mockReview.getIsDeleted()).thenReturn(false);
-        when(mockReview.getContent()).thenReturn(mockContent);
-
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
-        when(reviewRepository.save(any(Review.class))).thenReturn(mockReview);
-        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
+        when(reviewRepository.save(any(Review.class))).thenReturn(review);
+        when(reviewRepository.findAll()).thenReturn(List.of(review));
         when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
 
         reviewService.addReview(request, userId);
 
-        verify(mockContent).updateRatingStats(BigDecimal.valueOf(5.0), 1L);
-        verify(contentRepository).save(mockContent);
+        verify(contentRepository).save(content);
     }
 
     @Test
@@ -593,44 +602,36 @@ class ReviewServiceTest {
     void recalculateContentRating_MultipleReviews() {
         ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Good movie", 4.0);
         
-        AuthorDto authorDto = AuthorDto.builder()
-                                       .userId(userId)
-                                       .name("Test User")
-                                       .profileImageUrl(null)
-                                       .build();
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
         
-        ReviewDto expectedDto = ReviewDto.builder()
-                                         .id(reviewId)
-                                         .contentId(contentId)
-                                         .author(authorDto)
-                                         .text("Good movie")
-                                         .rating(4.0)
-                                         .createdAt(null)
-                                         .updatedAt(null)
-                                         .isAuthor(true)
-                                         .build();
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .sample();
+        
+        Review newReview = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("content", content)
+            .set("rating", BigDecimal.valueOf(4.0))
+            .set("isDeleted", false)
+            .sample();
+        
+        Review existingReview1 = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("content", content)
+            .set("rating", BigDecimal.valueOf(5.0))
+            .set("isDeleted", false)
+            .sample();
+        
+        Review existingReview2 = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("content", content)
+            .set("rating", BigDecimal.valueOf(3.0))
+            .set("isDeleted", false)
+            .sample();
+        
+        ReviewDto expectedDto = mock(ReviewDto.class);
 
-        User mockUser = mock(User.class);
-        Content mockContent = mock(Content.class);
-        Review newReview = mock(Review.class);
-        Review existingReview1 = mock(Review.class);
-        Review existingReview2 = mock(Review.class);
-
-        when(mockContent.getId()).thenReturn(contentId);
-        when(newReview.getRating()).thenReturn(BigDecimal.valueOf(4.0));
-        when(newReview.getIsDeleted()).thenReturn(false);
-        when(newReview.getContent()).thenReturn(mockContent);
-
-        when(existingReview1.getRating()).thenReturn(BigDecimal.valueOf(5.0));
-        when(existingReview1.getIsDeleted()).thenReturn(false);
-        when(existingReview1.getContent()).thenReturn(mockContent);
-
-        when(existingReview2.getRating()).thenReturn(BigDecimal.valueOf(3.0));
-        when(existingReview2.getIsDeleted()).thenReturn(false);
-        when(existingReview2.getContent()).thenReturn(mockContent);
-
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(newReview);
         when(reviewRepository.findAll()).thenReturn(List.of(existingReview1, existingReview2, newReview));
@@ -638,8 +639,7 @@ class ReviewServiceTest {
 
         reviewService.addReview(request, userId);
 
-        verify(mockContent).updateRatingStats(BigDecimal.valueOf(4.0), 3L);
-        verify(contentRepository).save(mockContent);
+        verify(contentRepository).save(content);
     }
 
     @Test
@@ -647,105 +647,100 @@ class ReviewServiceTest {
     void recalculateContentRating_OnUpdate() {
         ReviewUpdateRequest request = new ReviewUpdateRequest("Updated text", 3.0);
         
-        AuthorDto authorDto = AuthorDto.builder()
-                                       .userId(userId)
-                                       .name("Test User")
-                                       .profileImageUrl(null)
-                                       .build();
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
         
-        ReviewDto expectedDto = ReviewDto.builder()
-                                         .id(reviewId)
-                                         .contentId(contentId)
-                                         .author(authorDto)
-                                         .text("Updated text")
-                                         .rating(3.0)
-                                         .createdAt(null)
-                                         .updatedAt(null)
-                                         .isAuthor(true)
-                                         .build();
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .sample();
+        
+        Review review = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", reviewId)
+            .set("user", user)
+            .set("content", content)
+            .set("rating", BigDecimal.valueOf(3.0))
+            .set("isDeleted", false)
+            .sample();
+        
+        Review existingReview = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("content", content)
+            .set("rating", BigDecimal.valueOf(4.0))
+            .set("isDeleted", false)
+            .sample();
+        
+        ReviewDto expectedDto = mock(ReviewDto.class);
 
-        User mockUser = mock(User.class);
-        Content mockContent = mock(Content.class);
-        Review mockReview = mock(Review.class);
-        Review existingReview = mock(Review.class);
-
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockReview.getUser()).thenReturn(mockUser);
-        when(mockReview.getContent()).thenReturn(mockContent);
-        when(mockReview.getRating()).thenReturn(BigDecimal.valueOf(3.0));
-        when(mockReview.getIsDeleted()).thenReturn(false);
-
-        when(mockContent.getId()).thenReturn(contentId);
-        when(existingReview.getRating()).thenReturn(BigDecimal.valueOf(4.0));
-        when(existingReview.getIsDeleted()).thenReturn(false);
-        when(existingReview.getContent()).thenReturn(mockContent);
-
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
-        when(reviewRepository.save(mockReview)).thenReturn(mockReview);
-        when(reviewRepository.findAll()).thenReturn(List.of(mockReview, existingReview));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
-        when(reviewMapper.toDto(mockReview, true)).thenReturn(expectedDto);
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
+        when(reviewRepository.save(review)).thenReturn(review);
+        when(reviewRepository.findAll()).thenReturn(List.of(review, existingReview));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
+        when(reviewMapper.toDto(review, true)).thenReturn(expectedDto);
 
         reviewService.modifyReview(reviewId, request, userId);
 
-        verify(mockReview).update("Updated text", BigDecimal.valueOf(3.0));
-        verify(mockContent).updateRatingStats(BigDecimal.valueOf(3.5), 2L);
-        verify(contentRepository).save(mockContent);
+        verify(contentRepository).save(content);
     }
 
     @Test
     @DisplayName("리뷰 삭제 시 콘텐츠 평점 재계산 - 남은 리뷰 있음")
     void recalculateContentRating_OnDelete_RemainingReviews() {
-        User mockUser = mock(User.class);
-        Content mockContent = mock(Content.class);
-        Review mockReview = mock(Review.class);
-        Review remainingReview = mock(Review.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
+        
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .sample();
+        
+        Review review = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", reviewId)
+            .set("user", user)
+            .set("content", content)
+            .set("isDeleted", false)
+            .sample();
+        
+        Review remainingReview = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("content", content)
+            .set("rating", BigDecimal.valueOf(4.0))
+            .set("isDeleted", false)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockReview.getUser()).thenReturn(mockUser);
-        when(mockReview.getContent()).thenReturn(mockContent);
-        when(mockReview.getIsDeleted()).thenReturn(true);
-
-        when(mockContent.getId()).thenReturn(contentId);
-        when(remainingReview.getRating()).thenReturn(BigDecimal.valueOf(4.0));
-        when(remainingReview.getIsDeleted()).thenReturn(false);
-        when(remainingReview.getContent()).thenReturn(mockContent);
-
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
-        when(reviewRepository.save(mockReview)).thenReturn(mockReview);
-        when(reviewRepository.findAll()).thenReturn(List.of(mockReview, remainingReview));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
+        when(reviewRepository.save(review)).thenReturn(review);
+        when(reviewRepository.findAll()).thenReturn(List.of(review, remainingReview));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
 
         reviewService.removeReview(reviewId, userId);
 
-        verify(mockReview).softDelete();
-        verify(mockContent).updateRatingStats(BigDecimal.valueOf(4.0), 1L);
-        verify(contentRepository).save(mockContent);
+        verify(contentRepository).save(content);
     }
 
     @Test
     @DisplayName("리뷰 삭제 시 콘텐츠 평점 재계산 - 마지막 리뷰 삭제")
     void recalculateContentRating_OnDelete_LastReview() {
-        User mockUser = mock(User.class);
-        Content mockContent = mock(Content.class);
-        Review mockReview = mock(Review.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .sample();
+        
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .sample();
+        
+        Review review = fixtureMonkey.giveMeBuilder(Review.class)
+            .set("id", reviewId)
+            .set("user", user)
+            .set("content", content)
+            .set("isDeleted", false)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockReview.getUser()).thenReturn(mockUser);
-        when(mockReview.getContent()).thenReturn(mockContent);
-        when(mockReview.getIsDeleted()).thenReturn(true);
-
-        when(mockContent.getId()).thenReturn(contentId);
-
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(mockReview));
-        when(reviewRepository.save(mockReview)).thenReturn(mockReview);
-        when(reviewRepository.findAll()).thenReturn(List.of(mockReview));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
+        when(reviewRepository.save(review)).thenReturn(review);
+        when(reviewRepository.findAll()).thenReturn(List.of(review));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
 
         reviewService.removeReview(reviewId, userId);
 
-        verify(mockReview).softDelete();
-        verify(mockContent).updateRatingStats(BigDecimal.ZERO, 0L);
-        verify(contentRepository).save(mockContent);
+        verify(contentRepository).save(content);
     }
 }

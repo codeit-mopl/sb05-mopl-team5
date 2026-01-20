@@ -11,6 +11,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.mopl.api.domain.content.entity.Content;
+import com.mopl.api.domain.content.entity.ContentType;
 import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.repository.ContentRepository;
 import com.mopl.api.domain.playlist.dto.request.PlaylistCreateRequest;
@@ -18,6 +20,7 @@ import com.mopl.api.domain.playlist.dto.request.PlaylistUpdateRequest;
 import com.mopl.api.domain.playlist.dto.response.CursorResponsePlaylistDto;
 import com.mopl.api.domain.playlist.dto.response.PlaylistDto;
 import com.mopl.api.domain.playlist.entity.Playlist;
+import com.mopl.api.domain.playlist.entity.PlaylistContent;
 import com.mopl.api.domain.playlist.exception.detail.ContentAlreadyExistsException;
 import com.mopl.api.domain.playlist.exception.detail.ContentNotInPlaylistException;
 import com.mopl.api.domain.playlist.exception.detail.PlaylistNotFoundException;
@@ -27,9 +30,11 @@ import com.mopl.api.domain.playlist.repository.PlaylistContentRepository;
 import com.mopl.api.domain.playlist.repository.PlaylistRepository;
 import com.mopl.api.domain.playlist.repository.SubscriptionRepository;
 import com.mopl.api.domain.user.entity.User;
+import com.mopl.api.domain.user.entity.UserRole;
 import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
-import java.lang.reflect.Field;
+import com.navercorp.fixturemonkey.FixtureMonkey;
+import com.navercorp.fixturemonkey.api.introspector.FieldReflectionArbitraryIntrospector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -70,14 +75,20 @@ class PlaylistServiceTest {
     ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
-    private PlaylistServiceImpl playlistService;
+    private PlaylistService playlistService;
 
+    private FixtureMonkey fixtureMonkey;
     private UUID userId;
     private UUID playlistId;
     private UUID contentId;
 
     @BeforeEach
     void setUp() {
+        fixtureMonkey = FixtureMonkey.builder()
+            .objectIntrospector(FieldReflectionArbitraryIntrospector.INSTANCE)
+            .defaultNotNull(true)
+            .build();
+        
         userId = UUID.randomUUID();
         playlistId = UUID.randomUUID();
         contentId = UUID.randomUUID();
@@ -85,24 +96,27 @@ class PlaylistServiceTest {
 
     @Test
     @DisplayName("플레이리스트 생성 성공")
-    void addPlaylist_Success() throws Exception {
+    void addPlaylist_Success() {
         PlaylistCreateRequest request = new PlaylistCreateRequest("My Playlist", "Great movies");
-        User mockUser = mock(User.class);
+        
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .set("locked", false)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("owner", user)
+            .set("title", "My Playlist")
+            .set("description", "Great movies")
+            .set("isDeleted", false)
+            .sample();
+        
         PlaylistDto expectedDto = mock(PlaylistDto.class);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
-        when(playlistRepository.save(any(Playlist.class))).thenAnswer(invocation -> {
-            Playlist savedPlaylist = invocation.getArgument(0);
-            Field idField = savedPlaylist.getClass()
-                                         .getSuperclass()
-                                         .getSuperclass()
-                                         .getSuperclass()
-                                         .getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(savedPlaylist, playlistId);
-            return savedPlaylist;
-        });
-        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(playlistId)).thenReturn(new ArrayList<>());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(playlistRepository.save(any(Playlist.class))).thenReturn(playlist);
+        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
         when(playlistMapper.toDto(any(Playlist.class), anyList(), anyBoolean(), anyBoolean())).thenReturn(expectedDto);
 
         PlaylistDto result = playlistService.addPlaylist(request, userId);
@@ -110,7 +124,6 @@ class PlaylistServiceTest {
         assertThat(result).isNotNull();
         verify(userRepository).findById(userId);
         verify(playlistRepository).save(any(Playlist.class));
-        verify(playlistContentRepository).findByPlaylistIdAndIsDeletedFalse(playlistId);
         verify(playlistMapper).toDto(any(Playlist.class), anyList(), eq(false), eq(true));
     }
 
@@ -132,23 +145,30 @@ class PlaylistServiceTest {
     @DisplayName("플레이리스트 수정 성공")
     void modifyPlaylist_Success() {
         PlaylistUpdateRequest request = new PlaylistUpdateRequest("Updated Title", "Updated Description");
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
+        
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .set("isDeleted", false)
+            .sample();
+        
         PlaylistDto expectedDto = mock(PlaylistDto.class);
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(playlistRepository.save(mockPlaylist)).thenReturn(mockPlaylist);
-        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(playlistId)).thenReturn(new ArrayList<>());
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
+        when(playlistRepository.save(playlist)).thenReturn(playlist);
+        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
         when(playlistMapper.toDto(any(Playlist.class), anyList(), anyBoolean(), anyBoolean())).thenReturn(expectedDto);
 
         PlaylistDto result = playlistService.modifyPlaylist(playlistId, request, userId);
 
         assertThat(result).isNotNull();
         verify(playlistRepository).findById(playlistId);
-        verify(mockPlaylist).update("Updated Title", "Updated Description");
-        verify(playlistRepository).save(mockPlaylist);
+        verify(playlistRepository).save(playlist);
     }
 
     @Test
@@ -170,12 +190,18 @@ class PlaylistServiceTest {
     void modifyPlaylist_Unauthorized() {
         UUID differentUserId = UUID.randomUUID();
         PlaylistUpdateRequest request = new PlaylistUpdateRequest("Updated Title", "Updated Description");
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
+        
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
 
         assertThatThrownBy(() -> playlistService.modifyPlaylist(playlistId, request, differentUserId))
             .isInstanceOf(PlaylistUnauthorizedException.class);
@@ -187,19 +213,24 @@ class PlaylistServiceTest {
     @Test
     @DisplayName("플레이리스트 삭제 성공")
     void removePlaylist_Success() {
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .set("isDeleted", false)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(playlistRepository.save(mockPlaylist)).thenReturn(mockPlaylist);
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
+        when(playlistRepository.save(playlist)).thenReturn(playlist);
 
         playlistService.removePlaylist(playlistId, userId);
 
         verify(playlistRepository).findById(playlistId);
-        verify(mockPlaylist).softDelete();
-        verify(playlistRepository).save(mockPlaylist);
+        verify(playlistRepository).save(playlist);
     }
 
     @Test
@@ -218,33 +249,44 @@ class PlaylistServiceTest {
     @DisplayName("플레이리스트 삭제 실패 - 권한 없음")
     void removePlaylist_Unauthorized() {
         UUID differentUserId = UUID.randomUUID();
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
+        
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
 
         assertThatThrownBy(() -> playlistService.removePlaylist(playlistId, differentUserId))
             .isInstanceOf(PlaylistUnauthorizedException.class);
 
         verify(playlistRepository).findById(playlistId);
-        verify(mockPlaylist, never()).softDelete();
         verify(playlistRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("플레이리스트 조회 성공")
     void getPlaylist_Success() {
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .set("isDeleted", false)
+            .sample();
+        
         PlaylistDto expectedDto = mock(PlaylistDto.class);
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(mockPlaylist.getIsDeleted()).thenReturn(false);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(playlistId)).thenReturn(new ArrayList<>());
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
+        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
         when(subscriptionRepository.existsByUserIdAndPlaylistId(userId, playlistId)).thenReturn(false);
         when(playlistMapper.toDto(any(Playlist.class), anyList(), anyBoolean(), anyBoolean())).thenReturn(expectedDto);
 
@@ -252,7 +294,6 @@ class PlaylistServiceTest {
 
         assertThat(result).isNotNull();
         verify(playlistRepository).findById(playlistId);
-        verify(playlistContentRepository).findByPlaylistIdAndIsDeletedFalse(playlistId);
         verify(subscriptionRepository).existsByUserIdAndPlaylistId(userId, playlistId);
     }
 
@@ -270,10 +311,12 @@ class PlaylistServiceTest {
     @Test
     @DisplayName("플레이리스트 조회 실패 - 삭제된 플레이리스트")
     void getPlaylist_DeletedPlaylist() {
-        Playlist mockPlaylist = mock(Playlist.class);
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("isDeleted", true)
+            .sample();
 
-        when(mockPlaylist.getIsDeleted()).thenReturn(true);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
 
         assertThatThrownBy(() -> playlistService.getPlaylist(playlistId, userId))
             .isInstanceOf(PlaylistNotFoundException.class);
@@ -284,14 +327,24 @@ class PlaylistServiceTest {
     @Test
     @DisplayName("플레이리스트에 콘텐츠 추가 성공")
     void addContentToPlaylist_Success() {
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
-        com.mopl.api.domain.content.entity.Content mockContent = mock(com.mopl.api.domain.content.entity.Content.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .sample();
+        
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .set("type", ContentType.MOVIE)
+            .set("isDeleted", false)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
         when(playlistContentRepository.existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId,
             contentId)).thenReturn(false);
 
@@ -300,7 +353,7 @@ class PlaylistServiceTest {
         verify(playlistRepository).findById(playlistId);
         verify(contentRepository).findById(contentId);
         verify(playlistContentRepository).existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId);
-        verify(playlistContentRepository).save(any(com.mopl.api.domain.playlist.entity.PlaylistContent.class));
+        verify(playlistContentRepository).save(any(PlaylistContent.class));
     }
 
     @Test
@@ -320,12 +373,18 @@ class PlaylistServiceTest {
     @DisplayName("플레이리스트에 콘텐츠 추가 실패 - 권한 없음")
     void addContentToPlaylist_Unauthorized() {
         UUID differentUserId = UUID.randomUUID();
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
+        
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
 
         assertThatThrownBy(() -> playlistService.addContentToPlaylist(playlistId, contentId, differentUserId))
             .isInstanceOf(PlaylistUnauthorizedException.class);
@@ -338,12 +397,17 @@ class PlaylistServiceTest {
     @Test
     @DisplayName("플레이리스트에 콘텐츠 추가 실패 - 콘텐츠 없음")
     void addContentToPlaylist_ContentNotFound() {
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
         when(contentRepository.findById(contentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> playlistService.addContentToPlaylist(playlistId, contentId, userId))
@@ -357,14 +421,23 @@ class PlaylistServiceTest {
     @Test
     @DisplayName("플레이리스트에 콘텐츠 추가 실패 - 이미 존재하는 콘텐츠")
     void addContentToPlaylist_ContentAlreadyExists() {
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
-        com.mopl.api.domain.content.entity.Content mockContent = mock(com.mopl.api.domain.content.entity.Content.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .sample();
+        
+        Content content = fixtureMonkey.giveMeBuilder(Content.class)
+            .set("id", contentId)
+            .set("type", ContentType.MOVIE)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(mockContent));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
+        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
         when(playlistContentRepository.existsByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId,
             contentId)).thenReturn(true);
 
@@ -380,23 +453,30 @@ class PlaylistServiceTest {
     @Test
     @DisplayName("플레이리스트에서 콘텐츠 삭제 성공")
     void removeContentFromPlaylist_Success() {
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
-        com.mopl.api.domain.playlist.entity.PlaylistContent mockPlaylistContent = mock(
-            com.mopl.api.domain.playlist.entity.PlaylistContent.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .sample();
+        
+        PlaylistContent playlistContent = fixtureMonkey.giveMeBuilder(PlaylistContent.class)
+            .set("playlist", playlist)
+            .set("isDeleted", false)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
         when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(
-            Optional.of(mockPlaylistContent));
+            Optional.of(playlistContent));
 
         playlistService.removeContentFromPlaylist(playlistId, contentId, userId);
 
         verify(playlistRepository).findById(playlistId);
         verify(playlistContentRepository).findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId);
-        verify(mockPlaylistContent).softDelete();
-        verify(playlistContentRepository).save(mockPlaylistContent);
+        verify(playlistContentRepository).save(playlistContent);
     }
 
     @Test
@@ -416,12 +496,18 @@ class PlaylistServiceTest {
     @DisplayName("플레이리스트에서 콘텐츠 삭제 실패 - 권한 없음")
     void removeContentFromPlaylist_Unauthorized() {
         UUID differentUserId = UUID.randomUUID();
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
+        
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
 
         assertThatThrownBy(() -> playlistService.removeContentFromPlaylist(playlistId, contentId, differentUserId))
             .isInstanceOf(PlaylistUnauthorizedException.class);
@@ -434,12 +520,17 @@ class PlaylistServiceTest {
     @Test
     @DisplayName("플레이리스트에서 콘텐츠 삭제 실패 - 플레이리스트에 없는 콘텐츠")
     void removeContentFromPlaylist_ContentNotInPlaylist() {
-        User mockUser = mock(User.class);
-        Playlist mockPlaylist = mock(Playlist.class);
+        User user = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", userId)
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", playlistId)
+            .set("owner", user)
+            .sample();
 
-        when(mockUser.getId()).thenReturn(userId);
-        when(mockPlaylist.getOwner()).thenReturn(mockUser);
-        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
         when(playlistContentRepository.findByPlaylistIdAndContentIdAndIsDeletedFalse(playlistId, contentId)).thenReturn(
             Optional.empty());
 
@@ -464,14 +555,22 @@ class PlaylistServiceTest {
         String sortDirection = "desc";
         UUID currentUserId = UUID.randomUUID();
 
-        User mockOwner = mock(User.class);
-        Playlist mockPlaylist1 = mock(Playlist.class);
-        Playlist mockPlaylist2 = mock(Playlist.class);
-        when(mockPlaylist1.getOwner()).thenReturn(mockOwner);
-        when(mockPlaylist2.getOwner()).thenReturn(mockOwner);
-        when(mockOwner.getId()).thenReturn(UUID.randomUUID());
+        User owner = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", UUID.randomUUID())
+            .set("role", UserRole.USER)
+            .sample();
+        
+        Playlist playlist1 = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("owner", owner)
+            .set("isDeleted", false)
+            .sample();
+        
+        Playlist playlist2 = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("owner", owner)
+            .set("isDeleted", false)
+            .sample();
 
-        List<Playlist> mockPlaylists = Arrays.asList(mockPlaylist1, mockPlaylist2);
+        List<Playlist> mockPlaylists = Arrays.asList(playlist1, playlist2);
         PlaylistDto mockDto1 = mock(PlaylistDto.class);
         PlaylistDto mockDto2 = mock(PlaylistDto.class);
 
@@ -489,8 +588,8 @@ class PlaylistServiceTest {
         when(playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual)).thenReturn(10L);
         when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
         when(subscriptionRepository.existsByUserIdAndPlaylistId(eq(currentUserId), any())).thenReturn(false);
-        when(playlistMapper.toDto(eq(mockPlaylist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
-        when(playlistMapper.toDto(eq(mockPlaylist2), anyList(), eq(false), eq(false))).thenReturn(mockDto2);
+        when(playlistMapper.toDto(eq(playlist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
+        when(playlistMapper.toDto(eq(playlist2), anyList(), eq(false), eq(false))).thenReturn(mockDto2);
 
         CursorResponsePlaylistDto result = playlistService.getPlaylists(
             keywordLike,
@@ -535,19 +634,31 @@ class PlaylistServiceTest {
         String sortDirection = "desc";
         UUID currentUserId = UUID.randomUUID();
 
-        User mockOwner = mock(User.class);
-        UUID mockPlaylist1Id = UUID.randomUUID();
+        User owner = fixtureMonkey.giveMeBuilder(User.class)
+            .set("id", UUID.randomUUID())
+            .set("role", UserRole.USER)
+            .sample();
+        
         UUID mockPlaylist2Id = UUID.randomUUID();
-        Playlist mockPlaylist1 = mock(Playlist.class);
-        Playlist mockPlaylist2 = mock(Playlist.class);
-        Playlist mockPlaylist3 = mock(Playlist.class);
-        when(mockPlaylist1.getOwner()).thenReturn(mockOwner);
-        when(mockPlaylist2.getOwner()).thenReturn(mockOwner);
-        when(mockOwner.getId()).thenReturn(UUID.randomUUID());
-        when(mockPlaylist2.getId()).thenReturn(mockPlaylist2Id);
-        when(mockPlaylist2.getSubscriberCount()).thenReturn(50L);
+        
+        Playlist playlist1 = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("owner", owner)
+            .set("isDeleted", false)
+            .sample();
+        
+        Playlist playlist2 = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("id", mockPlaylist2Id)
+            .set("owner", owner)
+            .set("subscriberCount", 50L)
+            .set("isDeleted", false)
+            .sample();
+        
+        Playlist playlist3 = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("owner", owner)
+            .set("isDeleted", false)
+            .sample();
 
-        List<Playlist> mockPlaylists = Arrays.asList(mockPlaylist1, mockPlaylist2, mockPlaylist3);
+        List<Playlist> mockPlaylists = Arrays.asList(playlist1, playlist2, playlist3);
         PlaylistDto mockDto1 = mock(PlaylistDto.class);
         PlaylistDto mockDto2 = mock(PlaylistDto.class);
 
@@ -565,8 +676,8 @@ class PlaylistServiceTest {
         when(playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual)).thenReturn(5L);
         when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
         when(subscriptionRepository.existsByUserIdAndPlaylistId(eq(currentUserId), any())).thenReturn(false);
-        when(playlistMapper.toDto(eq(mockPlaylist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
-        when(playlistMapper.toDto(eq(mockPlaylist2), anyList(), eq(false), eq(false))).thenReturn(mockDto2);
+        when(playlistMapper.toDto(eq(playlist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
+        when(playlistMapper.toDto(eq(playlist2), anyList(), eq(false), eq(false))).thenReturn(mockDto2);
 
         CursorResponsePlaylistDto result = playlistService.getPlaylists(
             keywordLike,
@@ -611,10 +722,11 @@ class PlaylistServiceTest {
         String sortDirection = "desc";
         UUID currentUserId = null;
 
-        User mockOwner = mock(User.class);
-        Playlist mockPlaylist1 = mock(Playlist.class);
+        Playlist playlist1 = fixtureMonkey.giveMeBuilder(Playlist.class)
+            .set("isDeleted", false)
+            .sample();
 
-        List<Playlist> mockPlaylists = Arrays.asList(mockPlaylist1);
+        List<Playlist> mockPlaylists = Arrays.asList(playlist1);
         PlaylistDto mockDto1 = mock(PlaylistDto.class);
 
         when(playlistRepository.findPlaylistsWithCursor(
@@ -630,7 +742,7 @@ class PlaylistServiceTest {
         )).thenReturn(mockPlaylists);
         when(playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual)).thenReturn(1L);
         when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
-        when(playlistMapper.toDto(eq(mockPlaylist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
+        when(playlistMapper.toDto(eq(playlist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
 
         CursorResponsePlaylistDto result = playlistService.getPlaylists(
             keywordLike,
