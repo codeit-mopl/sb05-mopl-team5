@@ -48,7 +48,7 @@ class SubscriptionServiceImplTest {
     ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
-    private SubscriptionServiceImpl subscriptionService;
+    private SubscriptionService subscriptionService;
 
     private UUID userId;
     private UUID ownerId;

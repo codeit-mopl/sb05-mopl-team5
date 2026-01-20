@@ -60,7 +60,7 @@ class ReviewServiceTest {
     private ReviewMapper reviewMapper;
 
     @InjectMocks
-    private ReviewServiceImpl reviewService;
+    private ReviewService reviewService;
 
     private UUID userId;
     private UUID contentId;

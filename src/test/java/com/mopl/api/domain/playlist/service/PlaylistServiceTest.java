@@ -70,7 +70,7 @@ class PlaylistServiceTest {
     ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
-    private PlaylistServiceImpl playlistService;
+    private PlaylistService playlistService;
 
     private UUID userId;
     private UUID playlistId;
