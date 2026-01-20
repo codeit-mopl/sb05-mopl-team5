@@ -1,7 +1,5 @@
 package com.mopl.api.global.config.security;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 import com.mopl.api.domain.user.entity.UserRole;
 import com.mopl.api.global.config.oauth.handler.OAuth2UserSuccessHandler;
 import com.mopl.api.global.config.oauth.service.CustomOAuth2UserService;
@@ -110,7 +108,15 @@ public class SecurityConfig {
                 .addLogoutHandler(logoutHandler)
                 .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT))
             )
-            .cors(withDefaults())
+            .cors(cors -> cors.configurationSource(request -> {
+                CorsConfiguration config = new CorsConfiguration();
+                config.setAllowedOrigins(List.of("http://localhost:*"));
+                config.addAllowedHeader("*");
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+                config.setAllowCredentials(true);
+                config.setExposedHeaders(List.of("LastEventId"));
+                return config;
+            }))
             // 예외처리
 //            .exceptionHandling(ex -> ex
 //                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
@@ -138,17 +144,6 @@ public class SecurityConfig {
         authBuilder.authenticationProvider(tempPasswordAuthenticationProvider)
                    .userDetailsService(customUserDetailsService)
                    .passwordEncoder(passwordEncoder);
-
-        // CORS 설정
-        http.cors(cors -> cors.configurationSource(request -> {
-            CorsConfiguration config = new CorsConfiguration();
-            config.setAllowedOrigins(List.of("http://localhost:8080"));
-            config.addAllowedHeader("*");
-            config.setAllowedMethods(List.of("GET"));
-            config.setAllowCredentials(true);
-            config.setExposedHeaders(List.of("Last-Event-ID"));
-            return config;
-        }));
 
         return http.build();
     }
