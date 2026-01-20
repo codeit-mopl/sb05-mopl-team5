@@ -6,6 +6,8 @@ import com.mopl.api.domain.review.dto.response.CursorResponseReviewDto;
 import com.mopl.api.domain.review.dto.response.ReviewDto;
 import com.mopl.api.domain.review.service.ReviewService;
 import com.mopl.api.global.config.security.claim.CustomUserDetails;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "리뷰 관리", description = "리뷰 관리 API")
 @RestController
 @RequestMapping("/api/reviews")
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
+    @Operation(summary = "리뷰 생성", description = "콘텐츠에 대한 리뷰를 생성합니다.")
     @PostMapping
     public ResponseEntity<ReviewDto> reviewAdd(
         @Valid @RequestBody ReviewCreateRequest request,
@@ -38,6 +42,7 @@ public class ReviewController {
                              .body(reviewService.addReview(request, user.getUserDto().id()));
     }
 
+    @Operation(summary = "리뷰 수정", description = "작성한 리뷰를 수정합니다.")
     @PatchMapping("/{reviewId}")
     public ResponseEntity<ReviewDto> reviewModify(
         @PathVariable UUID reviewId,
@@ -47,6 +52,7 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.modifyReview(reviewId, request, user.getUserDto().id()));
     }
 
+    @Operation(summary = "리뷰 삭제", description = "작성한 리뷰를 삭제합니다.")
     @DeleteMapping("/{reviewId}")
     public ResponseEntity<Void> reviewRemove(
         @PathVariable UUID reviewId,
@@ -57,6 +63,7 @@ public class ReviewController {
                              .build();
     }
 
+    @Operation(summary = "리뷰 목록 조회 (커서 페이지네이션)", description = "콘텐츠의 리뷰 목록을 커서 기반 페이징으로 조회합니다.")
     @GetMapping
     public ResponseEntity<CursorResponseReviewDto> reviewList(
         @RequestParam UUID contentId,
