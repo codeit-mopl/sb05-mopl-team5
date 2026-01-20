@@ -94,6 +94,10 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.testcontainers:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    
+    // [Fixture Monkey]
+    testImplementation 'com.navercorp.fixturemonkey:fixture-monkey-starter:1.0.13'
+    testImplementation 'com.navercorp.fixturemonkey:fixture-monkey-jakarta-validation:1.0.13'
 
     // Java 8 날짜/시간 타입 직렬화 시 사용
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
