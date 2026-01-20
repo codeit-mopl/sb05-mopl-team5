@@ -186,7 +186,6 @@ public class ReviewService {
         Content content = contentRepository.findById(contentId)
                                            .orElseThrow(() -> ContentNotFoundException.withContentId(contentId));
 
-        // TODO: 성능 개선 - Repository에 전용 쿼리 메서드 추가 필요
         List<Review> activeReviews = reviewRepository.findAll()
                                                      .stream()
                                                      .filter(r -> r.getContent()
