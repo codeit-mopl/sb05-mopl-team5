@@ -30,7 +30,8 @@ public class ReviewRepositoryImpl implements ReviewRepositoryCustom {
     ) {
 
         // 기본 조건: 삭제되지 않은 리뷰만 조회
-        BooleanExpression predicate = review.isDeleted.eq(false);
+        BooleanExpression predicate = review.isDeleted.eq(false)
+            .and(review.content.isDeleted.eq(false));
 
         // contentId가 주어진 경우, 해당 콘텐츠의 리뷰만 필터링
         if (contentId != null) {
@@ -59,7 +60,8 @@ public class ReviewRepositoryImpl implements ReviewRepositoryCustom {
 
     @Override
     public long countReviewsByContentId(UUID contentId) {
-        BooleanExpression predicate = review.isDeleted.eq(false);
+        BooleanExpression predicate = review.isDeleted.eq(false)
+            .and(review.content.isDeleted.eq(false));
 
         if (contentId != null) {
             predicate = predicate.and(review.content.id.eq(contentId));
