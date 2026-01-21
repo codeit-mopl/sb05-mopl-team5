@@ -29,6 +29,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class NotificationEventListener {
 
+    private static final int MAX_LENGTH = 255;
+
     private final NotificationService notificationService;
     private final SseService sseService;
     private final SubscriptionRepository subscriptionRepository;
@@ -93,11 +95,13 @@ public class NotificationEventListener {
 
         // [DM] {발신자명}
         // {메시지 내용}
+        String formattedContent = formatLongContent("", event.content(), "");
+
         notificationService.addNotification(
             NotificationCreateRequest.builder()
                                      .receiverId(event.receiverId())
                                      .title("[DM] " + event.senderName())
-                                     .content(event.content())
+                                     .content(formattedContent)
                                      .build());
 
         log.info("DmReceivedEvent 처리 완료: conversationId={}, receiverId={}, senderId={}", event.conversationId(),
@@ -109,13 +113,16 @@ public class NotificationEventListener {
     public void onPlaylistSubscribedEvent(PlaylistSubscribedEvent event) {
         // 플레이리스트 [{플리명}](이)가 구독되었어요.
         // {사용자명}님이 [{플리명} - {플리설명}](을)를 구독했어요.
+        String prefix = event.subscriberName() + "님이 [";
+        String text = event.playlistTitle() + " - " + event.playlistDescription();
+        String suffix = "](을)를 구독했어요.";
+        String formattedContent = formatLongContent(prefix, text, suffix);
+
         notificationService.addNotification(
             NotificationCreateRequest.builder()
                                      .receiverId(event.ownerId())
                                      .title("플레이리스트 [" + event.playlistTitle() + "](이)가 구독되었어요.")
-                                     .content(event.subscriberName() + "님이 "
-                                         + "[" + event.playlistTitle()
-                                         + " - " + event.playlistDescription() + "](을)를 구독했어요.")
+                                     .content(formattedContent)
                                      .build());
 
         log.info("PlaylistSubscribedEvent 처리 완료: playlistId={}, ownerId={}, subscriberId={}",
@@ -133,15 +140,18 @@ public class NotificationEventListener {
 
         // 구독 중인 플레이리스트에 콘텐츠가 추가되었어요.
         // [{플리명} - {플리설명}]에 [{콘텐츠명}](이)가 추가되었어요.
+        String prefix = "[";
+        String text = event.playlistTitle() + " - " + event.playlistDescription();
+        String suffix = "]에  [" + event.contentTitle() + "](이)가 추가되었어요.";
+        String formattedContent = formatLongContent(prefix, text, suffix);
+
         subscriptions.forEach(s ->
             notificationService.addNotification(
                 NotificationCreateRequest.builder()
                                          .receiverId(s.getUser()
                                                       .getId())
                                          .title("구독 중인 플레이리스트에 콘텐츠가 추가되었어요.")
-                                         .content(
-                                             "[" + event.playlistTitle() + " - " + event.playlistDescription() + "]에 "
-                                                 + "[" + event.contentTitle() + "](이)가 추가되었어요.")
+                                         .content(formattedContent)
                                          .build())
         );
 
@@ -160,14 +170,18 @@ public class NotificationEventListener {
 
         // {유저명}님이 플레이리스트를 생성했어요.
         // [{플리명} - {플리설명}]
+        String prefix = "[";
+        String text = event.playlistTitle() + " - " + event.playlistDescription();
+        String suffix = "]";
+        String formattedContent = formatLongContent(prefix, text, suffix);
+
         follows.forEach(f ->
             notificationService.addNotification(
                 NotificationCreateRequest.builder()
                                          .receiverId(f.getFollower()
                                                       .getId())
                                          .title(event.ownerName() + "님이 플레이리스트를 생성했어요.")
-                                         .content(
-                                             "[" + event.playlistTitle() + " - " + event.playlistDescription() + "]")
+                                         .content(formattedContent)
                                          .build())
         );
 
@@ -201,4 +215,18 @@ public class NotificationEventListener {
             event.contentId());
     }
 
+    private static String formatLongContent(String prefix, String variablePart, String suffix) {
+        int fixedLength = prefix.length() + suffix.length();
+        int availableSpace = MAX_LENGTH - fixedLength;
+
+        if (availableSpace < 5) {
+            return prefix + "..." + suffix;
+        }
+
+        if (variablePart != null && variablePart.length() > availableSpace) {
+            variablePart = variablePart.substring(0, availableSpace - 3) + "...";
+        }
+
+        return prefix + (variablePart != null ? variablePart : "") + suffix;
+    }
 }
