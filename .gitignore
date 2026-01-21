@@ -276,3 +276,7 @@ nohup.out
 
 # 콘텐츠 로컬 이미지
 /uploads
+/uploads.jqwik-database
+
+# jqwik property-based testing cache
+.jqwik-database
