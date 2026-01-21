@@ -97,6 +97,15 @@ dependencies {
 
     // Java 8 날짜/시간 타입 직렬화 시 사용
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+
+    // aws
+    implementation platform('software.amazon.awssdk:bom:2.29.0')
+
+    // 2. 필요한 모듈 (버전을 적지 않습니다!)
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:sts'
+
 }
 
 tasks.named('test') {
