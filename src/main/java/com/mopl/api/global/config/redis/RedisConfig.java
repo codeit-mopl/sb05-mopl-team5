@@ -24,6 +24,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @EnableCaching
 @RequiredArgsConstructor
 public class RedisConfig {
+
     // TODO 최적화 설정 and LIMIT 설정이 필요함
     private final ObjectMapper objectMapper;
 
@@ -35,16 +36,25 @@ public class RedisConfig {
     @Value("${spring.data.redis.port:6379}")
     private int port;
 
+    @Value("${spring.data.redis.ssl.enabled:false}")
+    private boolean sslEnabled;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         // 1. Redis 서버 정보 설정
         RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(host, port);
 
         // 2. 클라이언트 설정 (SSL + 타임아웃)
-        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                                                                            .commandTimeout(Duration.ofSeconds(60))
-                                                                            .useSsl()                                  // AWS 암호화 켜져있으면 필수!
-                                                                            .build();
+        LettuceClientConfiguration clientConfig;
+
+        if (sslEnabled) {
+            clientConfig = LettuceClientConfiguration.builder()
+                                                     .commandTimeout(Duration.ofSeconds(60))
+                                                     .useSsl()                                  // AWS 암호화 켜져있으면 필수!
+                                                     .build();
+        } else {
+            clientConfig = LettuceClientConfiguration.builder().build();
+        }
 
         // 3. 팩토리 반환
         return new LettuceConnectionFactory(redisConfig, clientConfig);
