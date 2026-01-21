@@ -11,6 +11,7 @@ import com.mopl.api.domain.content.exception.detail.ContentNotFoundException;
 import com.mopl.api.domain.content.exception.detail.InvalidSortByException;
 import com.mopl.api.domain.content.mapper.ContentMapper;
 import com.mopl.api.domain.content.repository.ContentRepository;
+import com.mopl.api.global.config.image.Uploader;
 import com.mopl.api.global.config.image.impl.LocalUploader;
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,7 +27,8 @@ public class ContentServiceImpl implements ContentService {
 
     private final ContentRepository contentRepository;
     private final ContentMapper contentMapper;
-    private final LocalUploader localUploader;
+    // private final LocalUploader localUploader;
+    private final Uploader uploader;
 
     @Override
     @Transactional(readOnly = true)
@@ -81,7 +83,8 @@ public class ContentServiceImpl implements ContentService {
     public ContentDto addContent(ContentCreateRequest request, MultipartFile file) {
         String tags = tagToString(request.tags());
 
-        String thumbnail = localUploader.upload(file);
+       // String thumbnail = localUploader.upload(file);
+        String thumbnail = uploader.upload(file);
 
         Content content = new Content(ContentType.findByValue(request.type()), null, request.title(),
             request.description(),
@@ -101,7 +104,8 @@ public class ContentServiceImpl implements ContentService {
         String tags = tagToString(request.tags());
 
         if (file != null && !file.isEmpty()) {
-            thumbnail = localUploader.upload(file);
+            //thumbnail = localUploader.upload(file);
+            thumbnail = uploader.upload(file);
         }
 
         content.update(request.title(), request.description(), tags, thumbnail);

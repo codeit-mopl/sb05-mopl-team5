@@ -26,6 +26,12 @@ spring:
   batch:
     job:
       enabled: false
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      ssl:
+        enabled: false
 logging:
   level:
     org.hibernate.SQL: DEBUG

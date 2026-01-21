@@ -8,23 +8,30 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
-  # 1. 데이터베이스 설정 (MySQL)
+  # 1. 데이터베이스 설정 (MySQL) aws (변경)
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&rewriteBatchedStatements=true
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useUnicode=true&rewriteBatchedStatements=true&useSSL=true&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
+  sql:
+    init:
+      mode: never
+      schema-locations: classpath:schema.sql
   # 3. JPA 설정
   jpa:
+    defer-datasource-initialization: true
     open-in-view: false  # [성능] 트랜잭션 종료 시 DB 커넥션 즉시 반환 (대규모 트래픽 필수)
     hibernate:
       ddl-auto: validate # [안전] schema.sql이 테이블을 생성하므로 JPA는 검사만 수행
+
     properties:
       hibernate:
         format_sql: true
         default_batch_fetch_size: 100 # N+1 문제 방지
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        # MySQL8Dialect는 Hibernate 6.6+에서 deprecated 경고가 발생합니다.
+        # 별도 지정이 필요 없다면 제거하는 것이 가장 깔끔합니다.
 
   # 4. Redis 설정
   data:
@@ -117,3 +124,18 @@ batch:
 auth:
   temp-password-expiration: 180
 
+  aws:
+    region: ${AWS_REGION}
+
+    s3:
+      bucket: ${S3_BUCKET}
+      base-url: https://${S3_BUCKET}.s3.ap-northeast-2.amazonaws.com
+      upload-prefix: uploads/
+
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+
+logging:
+  level:
+    org.springframework.jdbc.datasource.init: DEBUG
