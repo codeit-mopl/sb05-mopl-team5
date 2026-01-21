@@ -29,6 +29,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class NotificationEventListener {
 
+    private static final int MAX_LENGTH = 255;
+
     private final NotificationService notificationService;
     private final SseService sseService;
     private final SubscriptionRepository subscriptionRepository;
@@ -55,14 +57,15 @@ public class NotificationEventListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onRoleChangedEvent(RoleChangedEvent event) {
-        notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                     .receiverId(event.userId())
-                                                                     .title("내 권한이 변경되었어요.")
-                                                                     .content(
-                                                                         "내 권한이 [" + event.beforeRole() + "]에서 "
-                                                                             + "[" + event.currentRole()
-                                                                             + "](으)로 변경되었어요.")
-                                                                     .build());
+        // 내 권한이 변경되었어요.
+        // [{이전 권한}]에서 [{현재 권한}](으)로 변경되었어요.
+        notificationService.addNotification(
+            NotificationCreateRequest.builder()
+                                     .receiverId(event.userId())
+                                     .title("내 권한이 변경되었어요.")
+                                     .content(
+                                         "[" + event.beforeRole() + "]에서 [" + event.currentRole() + "](으)로 변경되었어요.")
+                                     .build());
 
         log.info("RoleChangedEvent 처리 완료: receiverId={}", event.userId());
     }
@@ -70,10 +73,12 @@ public class NotificationEventListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onNewFollowerEvent(NewFollowerEvent event) {
-        notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                     .receiverId(event.followeeId())
-                                                                     .title(event.followerName() + "님이 나를 팔로우 했어요.")
-                                                                     .build());
+        // {사용자}님이 나를 팔로우 했어요.
+        notificationService.addNotification(
+            NotificationCreateRequest.builder()
+                                     .receiverId(event.followeeId())
+                                     .title(event.followerName() + "님이 나를 팔로우 했어요.")
+                                     .build());
 
         log.info("NewFollowerEvent 처리 완료: receiver(followee)Id={}, followerId={}", event.followeeId(),
             event.followerId());
@@ -88,11 +93,16 @@ public class NotificationEventListener {
             event.directMessageDto()
         );
 
-        notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                     .receiverId(event.receiverId())
-                                                                     .title("[DM] " + event.senderName())
-                                                                     .content(event.content())
-                                                                     .build());
+        // [DM] {발신자명}
+        // {메시지 내용}
+        String formattedContent = formatLongContent("", event.content(), "");
+
+        notificationService.addNotification(
+            NotificationCreateRequest.builder()
+                                     .receiverId(event.receiverId())
+                                     .title("[DM] " + event.senderName())
+                                     .content(formattedContent)
+                                     .build());
 
         log.info("DmReceivedEvent 처리 완료: conversationId={}, receiverId={}, senderId={}", event.conversationId(),
             event.receiverId(), event.senderId());
@@ -101,15 +111,19 @@ public class NotificationEventListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPlaylistSubscribedEvent(PlaylistSubscribedEvent event) {
-        notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                     .receiverId(event.ownerId())
-                                                                     .title("플레이리스트 [" + event.playlistTitle()
-                                                                         + "](이)가 구독되었어요.")
-                                                                     .content(event.subscriberName() + "님이 "
-                                                                         + "[" + event.playlistTitle() + "] "
-                                                                         + event.playlistDescription()
-                                                                         + "(을)를 구독했어요.")
-                                                                     .build());
+        // 플레이리스트 [{플리명}](이)가 구독되었어요.
+        // {사용자명}님이 [{플리명} - {플리설명}](을)를 구독했어요.
+        String prefix = event.subscriberName() + "님이 [";
+        String text = event.playlistTitle() + " - " + event.playlistDescription();
+        String suffix = "](을)를 구독했어요.";
+        String formattedContent = formatLongContent(prefix, text, suffix);
+
+        notificationService.addNotification(
+            NotificationCreateRequest.builder()
+                                     .receiverId(event.ownerId())
+                                     .title("플레이리스트 [" + event.playlistTitle() + "](이)가 구독되었어요.")
+                                     .content(formattedContent)
+                                     .build());
 
         log.info("PlaylistSubscribedEvent 처리 완료: playlistId={}, ownerId={}, subscriberId={}",
             event.playlistId(), event.ownerId(), event.subscriberId());
@@ -124,15 +138,21 @@ public class NotificationEventListener {
             return;
         }
 
+        // 구독 중인 플레이리스트에 콘텐츠가 추가되었어요.
+        // [{플리명} - {플리설명}]에 [{콘텐츠명}](이)가 추가되었어요.
+        String prefix = "[";
+        String text = event.playlistTitle() + " - " + event.playlistDescription();
+        String suffix = "]에  [" + event.contentTitle() + "](이)가 추가되었어요.";
+        String formattedContent = formatLongContent(prefix, text, suffix);
+
         subscriptions.forEach(s ->
-            notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                         .receiverId(s.getUser()
-                                                                                      .getId())
-                                                                         .title("구독 중인 플레이리스트에 콘텐츠가 추가되었어요.")
-                                                                         .content("[" + event.playlistTitle() + "] "
-                                                                             + event.playlistDescription() + "에 "
-                                                                             + event.contentTitle() + "(이)가 추가되었어요.")
-                                                                         .build())
+            notificationService.addNotification(
+                NotificationCreateRequest.builder()
+                                         .receiverId(s.getUser()
+                                                      .getId())
+                                         .title("구독 중인 플레이리스트에 콘텐츠가 추가되었어요.")
+                                         .content(formattedContent)
+                                         .build())
         );
 
         log.info("SubscribingPlaylistContentAddedEvent 처리 완료: playlistId={}, contentId={}",
@@ -148,14 +168,21 @@ public class NotificationEventListener {
             return;
         }
 
+        // {유저명}님이 플레이리스트를 생성했어요.
+        // [{플리명} - {플리설명}]
+        String prefix = "[";
+        String text = event.playlistTitle() + " - " + event.playlistDescription();
+        String suffix = "]";
+        String formattedContent = formatLongContent(prefix, text, suffix);
+
         follows.forEach(f ->
-            notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                         .receiverId(f.getFollower()
-                                                                                      .getId())
-                                                                         .title(event.ownerName() + "님이 플레이리스트를 만들었어요.")
-                                                                         .content("[" + event.playlistTitle() + "] "
-                                                                             + event.playlistDescription())
-                                                                         .build())
+            notificationService.addNotification(
+                NotificationCreateRequest.builder()
+                                         .receiverId(f.getFollower()
+                                                      .getId())
+                                         .title(event.ownerName() + "님이 플레이리스트를 생성했어요.")
+                                         .content(formattedContent)
+                                         .build())
         );
 
         log.info("FolloweePlaylistCreatedEvent 처리 완료: playlistId={}, followeeId={}", event.playlistId(),
@@ -171,18 +198,35 @@ public class NotificationEventListener {
             return;
         }
 
+        // {사용자명}님이 콘텐츠 시청을 시작했어요.
+        // [콘텐츠명]
         follows.forEach(f ->
-            notificationService.addNotification(NotificationCreateRequest.builder()
-                                                                         .receiverId(f.getFollower()
-                                                                                      .getId())
-                                                                         .title(f.getFollowee()
-                                                                                 .getName() + "님이 콘텐츠 시청을 시작했어요.")
-                                                                         .content("[" + event.contentTitle() + "]")
-                                                                         .build())
+            notificationService.addNotification(
+                NotificationCreateRequest.builder()
+                                         .receiverId(f.getFollower()
+                                                      .getId())
+                                         .title(f.getFollowee()
+                                                 .getName() + "님이 콘텐츠 시청을 시작했어요.")
+                                         .content("[" + event.contentTitle() + "]")
+                                         .build())
         );
 
         log.info("FolloweeWatchingStartedEvent 처리 완료: watchingSessionId={}, contentId={}", event.watchingSessionId(),
             event.contentId());
     }
 
+    private static String formatLongContent(String prefix, String variablePart, String suffix) {
+        int fixedLength = prefix.length() + suffix.length();
+        int availableSpace = MAX_LENGTH - fixedLength;
+
+        if (availableSpace < 5) {
+            return prefix + "..." + suffix;
+        }
+
+        if (variablePart != null && variablePart.length() > availableSpace) {
+            variablePart = variablePart.substring(0, availableSpace - 3) + "...";
+        }
+
+        return prefix + (variablePart != null ? variablePart : "") + suffix;
+    }
 }

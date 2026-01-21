@@ -43,14 +43,20 @@ public class SseService {
             sseEmitterRepository.delete(receiverId, emitter);
         });
 
+        String connectEventId = UUID.randomUUID().toString();
+        sendToClient(emitter, connectEventId, "connect", "connected");
+
         sseEmitterRepository.save(receiverId, emitter);
 
-        sendToClient(emitter, "connect", "connected");
-
-        // 마지막 아이디 기준 복구
+        // lastEventId 기준 복구
         if (lastEventId != null) {
-            sseMessageRepository.findAllByEventIdAfterAndReceiverId(lastEventId, receiverId)
-                                .forEach(msg -> sendToClient(emitter, msg.getEventName(), msg.getData()));
+            List<SseMessage> missedMessages = sseMessageRepository
+                .findAllByEventIdAfterAndReceiverId(lastEventId, receiverId);
+
+            missedMessages.forEach(msg ->
+                sendToClient(emitter, msg.getEventId()
+                                         .toString(),
+                    msg.getEventName(), msg.getData()));
         }
 
         return emitter;
@@ -62,17 +68,18 @@ public class SseService {
 
         List<SseEmitter> emitters = sseEmitterRepository.findAllByReceiverIdsIn(receiverIds);
 
-        log.debug("SSE send. eventName={} receivers={} emitterCount={}",
-            eventName, receiverIds, emitters.size());
+        log.debug("SSE 전송 eventName={} eventId={} receivers={} emitterCount={}",
+            eventName, message.getEventId(), receiverIds, emitters.size());
 
         emitters.forEach(emitter -> {
-            sendToClient(emitter, eventName, data);
+            sendToClient(emitter, message.getEventId().toString(), eventName, data);
         });
     }
 
-    private void sendToClient(SseEmitter emitter, String name, Object data) {
+    private void sendToClient(SseEmitter emitter, String eventId, String name, Object data) {
         try {
             emitter.send(SseEmitter.event()
+                                   .id(eventId)
                                    .name(name)
                                    .data(data));
         } catch (IOException e) {

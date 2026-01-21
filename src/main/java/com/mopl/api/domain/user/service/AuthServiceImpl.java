@@ -45,9 +45,6 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public JwtInformation refreshToken(String refreshToken) {
 
-        log.info("[REFRESH] validateRefresh={}", jwtProvider.validateRefreshToken(refreshToken));
-        log.info("[REFRESH] registryHasRefresh={}", jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken));
-
         // 토큰 유효성 검증, JWT 세션에서도 유효한지 검증
         if(!jwtProvider.validateRefreshToken(refreshToken)
             || !jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {

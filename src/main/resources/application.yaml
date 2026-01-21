@@ -118,6 +118,7 @@ batch:
     sport: "0 0 3 * * *"
     movie: "0 5 3 * * *"
     tv: "0 10 3 * * *"
+    notification: "0 0 4 * * *"
 
 # 12. 임시비밀번호 만료 시간
 auth:

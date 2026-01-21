@@ -101,9 +101,9 @@ public class RedisJwtRegistry implements JwtRegistry {
 
         // 기존 세션 있으면 -> 인덱스 정리!
         Object old = redisTemplate.opsForValue()
-                                           .get(userKey);
+                                  .get(userKey);
         if (old instanceof JwtInformation oldJwtInfo) {
-          deleteIndexes(oldJwtInfo.getAccessToken(), oldJwtInfo.getRefreshToken());
+            deleteIndexes(oldJwtInfo.getAccessToken(), oldJwtInfo.getRefreshToken());
         }
 
         // 새 토큰 등록

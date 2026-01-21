@@ -53,6 +53,14 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
         return count != null ? count : 0L;
     }
 
+    @Override
+    public long deleteOldNotifications(LocalDateTime targetDate) {
+        return queryFactory
+            .delete(notification)
+            .where(notification.createdAt.lt(targetDate))
+            .execute();
+    }
+
     private BooleanExpression getCursorCondition(NotificationCursorPageRequest request) {
         if (request.cursor() == null) {
             return null;
