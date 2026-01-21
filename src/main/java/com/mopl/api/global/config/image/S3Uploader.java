@@ -23,7 +23,7 @@ public class S3Uploader implements Uploader {
 
     private final S3Client s3Client;
 
-    @Value("${spring.cloud.aws.s3.bucket}")
+    @Value("${auth.aws.s3.bucket}")
     private String bucket;
 
     @Override
@@ -32,9 +32,9 @@ public class S3Uploader implements Uploader {
         if (originalFilename == null || originalFilename.isBlank()) {
             throw MissingFilenameException.WithFilename(originalFilename);
         }
-
+        String sanitizedFilename = originalFilename.replaceAll("[/\\\\]", "_");
         // 파일명 생성 (Local과 동일 로직)
-        String fileName = "contents/" + UUID.randomUUID() + "_" + originalFilename;
+        String fileName = "contents/" + UUID.randomUUID() + "_" + sanitizedFilename;
 
         try {
             // S3 업로드

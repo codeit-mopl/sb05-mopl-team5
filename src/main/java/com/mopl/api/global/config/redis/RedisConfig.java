@@ -38,8 +38,6 @@ public class RedisConfig {
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         // 1. Redis 서버 정보 설정
-
-        System.out.println(">>> [DEBUG] Redis SSL 설정 시작! 호스트: " + host);
         RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(host, port);
 
         // 2. 클라이언트 설정 (SSL + 타임아웃)

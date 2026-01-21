@@ -114,6 +114,8 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+
+    systemProperty 'spring.data.redis.ssl.enabled', 'false'
 }
 
 // --- [Jacoco] 리포트 설정 ---
