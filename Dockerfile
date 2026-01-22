@@ -1,43 +1,31 @@
-# ===============================
-# 1) Build stage
-# ===============================
-FROM gradle:8.5-jdk17 AS build
+# 1. Build stage
+FROM gradle:8.5-jdk17 AS builder
 WORKDIR /app
 
-# 1. Gradle 래퍼와 설정 파일만 먼저 복사 (캐시 효율 극대화)
-COPY gradlew build.gradle settings.gradle ./
-COPY gradle ./gradle
+# Gradle 래퍼 및 의존성 파일 복사
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle .
+COPY settings.gradle .
 
-# 2. 윈도우 CRLF 제거 + 실행권한 부여 (매우 중요)
-RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
+# 의존성 다운로드 (캐싱 최적화)
+RUN ./gradlew dependencies --no-daemon
 
-# 3. 의존성 다운로드 (소스코드 복사 전에 실행해야 캐시가 깨지지 않음)
-RUN ./gradlew dependencies --no-daemon || true
+# 소스 코드 복사
+COPY src src
 
-# 4. 소스 코드 복사 후 빌드
-COPY src ./src
-RUN ./gradlew clean bootJar -x test --no-daemon
+# 빌드 (테스트 스킵)
+RUN ./gradlew bootJar -x test --no-daemon
 
-# ===============================
-# 2) Runtime stage
-# ===============================
-FROM amazoncorretto:17-alpine
+# 2. Runtime stage
+FROM amazoncorretto:17
 WORKDIR /app
 
-# (선택 사항) 한국 시간대 설정 (로그 시간 확인용)
-RUN apk add --no-cache tzdata
-ENV TZ=Asia/Seoul
+# 빌드된 JAR 파일 복사
+COPY --from=builder /app/build/libs/*.jar app.jar
 
-# 보안을 위해 비트권한 사용자 생성 및 사용
-RUN addgroup -S app && adduser -S app -G app
-USER app
-
-# 빌드 결과물 복사
-COPY --from=build /app/build/libs/*.jar app.jar
-
+# 애플리케이션 포트
 EXPOSE 8080
 
-# 🚀 ENTRYPOINT 수정됨
-# -XX:MaxRAMPercentage=75.0 : 컨테이너 메모리 제한의 75%를 힙 메모리로 사용 (AWS Fargate 필수 설정)
-# sh -c 를 사용하여 환경변수($JVM_OPTS)가 제대로 동작하도록 변경
-ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8 $JVM_OPTS -jar app.jar"]
+# 실행
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
