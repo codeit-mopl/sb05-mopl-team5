@@ -16,7 +16,7 @@ name: 배포
 on:
   push:
     branches:
-      - develop
+      - main
   workflow_dispatch:
 
 
