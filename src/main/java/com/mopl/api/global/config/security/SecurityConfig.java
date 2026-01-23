@@ -60,6 +60,7 @@ public class SecurityConfig {
                 // 쿠키에 CSRF 토큰 저장 : 쿠키명:XSRF-TOKEN 헤더명:X-XSRF-TOKEN
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+                .ignoringRequestMatchers("/actuator/**")
             )
             .authorizeHttpRequests(auth -> auth
                 .dispatcherTypeMatchers(DispatcherType.ASYNC)
@@ -78,6 +79,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/reset-password")
                 .permitAll()
                 .requestMatchers("/contents/**", "/static/thumbnail.png")
+                .permitAll()
+                .requestMatchers("/actuator/**")
                 .permitAll()
                 .requestMatchers("*", "/swagger-resource/**"
                     , "/swagger-ui.html", "/swagger-ui/**", "/v3/**",
