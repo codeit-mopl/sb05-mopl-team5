@@ -1,5 +1,13 @@
--- V3: 균등 분포 과거 데이터 생성 (Deep Pagination 테스트용)
+-- 균등 분포 과거 데이터 생성 (Deep Pagination 테스트용)
 -- 목적: 최신 데이터 편향을 제거하고 전체 기간에 걸쳐 균등 분포 생성
+# mysql -uroot -p mopl < load_test/sql/generate/generate_contents.sql 2>&1
+#
+# 결과:
+#
+# • 총 340,000건
+# • 기간: 2023-01-25 ~ 2026-01-23 (약 3년)
+# • 월평균 약 9,000건 (균등 분포)
+# • 일평균 약 311건
 
 SET AUTOCOMMIT = 0;
 SET UNIQUE_CHECKS = 0;
@@ -24,14 +32,18 @@ BEGIN
     
     WHILE i < 340000 DO
         SET content_uuid = UNHEX(REPLACE(UUID(), '-', ''));
-        SET api_id_val = 3000000 + i;
         SET content_type_val = CASE MOD(i, 3)
             WHEN 0 THEN 'MOVIE'
             WHEN 1 THEN 'TV_SERIES'
             ELSE 'SPORT'
         END;
+        SET api_id_val = CASE MOD(i, 3)
+            WHEN 0 THEN 3000000 + i
+            WHEN 1 THEN 4000000 + i
+            ELSE 5000000 + i
+        END;
         
-        -- V3 핵심 변경: 균등 분포 날짜 생성
+        -- 균등 분포 날짜 생성
         -- RAND() * 1095 = 0일 ~ 1095일 (3년) 균등 분포
         SET random_days = FLOOR(RAND() * 1095);
         SET created_date = DATE_SUB(NOW(), INTERVAL random_days DAY);

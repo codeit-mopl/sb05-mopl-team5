@@ -9,17 +9,15 @@
 USE mopl;
 -- Contents 테이블 최적화 인덱스 삭제 (Deep Pagination 테스트용)
 
-ALTER TABLE contents 
-  DROP INDEX IF EXISTS idx_contents_created_id,
-  DROP INDEX IF EXISTS idx_contents_rating_id,
-  DROP INDEX IF EXISTS idx_contents_watcher_id,
-  DROP INDEX IF EXISTS idx_contents_type_deleted;
+ALTER TABLE contents DROP INDEX idx_contents_created_id;
+ALTER TABLE contents DROP INDEX idx_contents_rating_id;
+ALTER TABLE contents DROP INDEX idx_contents_watcher_id;
 
 -- ============================================================
 -- 결과 확인
 -- ============================================================
 SELECT '=== Remaining Indexes (Baseline) ===' as Status;
-SELECT 
+SELECT
     table_name,
     index_name,
     GROUP_CONCAT(column_name ORDER BY seq_in_index SEPARATOR ', ') AS columns
