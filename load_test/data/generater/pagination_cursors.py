@@ -104,7 +104,7 @@ def generate_cursors_uniform_distribution():
     random.shuffle(cursors)
     
     # 6. CSV 저장
-    output_file = 'pagination_cursors_v3.csv'
+    output_file = 'pagination_cursors.csv'
     with open(output_file, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['cursor'])  # 헤더
