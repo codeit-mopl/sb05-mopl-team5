@@ -73,6 +73,15 @@ public class ReviewRepositoryImpl implements ReviewRepositoryCustom {
             .fetchCount();
     }
 
+    @Override
+    public List<Review> findActiveReviewsByContentId(UUID contentId) {
+        return queryFactory
+            .selectFrom(review)
+            .where(review.content.id.eq(contentId)
+                .and(review.isDeleted.eq(false)))
+            .fetch();
+    }
+
     private BooleanExpression buildCursorPredicate(
         String sortBy,
         String sortDirection,

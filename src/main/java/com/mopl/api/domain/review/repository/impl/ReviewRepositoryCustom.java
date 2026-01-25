@@ -19,4 +19,6 @@ public interface ReviewRepositoryCustom {
     );
 
     long countReviewsByContentId(UUID contentId);
+
+    List<Review> findActiveReviewsByContentId(UUID contentId);
 }

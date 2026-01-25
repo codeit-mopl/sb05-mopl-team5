@@ -127,7 +127,7 @@ class ReviewServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(review);
-        when(reviewRepository.findAll()).thenReturn(List.of(review));
+        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(review));
         when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
 
         ReviewDto result = reviewService.addReview(request, userId);
@@ -241,7 +241,7 @@ class ReviewServiceTest {
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findAll()).thenReturn(List.of(review));
+        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(review));
         when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
         when(reviewMapper.toDto(review, true)).thenReturn(expectedDto);
 
@@ -314,7 +314,7 @@ class ReviewServiceTest {
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findAll()).thenReturn(List.of());
+        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of());
         when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
 
         reviewService.removeReview(reviewId, userId);
@@ -589,7 +589,7 @@ class ReviewServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(review);
-        when(reviewRepository.findAll()).thenReturn(List.of(review));
+        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(review));
         when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
 
         reviewService.addReview(request, userId);
@@ -634,7 +634,7 @@ class ReviewServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(newReview);
-        when(reviewRepository.findAll()).thenReturn(List.of(existingReview1, existingReview2, newReview));
+        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(newReview, existingReview1, existingReview2));
         when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
 
         reviewService.addReview(request, userId);
@@ -673,7 +673,7 @@ class ReviewServiceTest {
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findAll()).thenReturn(List.of(review, existingReview));
+        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(review, existingReview));
         when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
         when(reviewMapper.toDto(review, true)).thenReturn(expectedDto);
 
@@ -697,6 +697,7 @@ class ReviewServiceTest {
             .set("id", reviewId)
             .set("user", user)
             .set("content", content)
+            .set("rating", BigDecimal.valueOf(5.0))
             .set("isDeleted", false)
             .sample();
         
@@ -708,7 +709,7 @@ class ReviewServiceTest {
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findAll()).thenReturn(List.of(review, remainingReview));
+        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(remainingReview));
         when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
 
         reviewService.removeReview(reviewId, userId);
@@ -731,12 +732,13 @@ class ReviewServiceTest {
             .set("id", reviewId)
             .set("user", user)
             .set("content", content)
+            .set("rating", BigDecimal.valueOf(5.0))
             .set("isDeleted", false)
             .sample();
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findAll()).thenReturn(List.of(review));
+        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of());
         when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
 
         reviewService.removeReview(reviewId, userId);
