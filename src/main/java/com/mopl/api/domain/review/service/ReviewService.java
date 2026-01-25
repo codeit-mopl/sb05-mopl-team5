@@ -186,19 +186,14 @@ public class ReviewService {
         Content content = contentRepository.findById(contentId)
                                            .orElseThrow(() -> ContentNotFoundException.withContentId(contentId));
 
-        List<Review> activeReviews = reviewRepository.findAll()
-                                                     .stream()
-                                                     .filter(r -> r.getContent()
-                                                                   .getId()
-                                                                   .equals(contentId) && !r.getIsDeleted())
-                                                     .toList();
+        List<Review> activeReviews = reviewRepository.findActiveReviewsByContentId(contentId);
 
         if (activeReviews.isEmpty()) {
             content.updateRatingStats(BigDecimal.ZERO, 0L);
         } else {
             BigDecimal sum = activeReviews.stream()
                                           .map(Review::getRating)
-                                          .reduce(BigDecimal.ZERO, BigDecimal::add); // 초기값 0.0, 누적 덧셈
+                                          .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal average = sum.divide(BigDecimal.valueOf(activeReviews.size()), 1, RoundingMode.HALF_UP);
 
