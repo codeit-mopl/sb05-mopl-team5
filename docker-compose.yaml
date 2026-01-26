@@ -51,6 +51,8 @@ services:
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENABLED: ${SENTRY_ENABLED:-false}
       JAVA_OPTS: "-Xms3g -Xmx3g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseStringDeduplication"
     ports:
       - "8080:8080"
@@ -62,8 +64,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.8'
-          memory: 3584M
+          cpus: '1.5'
+          memory: 4096M
         reservations:
           cpus: '0.5'
           memory: 1536M
