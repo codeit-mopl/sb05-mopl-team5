@@ -7,6 +7,9 @@ spring:
         enabled: true
       timeout: 3s
 
+sentry:
+  traces-sample-rate: 0.2
+
 logging:
   level:
     org.hibernate.SQL: info

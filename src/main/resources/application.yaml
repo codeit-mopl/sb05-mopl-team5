@@ -136,6 +136,17 @@ auth:
       access-key: ${AWS_ACCESS_KEY_ID}
       secret-key: ${AWS_SECRET_ACCESS_KEY}
 
+# 13. Sentry 설정 (APM & Error Tracking)
+sentry:
+  dsn: ${SENTRY_DSN:}
+  enabled: ${SENTRY_ENABLED:true} #부하테스트 시 false
+  environment: ${spring.profiles.active:dev}
+  traces-sample-rate: 1.0
+  enable-tracing: true
+  send-default-pii: false
+  in-app-includes:
+    - com.mopl.api
+
 logging:
   level:
     org.springframework.jdbc.datasource.init: DEBUG

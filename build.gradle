@@ -87,6 +87,10 @@ dependencies {
     // [JavaMailSender]
     implementation 'org.springframework.boot:spring-boot-starter-mail'
 
+    // [Sentry] APM & Error Tracking
+    implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.2.0'
+    implementation 'io.sentry:sentry-logback:7.2.0'
+
     // 6. Tests
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4'
