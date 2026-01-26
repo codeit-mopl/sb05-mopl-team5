@@ -74,7 +74,6 @@ class SubscriptionServiceImplTest {
         when(subscriptionRepository.existsByUserIdAndPlaylistId(userId, playlistId)).thenReturn(false);
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
         when(subscriptionRepository.save(any(Subscription.class))).thenReturn(mock(Subscription.class));
-        when(playlistRepository.save(mockPlaylist)).thenReturn(mockPlaylist);
 
         subscriptionService.subscribeToPlaylist(playlistId, userId);
 
@@ -82,8 +81,7 @@ class SubscriptionServiceImplTest {
         verify(subscriptionRepository).existsByUserIdAndPlaylistId(userId, playlistId);
         verify(userRepository).findById(userId);
         verify(subscriptionRepository).save(any(Subscription.class));
-        verify(mockPlaylist).incrementSubscriberCount();
-        verify(playlistRepository).save(mockPlaylist);
+        verify(playlistRepository).incrementSubscriberCount(playlistId);
     }
 
     @Test
@@ -170,15 +168,13 @@ class SubscriptionServiceImplTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(mockPlaylist));
         when(subscriptionRepository.findByUserIdAndPlaylistId(userId, playlistId)).thenReturn(
             Optional.of(mockSubscription));
-        when(playlistRepository.save(mockPlaylist)).thenReturn(mockPlaylist);
 
         subscriptionService.unsubscribeFromPlaylist(playlistId, userId);
 
         verify(playlistRepository).findById(playlistId);
         verify(subscriptionRepository).findByUserIdAndPlaylistId(userId, playlistId);
         verify(subscriptionRepository).delete(mockSubscription);
-        verify(mockPlaylist).decrementSubscriberCount();
-        verify(playlistRepository).save(mockPlaylist);
+        verify(playlistRepository).decrementSubscriberCount(playlistId);
     }
 
     @Test
