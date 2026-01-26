@@ -586,8 +586,8 @@ class PlaylistServiceTest {
             eq(limit)
         )).thenReturn(mockPlaylists);
         when(playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual)).thenReturn(10L);
-        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
-        when(subscriptionRepository.existsByUserIdAndPlaylistId(eq(currentUserId), any())).thenReturn(false);
+        when(playlistContentRepository.findByPlaylistIdInAndIsDeletedFalse(anyList())).thenReturn(new ArrayList<>());
+        when(subscriptionRepository.findPlaylistIdsByUserIdAndPlaylistIdIn(eq(currentUserId), anyList())).thenReturn(new ArrayList<>());
         when(playlistMapper.toDto(eq(playlist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
         when(playlistMapper.toDto(eq(playlist2), anyList(), eq(false), eq(false))).thenReturn(mockDto2);
 
@@ -674,8 +674,8 @@ class PlaylistServiceTest {
             eq(limit)
         )).thenReturn(mockPlaylists);
         when(playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual)).thenReturn(5L);
-        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
-        when(subscriptionRepository.existsByUserIdAndPlaylistId(eq(currentUserId), any())).thenReturn(false);
+        when(playlistContentRepository.findByPlaylistIdInAndIsDeletedFalse(anyList())).thenReturn(new ArrayList<>());
+        when(subscriptionRepository.findPlaylistIdsByUserIdAndPlaylistIdIn(eq(currentUserId), anyList())).thenReturn(new ArrayList<>());
         when(playlistMapper.toDto(eq(playlist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
         when(playlistMapper.toDto(eq(playlist2), anyList(), eq(false), eq(false))).thenReturn(mockDto2);
 
@@ -741,7 +741,7 @@ class PlaylistServiceTest {
             eq(limit)
         )).thenReturn(mockPlaylists);
         when(playlistRepository.countPlaylists(keywordLike, ownerIdEqual, subscriberIdEqual)).thenReturn(1L);
-        when(playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(any())).thenReturn(new ArrayList<>());
+        when(playlistContentRepository.findByPlaylistIdInAndIsDeletedFalse(anyList())).thenReturn(new ArrayList<>());
         when(playlistMapper.toDto(eq(playlist1), anyList(), eq(false), eq(false))).thenReturn(mockDto1);
 
         CursorResponsePlaylistDto result = playlistService.getPlaylists(
@@ -758,6 +758,6 @@ class PlaylistServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.data()).hasSize(1);
-        verify(subscriptionRepository, never()).existsByUserIdAndPlaylistId(any(), any());
+        verify(subscriptionRepository, never()).findPlaylistIdsByUserIdAndPlaylistIdIn(any(), anyList());
     }
 }

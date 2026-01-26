@@ -71,6 +71,7 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
 
         return queryFactory
             .selectFrom(playlist)
+            .leftJoin(playlist.owner).fetchJoin()
             .where(predicate)
             .orderBy(primaryOrder, tieBreaker)
             .limit(limit + 1)
