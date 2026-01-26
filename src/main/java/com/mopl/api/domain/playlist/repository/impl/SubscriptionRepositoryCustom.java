@@ -9,4 +9,7 @@ public interface SubscriptionRepositoryCustom {
 
     @Query("select s from Subscription s join fetch s.user where s.playlist.id = :playlistId")
     List<Subscription> findSubscriptionsByPlaylistId(UUID playlistId);
+
+    @Query("select s.playlist.id from Subscription s where s.user.id = :userId and s.playlist.id in :playlistIds")
+    List<UUID> findPlaylistIdsByUserIdAndPlaylistIdIn(UUID userId, List<UUID> playlistIds);
 }

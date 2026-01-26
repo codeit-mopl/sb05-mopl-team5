@@ -24,7 +24,10 @@ import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -167,17 +170,31 @@ public class PlaylistService {
             playlists = playlists.subList(0, limit);
         }
 
+        List<UUID> playlistIds = playlists.stream()
+                                          .map(Playlist::getId)
+                                          .toList();
+
+        Map<UUID, List<PlaylistContent>> contentsMap = playlistContentRepository
+            .findByPlaylistIdInAndIsDeletedFalse(playlistIds)
+            .stream()
+            .collect(Collectors.groupingBy(pc -> pc.getPlaylist().getId()));
+
+        Set<UUID> subscribedPlaylistIds = currentUserId != null
+            ? subscriptionRepository.findPlaylistIdsByUserIdAndPlaylistIdIn(currentUserId, playlistIds)
+                                    .stream()
+                                    .collect(Collectors.toSet())
+            : Set.of();
+
         List<PlaylistDto> playlistDtos = playlists.stream()
                                                   .map(playlist -> {
-                                                      List<PlaylistContent> playlistContents = playlistContentRepository.findByPlaylistIdAndIsDeletedFalse(
-                                                          playlist.getId());
+                                                      List<PlaylistContent> playlistContents = contentsMap.getOrDefault(
+                                                          playlist.getId(), List.of());
                                                       boolean isOwner = currentUserId != null && playlist.getOwner()
                                                                                                          .getId()
                                                                                                          .equals(
                                                                                                              currentUserId);
-                                                      boolean subscribedByMe = currentUserId != null
-                                                          && subscriptionRepository.existsByUserIdAndPlaylistId(
-                                                          currentUserId, playlist.getId());
+                                                      boolean subscribedByMe = subscribedPlaylistIds.contains(
+                                                          playlist.getId());
                                                       return playlistMapper.toDto(playlist, playlistContents,
                                                           subscribedByMe, isOwner);
                                                   })
