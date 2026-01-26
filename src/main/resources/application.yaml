@@ -139,7 +139,7 @@ auth:
 # 13. Sentry 설정 (APM & Error Tracking)
 sentry:
   dsn: ${SENTRY_DSN:}
-  enabled: ${SENTRY_ENABLED:true} #부하테스트 시 false
+  enabled: ${SENTRY_ENABLED:false}
   environment: ${spring.profiles.active:dev}
   traces-sample-rate: 1.0
   enable-tracing: true

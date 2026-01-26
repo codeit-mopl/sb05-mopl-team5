@@ -52,6 +52,7 @@ public class ReviewRepositoryImpl implements ReviewRepositoryCustom {
 
         return queryFactory
             .selectFrom(review)
+            .leftJoin(review.user).fetchJoin()
             .where(predicate)
             .orderBy(primaryOrder, tieBreaker)
             .limit(limit + 1)
