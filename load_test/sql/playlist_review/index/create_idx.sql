@@ -47,7 +47,7 @@ ON playlists(is_deleted, created_at DESC, id DESC);
 -- 목적: 특정 콘텐츠의 리뷰 목록 조회 최적화
 -- 쿼리: WHERE content_id = ? AND is_deleted = false ORDER BY created_at DESC
 CREATE INDEX idx_reviews_content_created 
-ON reviews(content_id, is_deleted, created_at DESC);
+ON reviews(content_id, created_at DESC, is_deleted);
 
 -- ==========================================
 -- 6. Reviews - User별 리뷰 조회 인덱스
@@ -55,7 +55,7 @@ ON reviews(content_id, is_deleted, created_at DESC);
 -- 목적: 특정 사용자의 리뷰 목록 조회 최적화
 -- 쿼리: WHERE user_id = ? AND is_deleted = false ORDER BY created_at DESC
 CREATE INDEX idx_reviews_user_created 
-ON reviews(user_id, is_deleted, created_at DESC);
+ON reviews(user_id, created_at DESC, is_deleted);
 
 -- ==========================================
 -- 인덱스 생성 확인
