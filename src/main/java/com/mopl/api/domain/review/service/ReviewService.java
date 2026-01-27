@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ public class ReviewService {
     private final ReviewMapper reviewMapper;
 
     @Transactional
+    @CacheEvict(value = "reviewCount", key = "#request.contentId()")
     public ReviewDto addReview(ReviewCreateRequest request, UUID userId) {
         Content content = contentRepository.findById(request.contentId())
                                            .orElseThrow(
@@ -83,6 +85,7 @@ public class ReviewService {
     }
 
     @Transactional
+    @CacheEvict(value = "reviewCount", key = "#review.content.id")
     public void removeReview(UUID reviewId, UUID userId) {
         Review review = reviewRepository.findById(reviewId)
                                         .orElseThrow(() -> ReviewNotFoundException.withReviewId(reviewId));

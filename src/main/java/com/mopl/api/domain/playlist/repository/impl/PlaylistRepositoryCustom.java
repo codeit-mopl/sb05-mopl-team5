@@ -4,6 +4,7 @@ import com.mopl.api.domain.playlist.entity.Playlist;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.cache.annotation.Cacheable;
 
 public interface PlaylistRepositoryCustom {
 
@@ -19,6 +20,7 @@ public interface PlaylistRepositoryCustom {
         int limit
     );
 
+    @Cacheable(value = "playlistCount")
     long countPlaylists(
         String keywordLike,
         UUID ownerIdEqual,

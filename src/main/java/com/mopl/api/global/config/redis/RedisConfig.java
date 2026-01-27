@@ -106,11 +106,10 @@ public class RedisConfig {
                                                                         serializer)
                                                                 );
 
-        // 필요시 특정 캐시 이름에 대해서만 다른 설정 적용
         Map<String, RedisCacheConfiguration> configurations = new HashMap<>();
-        // temp가 value인 경우 2시간
-        // @Cacheable(value = "temp", key = "#tempId", cacheManager = "cacheManager")
-        configurations.put("temp", config.entryTtl(Duration.ofHours(2)));
+        configurations.put("playlistCount", config.entryTtl(Duration.ofMinutes(10)));
+        configurations.put("reviewCount", config.entryTtl(Duration.ofMinutes(10)));
+        configurations.put("playlistDetail", config.entryTtl(Duration.ofMinutes(30)));
 
         return RedisCacheManager.builder(connectionFactory)
                                 .cacheDefaults(config)
