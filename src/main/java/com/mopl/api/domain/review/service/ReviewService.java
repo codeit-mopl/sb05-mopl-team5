@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.CacheManager;
@@ -105,7 +106,8 @@ public class ReviewService {
 
         recalculateContentRating(contentId);
 
-        cacheManager.getCache("reviewCount").evict(contentId);
+        Optional.ofNullable(cacheManager.getCache("reviewCount"))
+                .ifPresent(cache -> cache.evict(contentId));
     }
 
     public CursorResponseReviewDto getReviews(
