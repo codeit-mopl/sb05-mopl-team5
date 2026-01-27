@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ public class ReviewService {
     private final ContentRepository contentRepository;
     private final UserRepository userRepository;
     private final ReviewMapper reviewMapper;
+    private final CacheManager cacheManager;
 
     @Transactional
     @CacheEvict(value = "reviewCount", key = "#request.contentId()")
@@ -85,7 +87,6 @@ public class ReviewService {
     }
 
     @Transactional
-    @CacheEvict(value = "reviewCount", key = "#review.content.id")
     public void removeReview(UUID reviewId, UUID userId) {
         Review review = reviewRepository.findById(reviewId)
                                         .orElseThrow(() -> ReviewNotFoundException.withReviewId(reviewId));
@@ -96,12 +97,15 @@ public class ReviewService {
             throw ReviewUnauthorizedException.withDetails(reviewId, userId);
         }
 
+        UUID contentId = review.getContent().getId();
+
         review.softDelete();
 
         reviewRepository.save(review);
 
-        recalculateContentRating(review.getContent()
-                                       .getId());
+        recalculateContentRating(contentId);
+
+        cacheManager.getCache("reviewCount").evict(contentId);
     }
 
     public CursorResponseReviewDto getReviews(
