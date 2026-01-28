@@ -227,9 +227,9 @@ BEGIN
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
     SELECT COUNT(*) INTO total_playlists FROM playlists;
-    SELECT '========================================' as separator;
+    SELECT '========================================' as divider;
     SELECT CONCAT('Starting Zipf distribution for ', total_playlists, ' playlists') as status;
-    SELECT '========================================' as separator;
+    SELECT '========================================' as divider;
 
     OPEN playlist_cursor;
 
@@ -269,9 +269,9 @@ BEGIN
     CLOSE playlist_cursor;
     COMMIT;
 
-    SELECT '========================================' as separator;
+    SELECT '========================================' as divider;
     SELECT 'Zipf Distribution Complete!' as status;
-    SELECT '========================================' as separator;
+    SELECT '========================================' as divider;
 
     SELECT
         FORMAT(SUM(subscriber_count), 0) as total_subscriptions,
@@ -289,9 +289,9 @@ DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
 -- ==========================================
 -- 5. 구독 분포 검증 쿼리
 -- ==========================================
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT 'Subscription Distribution Verification' as report_title;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 
 SELECT
     'Top 1%' as tier,
@@ -441,9 +441,9 @@ SET AUTOCOMMIT = 1;
 -- 최종 통계 리포트
 -- ==========================================
 
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT 'Playlists Distribution by Month' as report_title;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 
 SELECT
     DATE_FORMAT(created_at, '%Y-%m') as month,
@@ -452,9 +452,9 @@ FROM playlists
 GROUP BY DATE_FORMAT(created_at, '%Y-%m')
 ORDER BY month;
 
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT 'Playlists Summary' as report_title;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 
 SELECT
     COUNT(*) as total_playlists,
@@ -466,9 +466,9 @@ SELECT
     MAX(subscriber_count) as max_subscribers
 FROM playlists;
 
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT 'Reviews Distribution by Month' as report_title;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 
 SELECT
     DATE_FORMAT(created_at, '%Y-%m') as month,
@@ -478,9 +478,9 @@ FROM reviews
 GROUP BY DATE_FORMAT(created_at, '%Y-%m')
 ORDER BY month;
 
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT 'Reviews Summary' as report_title;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 
 SELECT
     COUNT(*) as total_reviews,
@@ -493,9 +493,9 @@ SELECT
     MAX(rating) as max_rating
 FROM reviews;
 
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT 'Overall Summary' as report_title;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 
 SELECT
     (SELECT COUNT(*) FROM users) as total_users,
@@ -504,6 +504,6 @@ SELECT
     (SELECT COUNT(*) FROM reviews) as total_reviews,
     (SELECT SUM(subscriber_count) FROM playlists) as total_subscriber_count;
 
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT '✅ Data Generation Complete!' as status;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
