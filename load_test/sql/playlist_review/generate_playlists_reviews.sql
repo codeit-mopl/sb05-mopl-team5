@@ -356,15 +356,24 @@ BEGIN
     DECLARE created_date DATETIME;
     DECLARE random_rating DECIMAL(2,1);
     DECLARE rand_val DOUBLE;
+    DECLARE user_count INT;
+    DECLARE content_count INT;
+    DECLARE random_offset INT;
+
+    -- 사용자 및 콘텐츠 개수 사전 계산 (ORDER BY RAND() 최적화)
+    SELECT COUNT(*) INTO user_count FROM users;
+    SELECT COUNT(*) INTO content_count FROM contents WHERE is_deleted = FALSE;
 
     WHILE i < 200000 DO
             SET review_uuid = UNHEX(REPLACE(UUID(), '-', ''));
 
-            -- 랜덤 사용자 선택
-            SELECT id INTO random_user_id FROM users ORDER BY RAND() LIMIT 1;
+            -- 랜덤 사용자 선택 (오프셋 기반)
+            SET random_offset = FLOOR(RAND() * user_count);
+            SELECT id INTO random_user_id FROM users LIMIT random_offset, 1;
 
-            -- 랜덤 콘텐츠 선택
-            SELECT id INTO random_content_id FROM contents WHERE is_deleted = FALSE ORDER BY RAND() LIMIT 1;
+            -- 랜덤 콘텐츠 선택 (오프셋 기반)
+            SET random_offset = FLOOR(RAND() * content_count);
+            SELECT id INTO random_content_id FROM contents WHERE is_deleted = FALSE LIMIT random_offset, 1;
 
             -- 균등 분포 날짜 생성 (3년)
             SET random_days = FLOOR(RAND() * 1095);
@@ -485,17 +494,6 @@ SELECT
 FROM reviews;
 
 SELECT '========================================' as separator;
-SELECT 'Subscriptions Summary' as report_title;
-SELECT '========================================' as separator;
-
-SELECT
-    COUNT(*) as total_subscriptions,
-    COUNT(DISTINCT user_id) as unique_users,
-    COUNT(DISTINCT playlist_id) as playlists_with_subscriptions,
-    ROUND(COUNT(*) / COUNT(DISTINCT playlist_id), 1) as avg_subs_per_playlist
-FROM subscriptions;
-
-SELECT '========================================' as separator;
 SELECT 'Overall Summary' as report_title;
 SELECT '========================================' as separator;
 
@@ -504,7 +502,7 @@ SELECT
     (SELECT COUNT(*) FROM contents) as total_contents,
     (SELECT COUNT(*) FROM playlists) as total_playlists,
     (SELECT COUNT(*) FROM reviews) as total_reviews,
-    (SELECT COUNT(*) FROM subscriptions) as total_subscriptions;
+    (SELECT SUM(subscriber_count) FROM playlists) as total_subscriber_count;
 
 SELECT '========================================' as separator;
 SELECT '✅ Data Generation Complete!' as status;
