@@ -8,7 +8,7 @@
 -- • Contents: 10,000개 (자체 생성 - 기존 데이터 미활용)
 -- • Users: 10,000명 (자체 생성)
 -- • Subscriptions: Zipf 분포 (상위 5% 플레이리스트가 전체 구독의 80%)
--- • Subscriptions 테이블   150만~250만개
+-- • Subsㅇㄴㄴㄴㄴcriptions 테이블   150만~ssssdsa
 -- • 기간: 2023-01-26 ~ 2026-01-26 (약 3년)
 -- • 특징: 구독순 정렬 시 Hot Key 발생, 캐싱 필요성 입증
 
@@ -213,9 +213,9 @@ CALL generate_playlists();
 DROP PROCEDURE IF EXISTS generate_playlists;
 
 -- ==========================================
--- 4. Subscriptions 생성 (Zipf 분포)
+-- 4. Subscriptions 생성 (Zipf 분포) - 배치 최적화 버전
 -- ==========================================
--- Zipf 분포로 실제 subscriptions 레코드 생성
+-- Zipf 분포로 실제 subscriptions 레코드 생성 (배치 INSERT 사용)
 -- 목적: JOIN 쿼리 실행 계획 분석, 인덱스 효과 검증
 
 SELECT '========================================' as divider;
@@ -223,6 +223,15 @@ SELECT CONCAT('Starting Zipf distribution for subscriptions...') as status;
 SELECT '========================================' as divider;
 
 DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
+DROP TEMPORARY TABLE IF EXISTS temp_user_ids;
+
+CREATE TEMPORARY TABLE temp_user_ids (
+    row_num INT AUTO_INCREMENT PRIMARY KEY,
+    user_id BINARY(16)
+);
+
+INSERT INTO temp_user_ids (user_id)
+SELECT id FROM users;
 
 DELIMITER $$
 CREATE PROCEDURE generate_subscriptions_zipf()
@@ -231,11 +240,6 @@ BEGIN
     DECLARE playlist_id_var BINARY(16);
     DECLARE target_subs INT;
     DECLARE user_count INT;
-    DECLARE i INT;
-    DECLARE random_offset INT;
-    DECLARE user_id_var BINARY(16);
-    DECLARE subscription_uuid BINARY(16);
-    DECLARE created_date DATETIME;
     DECLARE total_playlists INT;
     DECLARE processed_playlists INT DEFAULT 0;
     
@@ -255,7 +259,7 @@ BEGIN
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
     
-    SELECT COUNT(*) INTO user_count FROM users;
+    SELECT COUNT(*) INTO user_count FROM temp_user_ids;
     SELECT COUNT(*) INTO total_playlists FROM playlists WHERE title LIKE 'Load Test Playlist %';
     
     OPEN playlist_cursor;
@@ -269,26 +273,25 @@ BEGIN
             LEAVE read_loop;
         END IF;
         
-        SET i = 0;
-        WHILE i < target_subs DO
-            SET subscription_uuid = UNHEX(REPLACE(UUID(), '-', ''));
-            
-            SET random_offset = FLOOR(RAND() * user_count);
-            SELECT id INTO user_id_var FROM users LIMIT random_offset, 1;
-            
-            SET created_date = DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 1095) DAY);
-            
-            INSERT IGNORE INTO subscriptions (id, user_id, playlist_id, created_at)
-            VALUES (subscription_uuid, user_id_var, playlist_id_var, created_date);
-            
-            SET i = i + 1;
-        END WHILE;
+        INSERT INTO subscriptions (id, user_id, playlist_id, created_at)
+        SELECT 
+            UNHEX(REPLACE(UUID(), '-', '')) as id,
+            u.user_id,
+            playlist_id_var as playlist_id,
+            DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 1095) DAY) as created_at
+        FROM (
+            SELECT user_id
+            FROM temp_user_ids
+            ORDER BY RAND()
+            LIMIT target_subs
+        ) u
+        ON DUPLICATE KEY UPDATE id=id;
         
         UPDATE playlists SET subscriber_count = target_subs WHERE id = playlist_id_var;
         
         SET processed_playlists = processed_playlists + 1;
         
-        IF processed_playlists % 1000 = 0 THEN
+        IF processed_playlists % 500 = 0 THEN
             COMMIT;
             SELECT CONCAT('Subscriptions Progress: ', processed_playlists, ' / ', total_playlists, 
                          ' playlists (', ROUND(processed_playlists/total_playlists*100, 1), '%)') as status;
@@ -310,6 +313,7 @@ DELIMITER ;
 
 CALL generate_subscriptions_zipf();
 DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
+DROP TEMPORARY TABLE IF EXISTS temp_user_ids;
 
 SELECT '========================================' as divider;
 SELECT 'Zipf Distribution Complete!' as status;
