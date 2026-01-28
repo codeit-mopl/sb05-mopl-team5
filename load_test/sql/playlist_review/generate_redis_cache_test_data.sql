@@ -9,9 +9,7 @@
 -- • Contents per Playlist: 10~50개
 -- • Subscriptions: Playlist당 50~200개 (인기 플레이리스트 시뮬레이션)
 
-SET AUTOCOMMIT = 0;
-SET UNIQUE_CHECKS = 0;
-SET FOREIGN_KEY_CHECKS = 0;
+
 
 -- ==========================================
 -- 1. Test Users 생성 (1,000명)
@@ -243,8 +241,56 @@ BEGIN
 END$$
 DELIMITER ;
 
-CALL generate_cache_test_subscriptions();
+-- ==========================================
+-- Main Execution Wrapper with Error Handling
+-- ==========================================
+DROP PROCEDURE IF EXISTS execute_all_with_cleanup;
+
+DELIMITER $$
+CREATE PROCEDURE execute_all_with_cleanup()
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        -- Restore settings on error
+        SET FOREIGN_KEY_CHECKS = 1;
+        SET UNIQUE_CHECKS = 1;
+        SET AUTOCOMMIT = 1;
+        
+        SELECT 'ERROR: Script failed. Settings have been restored.' as error_status;
+        
+        -- Re-signal the error
+        RESIGNAL;
+    END;
+    
+    -- Set performance optimizations
+    SET AUTOCOMMIT = 0;
+    SET UNIQUE_CHECKS = 0;
+    SET FOREIGN_KEY_CHECKS = 0;
+    
+    -- Execute all generation procedures
+    CALL generate_cache_test_users();
+    CALL generate_popular_playlists();
+    CALL generate_playlist_contents();
+    CALL generate_cache_test_subscriptions();
+    
+    -- Restore settings after successful completion
+    SET FOREIGN_KEY_CHECKS = 1;
+    SET UNIQUE_CHECKS = 1;
+    SET AUTOCOMMIT = 1;
+    
+    SELECT 'SUCCESS: All procedures completed. Settings restored.' as success_status;
+END$$
+DELIMITER ;
+
+-- Execute the main wrapper
+CALL execute_all_with_cleanup();
+
+-- Clean up all procedures
+DROP PROCEDURE IF EXISTS generate_cache_test_users;
+DROP PROCEDURE IF EXISTS generate_popular_playlists;
+DROP PROCEDURE IF EXISTS generate_playlist_contents;
 DROP PROCEDURE IF EXISTS generate_cache_test_subscriptions;
+DROP PROCEDURE IF EXISTS execute_all_with_cleanup;
 
 -- ==========================================
 -- 5. CSV 파일 생성 (JMeter용)
