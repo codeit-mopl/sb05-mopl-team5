@@ -9,9 +9,9 @@ USE mopl;
 -- ==========================================
 -- 인덱스 삭제 전 존재 확인
 -- ==========================================
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT 'Current Indexes (Before Drop)' as report_title;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 
 SELECT 
     TABLE_NAME,
@@ -29,23 +29,24 @@ ORDER BY TABLE_NAME, INDEX_NAME;
 -- ==========================================
 
 -- 1. Subscriptions 인덱스 삭제
-ALTER TABLE subscriptions DROP INDEX IF EXISTS idx_subscriptions_user_playlist;
+-- 주의: idx_subscriptions_user_playlist는 FK 제약조건 때문에 삭제 불가 (스킵)
 
--- 2. Playlists 인덱스 삭제 (3개)
-ALTER TABLE playlists DROP INDEX IF EXISTS idx_playlists_updated_id;
-ALTER TABLE playlists DROP INDEX IF EXISTS idx_playlists_subscriber_id;
-ALTER TABLE playlists DROP INDEX IF EXISTS idx_playlists_deleted_created_id;
+-- 2. Playlists 인덱스 삭제 (3개) - 삭제 가능
+DROP INDEX idx_playlists_updated_id ON playlists;
+DROP INDEX idx_playlists_subscriber_id ON playlists;
+DROP INDEX idx_playlists_deleted_created_id ON playlists;
 
 -- 3. Reviews 인덱스 삭제 (2개)
-ALTER TABLE reviews DROP INDEX IF EXISTS idx_reviews_content_created;
-ALTER TABLE reviews DROP INDEX IF EXISTS idx_reviews_user_created;
+-- 주의: FK 제약조건 때문에 삭제 불가 (스킵)
+-- DROP INDEX idx_reviews_content_created ON reviews;
+-- DROP INDEX idx_reviews_user_created ON reviews;
 
 -- ==========================================
 -- 인덱스 삭제 후 확인
 -- ==========================================
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT 'Remaining Indexes (After Drop)' as report_title;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 
 SELECT 
     TABLE_NAME,
@@ -57,6 +58,6 @@ WHERE TABLE_SCHEMA = DATABASE()
 GROUP BY TABLE_NAME, INDEX_NAME
 ORDER BY TABLE_NAME, INDEX_NAME;
 
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT '✅ Indexes dropped successfully! (Baseline mode)' as status;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
