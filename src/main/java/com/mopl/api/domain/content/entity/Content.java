@@ -27,7 +27,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Content extends BaseDeletableEntity {
 
-    @Enumerated(value = EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ContentType type;
 
