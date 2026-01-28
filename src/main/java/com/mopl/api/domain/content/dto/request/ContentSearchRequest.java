@@ -11,7 +11,7 @@ public record ContentSearchRequest(
     String keywordLike,
     String cursor,
     UUID idAfter,
-    @NotNull int limit,
+    @NotNull Integer limit,
     @NotBlank String sortDirection,
     @NotBlank String sortBy
 ) {
