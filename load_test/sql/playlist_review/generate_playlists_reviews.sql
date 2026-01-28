@@ -223,12 +223,12 @@ BEGIN
     DECLARE random_user_id BINARY(16);
     DECLARE total_subscriptions INT DEFAULT 0;
     DECLARE total_playlists INT;
-
-    SELECT COUNT(*) INTO total_playlists FROM playlists;
-
+    
     DECLARE playlist_cursor CURSOR FOR
-    SELECT id FROM playlists ORDER BY RAND();
+        SELECT id FROM playlists ORDER BY RAND();
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    SELECT COUNT(*) INTO total_playlists FROM playlists;
 
     OPEN playlist_cursor;
 
