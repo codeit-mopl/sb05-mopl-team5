@@ -121,7 +121,8 @@ def generate_tokens(base_url: str, start_idx: int, count: int, password: str) ->
     
     print("-" * 60)
     success_count = sum(1 for t in tokens if t)
-    print(f"Success: {success_count}/{count} ({success_count/count*100:.1f}%)")
+    percentage = (success_count / count * 100) if count > 0 else 0.0
+    print(f"Success: {success_count}/{count} ({percentage:.1f}%)")
     
     return tokens
 

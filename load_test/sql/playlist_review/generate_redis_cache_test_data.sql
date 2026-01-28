@@ -75,7 +75,7 @@ BEGIN
     WHILE i < 100 DO
         SET playlist_uuid = UNHEX(REPLACE(UUID(), '-', ''));
         
-        SELECT id INTO random_user_id FROM users ORDER BY RAND() LIMIT 1;
+            SELECT id INTO random_user_id FROM users WHERE email LIKE 'cachetest%@mopl.test' ORDER BY RAND() LIMIT 1;
         
         SET created_date = DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 365) DAY);
         
@@ -218,7 +218,7 @@ BEGIN
         WHILE i < target_count DO
             SET subscription_uuid = UNHEX(REPLACE(UUID(), '-', ''));
             
-            SELECT id INTO random_user_id FROM users ORDER BY RAND() LIMIT 1;
+        SELECT id INTO random_user_id FROM users WHERE email LIKE 'cachetest%@mopl.test' ORDER BY RAND() LIMIT 1;
             
             INSERT IGNORE INTO subscriptions (id, user_id, playlist_id, created_at)
             VALUES (subscription_uuid, random_user_id, playlist_id_var, NOW());
@@ -253,7 +253,13 @@ DROP PROCEDURE IF EXISTS generate_cache_test_subscriptions;
 -- 5.1 Playlist IDs 추출
 SELECT 'playlist_id' as playlist_id
 UNION ALL
-SELECT LOWER(HEX(id)) as playlist_id
+SELECT CONCAT(
+    SUBSTR(LOWER(HEX(id)), 1, 8), '-',
+    SUBSTR(LOWER(HEX(id)), 9, 4), '-',
+    SUBSTR(LOWER(HEX(id)), 13, 4), '-',
+    SUBSTR(LOWER(HEX(id)), 17, 4), '-',
+    SUBSTR(LOWER(HEX(id)), 21, 12)
+) as playlist_id
 FROM playlists 
 WHERE title LIKE 'Popular Playlist for Cache Test%'
 INTO OUTFILE '/tmp/playlist_ids.csv'

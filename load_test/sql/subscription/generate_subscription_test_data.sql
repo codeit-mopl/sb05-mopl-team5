@@ -70,16 +70,18 @@ BEGIN
     DECLARE playlist_uuid BINARY(16);
     DECLARE random_user_id BINARY(16);
     DECLARE initial_subscriber_count BIGINT;
+    DECLARE rand_val DOUBLE;
     
     WHILE i < 1000 DO
         SET playlist_uuid = UNHEX(REPLACE(UUID(), '-', ''));
         
         SELECT id INTO random_user_id FROM users WHERE email LIKE 'subtest%@mopl.test' ORDER BY RAND() LIMIT 1;
         
+        SET rand_val = RAND();
         SET initial_subscriber_count = CASE
-            WHEN RAND() < 0.3 THEN 0
-            WHEN RAND() < 0.6 THEN FLOOR(RAND() * 10)
-            WHEN RAND() < 0.9 THEN FLOOR(RAND() * 30)
+            WHEN rand_val < 0.3 THEN 0
+            WHEN rand_val < 0.6 THEN FLOOR(RAND() * 10)
+            WHEN rand_val < 0.9 THEN FLOOR(RAND() * 30)
             ELSE FLOOR(RAND() * 50)
         END;
         

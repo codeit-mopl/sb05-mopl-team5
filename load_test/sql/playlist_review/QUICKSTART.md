@@ -18,7 +18,7 @@ curl -s http://localhost:8080/actuator/health 2>/dev/null && echo "✓ Spring Bo
 ### 2️⃣ 테스트 데이터 생성 (2분)
 
 ```bash
-cd /Users/PARK/Documents/codeit_mopl/sb05-mopl-team5
+cd <repo-root>
 
 # MySQL에 테스트 데이터 생성
 mysql -uroot -p mopl < load_test/sql/playlist_review/generate_redis_cache_test_data.sql
@@ -67,7 +67,7 @@ python3 load_test/sql/playlist_review/generate_jwt_tokens.py --test
 
 #### 3분 빠른 테스트
 ```bash
-cd /Users/PARK/Documents/codeit_mopl/sb05-mopl-team5
+cd <repo-root>
 
 # 결과 디렉토리 생성
 mkdir -p load_test/results

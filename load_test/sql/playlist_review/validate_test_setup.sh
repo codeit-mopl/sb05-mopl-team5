@@ -2,7 +2,7 @@
 # Redis Cache Load Test Validation Script
 # Checks if all prerequisites are met before running the load test
 
-set -e
+set +e
 
 echo "=========================================="
 echo "Redis Cache Load Test - Validation"
@@ -17,16 +17,20 @@ NC='\033[0m' # No Color
 
 PASSED=0
 FAILED=0
+ANY_FAILURE=0
 
 # Function to check and report status
 check() {
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓${NC} $1"
+    local exit_code=$1
+    local message=$2
+    if [ $exit_code -eq 0 ]; then
+        echo -e "${GREEN}✓${NC} $message"
         ((PASSED++))
         return 0
     else
-        echo -e "${RED}✗${NC} $1"
+        echo -e "${RED}✗${NC} $message"
         ((FAILED++))
+        ANY_FAILURE=1
         return 1
     fi
 }
@@ -36,15 +40,15 @@ echo "-------------------------------"
 
 # MySQL
 mysql -uroot -p"$MYSQL_PASSWORD" -e "SELECT 1;" &>/dev/null
-check "MySQL is running and accessible"
+check $? "MySQL is running and accessible"
 
 # Redis
 redis-cli PING &>/dev/null
-check "Redis is running and accessible"
+check $? "Redis is running and accessible"
 
 # Spring Boot
 curl -s http://localhost:8080/actuator/health | grep -q "UP" &>/dev/null
-check "Spring Boot application is running (http://localhost:8080)"
+check $? "Spring Boot application is running (http://localhost:8080)"
 
 echo ""
 echo "2. Database Checks"
@@ -59,6 +63,7 @@ else
     echo -e "${YELLOW}!${NC} Test users not found (${USER_COUNT}/200 expected)"
     echo "  Run: mysql -uroot -p mopl < load_test/sql/playlist_review/generate_redis_cache_test_data.sql"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 # Test playlists count
@@ -70,6 +75,7 @@ else
     echo -e "${YELLOW}!${NC} Test playlists not found (${PLAYLIST_COUNT}/100 expected)"
     echo "  Run: mysql -uroot -p mopl < load_test/sql/playlist_review/generate_redis_cache_test_data.sql"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 # Contents count
@@ -81,6 +87,7 @@ else
     echo -e "${RED}✗${NC} Insufficient contents (${CONTENT_COUNT}/100 minimum)"
     echo "  Run: mysql -uroot -p mopl < load_test/sql/contents/generate_contents.sql"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 echo ""
@@ -96,6 +103,7 @@ else
     echo -e "${YELLOW}!${NC} playlist_ids.csv not found"
     echo "  Run: mv /tmp/playlist_ids.csv load_test/sql/playlist_review/"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 if [ -f "load_test/sql/playlist_review/user_tokens.csv" ]; then
@@ -107,6 +115,7 @@ if [ -f "load_test/sql/playlist_review/user_tokens.csv" ]; then
         echo -e "${YELLOW}!${NC} user_tokens.csv contains dummy tokens"
         echo "  Run: python3 load_test/sql/playlist_review/generate_jwt_tokens.py --count 200 --output load_test/sql/playlist_review/user_tokens.csv"
         ((FAILED++))
+        ANY_FAILURE=1
     else
         echo -e "${GREEN}✓${NC} user_tokens.csv exists with real tokens (${TOKEN_CSV_COUNT} lines)"
         ((PASSED++))
@@ -115,6 +124,7 @@ else
     echo -e "${RED}✗${NC} user_tokens.csv not found"
     echo "  Run: python3 load_test/sql/playlist_review/generate_jwt_tokens.py --count 200 --output load_test/sql/playlist_review/user_tokens.csv"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 # JMeter files
@@ -124,6 +134,7 @@ if [ -f "load_test/jmeter/playlist_review/playlist_review_redis_cache_3m.jmx" ];
 else
     echo -e "${RED}✗${NC} JMeter test file (3m) not found"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 if [ -f "load_test/jmeter/playlist_review/playlist_review_redis_cache_15m.jmx" ]; then
@@ -132,6 +143,7 @@ if [ -f "load_test/jmeter/playlist_review/playlist_review_redis_cache_15m.jmx" ]
 else
     echo -e "${RED}✗${NC} JMeter test file (15m) not found"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 echo ""
@@ -147,6 +159,7 @@ else
     echo -e "${RED}✗${NC} JMeter not found"
     echo "  Install: brew install jmeter (macOS) or download from https://jmeter.apache.org/"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 # Python3
@@ -157,18 +170,12 @@ if command -v python3 &>/dev/null; then
 else
     echo -e "${RED}✗${NC} Python3 not found"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 # Python requests library
 python3 -c "import requests" &>/dev/null
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓${NC} Python requests library is installed"
-    ((PASSED++))
-else
-    echo -e "${YELLOW}!${NC} Python requests library not found"
-    echo "  Run: pip3 install requests"
-    ((FAILED++))
-fi
+check $? "Python requests library is installed"
 
 echo ""
 echo "5. API Endpoint Check"
@@ -185,11 +192,12 @@ if [ "$HTTP_CODE" == "401" ] || [ "$HTTP_CODE" == "200" ]; then
 else
     echo -e "${RED}✗${NC} Login endpoint issue (HTTP ${HTTP_CODE})"
     ((FAILED++))
+    ANY_FAILURE=1
 fi
 
 # Test playlist endpoint (sample)
 if [ "$PLAYLIST_COUNT" -gt 0 ]; then
-    SAMPLE_PLAYLIST_ID=$(mysql -uroot -p"$MYSQL_PASSWORD" mopl -sNe "SELECT id FROM playlists WHERE title LIKE 'Popular Playlist for Cache Test%' LIMIT 1;" 2>/dev/null)
+    SAMPLE_PLAYLIST_ID=$(mysql -uroot -p"$MYSQL_PASSWORD" mopl -sNe "SELECT CONCAT(SUBSTR(LOWER(HEX(id)), 1, 8), '-', SUBSTR(LOWER(HEX(id)), 9, 4), '-', SUBSTR(LOWER(HEX(id)), 13, 4), '-', SUBSTR(LOWER(HEX(id)), 17, 4), '-', SUBSTR(LOWER(HEX(id)), 21, 12)) FROM playlists WHERE title LIKE 'Popular Playlist for Cache Test%' LIMIT 1;" 2>/dev/null)
     if [ -n "$SAMPLE_PLAYLIST_ID" ]; then
         HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/playlists/${SAMPLE_PLAYLIST_ID} 2>/dev/null || echo "000")
         if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "401" ]; then
@@ -198,6 +206,7 @@ if [ "$PLAYLIST_COUNT" -gt 0 ]; then
         else
             echo -e "${RED}✗${NC} Playlist endpoint issue (HTTP ${HTTP_CODE})"
             ((FAILED++))
+            ANY_FAILURE=1
         fi
     fi
 fi
@@ -210,7 +219,7 @@ echo -e "Passed: ${GREEN}${PASSED}${NC}"
 echo -e "Failed: ${RED}${FAILED}${NC}"
 echo ""
 
-if [ $FAILED -eq 0 ]; then
+if [ $ANY_FAILURE -eq 0 ]; then
     echo -e "${GREEN}✓ All checks passed! Ready to run load test.${NC}"
     echo ""
     echo "Next steps:"

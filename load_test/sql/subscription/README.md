@@ -144,9 +144,7 @@ mysql -uroot -p mopl < load_test/sql/subscription/reset_subscription_data.sql 2>
 5. **CPU/메모리:** 애플리케이션 서버 리소스 사용량
 
 ## 관련 문서
-- 메인 리포트: `/subscript_racecondition/report.md`
-- 프레젠테이션: `/subscript_racecondition/presentation.md`
-- 요약: `/subscript_racecondition/resume.md`
+- 추가 문서는 준비 중입니다
 
 ## 참고 사항
 - 테스트 데이터는 쉬운 정리를 위해 특정 명명 패턴으로 격리됩니다

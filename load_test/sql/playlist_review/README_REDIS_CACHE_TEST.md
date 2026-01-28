@@ -30,12 +30,14 @@ Playlist 상세 조회 시 Redis 캐싱의 성능 개선 효과를 측정하기 
 ## 📊 테스트 파일
 
 ### JMeter 테스트 파일
+
 | 파일명 | 동시 사용자 | 테스트 시간 | Ramp-up | 용도 |
 |--------|------------|------------|---------|------|
 | `playlist_review_redis_cache_3m.jmx` | 200명 | 3분 | 30초 | 빠른 검증 |
 | `playlist_review_redis_cache_15m.jmx` | 200명 | 15분 | 60초 | 안정성 테스트 |
 
 ### SQL 스크립트
+
 | 파일명 | 용도 |
 |--------|------|
 | `generate_redis_cache_test_data.sql` | 테스트 데이터 생성 |
@@ -128,7 +130,7 @@ python3 load_test/sql/playlist_review/generate_jwt_tokens.py --test
 - `--test`: 첫 번째 사용자로만 테스트
 
 **출력 예시**:
-```
+```text
 Generating 200 JWT tokens...
 Base URL: http://localhost:8080
 User range: cachetest0@mopl.test ~ cachetest199@mopl.test
@@ -230,7 +232,7 @@ redis-cli GET "playlistDetail::<playlist-uuid>_<user-uuid>"
 - 캐시 미스 시: **< 500ms**
 
 #### 2. 캐시 히트율 (Cache Hit Rate)
-```
+```text
 캐시 히트율 = (캐시 히트 수 / 총 요청 수) × 100%
 ```
 
@@ -282,6 +284,7 @@ jmeter -n -t load_test/jmeter/playlist_review/playlist_review_redis_cache_3m.jmx
 ```
 
 #### 3단계: 결과 비교
+
 | 지표 | 캐시 없음 | 캐시 있음 | 개선율 |
 |------|----------|----------|--------|
 | 평균 응답 시간 | ? ms | ? ms | ?% |

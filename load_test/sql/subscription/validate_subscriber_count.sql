@@ -37,7 +37,7 @@ SELECT
     COUNT(*) as total_playlists,
     SUM(CASE WHEN p.subscriber_count = actual_count THEN 1 ELSE 0 END) as consistent_playlists,
     SUM(CASE WHEN p.subscriber_count != actual_count THEN 1 ELSE 0 END) as inconsistent_playlists,
-    ROUND(SUM(CASE WHEN p.subscriber_count = actual_count THEN 1 ELSE 0 END) / COUNT(*) * 100, 2) as consistency_percentage
+    COALESCE(ROUND(SUM(CASE WHEN p.subscriber_count = actual_count THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) * 100, 2), 0) as consistency_percentage
 FROM (
     SELECT 
         p.id,
