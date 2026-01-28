@@ -9,6 +9,7 @@ import com.mopl.api.domain.content.exception.detail.InvalidSortByException;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -81,12 +82,13 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
             }
             case "rate" -> {
                 BigDecimal cursorRate = new BigDecimal(request.cursor());
-                return isDesc ? content.averageRating.lt(cursorRate)
-                                                     .or(content.averageRating.eq(cursorRate)
-                                                                              .and(content.id.lt(request.idAfter())))
-                    : content.averageRating.gt(cursorRate)
-                                           .or(content.averageRating.eq(cursorRate)
-                                                                    .and(content.id.gt(request.idAfter())));
+                NumberExpression<BigDecimal> avgRating = content.ratingSum.divide(content.reviewCount).castToNum(BigDecimal.class);
+                return isDesc ? avgRating.lt(cursorRate)
+                                         .or(avgRating.eq(cursorRate)
+                                                      .and(content.id.lt(request.idAfter())))
+                    : avgRating.gt(cursorRate)
+                               .or(avgRating.eq(cursorRate)
+                                            .and(content.id.gt(request.idAfter())));
             }
         }
         throw InvalidSortByException.withSortBy(request.sortBy());
@@ -106,7 +108,8 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
                     new OrderSpecifier<>(order, content.id)};
             }
             case "rate" -> {
-                return new OrderSpecifier[]{new OrderSpecifier<>(order, content.averageRating),
+                NumberExpression<BigDecimal> avgRating = content.ratingSum.divide(content.reviewCount).castToNum(BigDecimal.class);
+                return new OrderSpecifier[]{new OrderSpecifier<>(order, avgRating),
                     new OrderSpecifier<>(order, content.id)};
             }
         }

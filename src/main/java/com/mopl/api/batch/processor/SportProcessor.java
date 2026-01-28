@@ -17,6 +17,6 @@ public class SportProcessor implements ItemProcessor<SportResponse, Content> {
             ? item.thumbnailUrl() : "/static/thumbnail.png";
 
         return new Content(ContentType.SPORT, item.apiId(), item.title(), item.description(), thumbnail,
-            item.getTags(), BigDecimal.ZERO, 0L, 0L);
+            item.getTags(), 0L, 0L, 0L);
     }
 }

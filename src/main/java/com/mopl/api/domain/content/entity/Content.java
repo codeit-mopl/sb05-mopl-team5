@@ -6,8 +6,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -44,14 +46,23 @@ public class Content extends BaseDeletableEntity {
     @Column(nullable = false, length = 500)
     private String tags;
 
-    @Column(nullable = false, precision = 2, scale = 1)
-    private BigDecimal averageRating = BigDecimal.ZERO;
+    @Column(nullable = false)
+    private Long ratingSum = 0L;
 
     @Column(nullable = false)
     private Long reviewCount = 0L;
 
     @Column(nullable = false)
     private Long watcherCount = 0L;
+
+    @Transient
+    public BigDecimal getAverageRating() {
+        if (reviewCount == 0) {
+            return BigDecimal.ZERO;
+        }
+        return BigDecimal.valueOf(ratingSum)
+                         .divide(BigDecimal.valueOf(reviewCount * 10), 1, RoundingMode.HALF_UP);
+    }
 
     public void update(String title, String description, String tags, String thumbnailUrl) {
         if (title != null && !title.isBlank()) {
@@ -68,8 +79,17 @@ public class Content extends BaseDeletableEntity {
         }
     }
 
-    public void updateRatingStats(BigDecimal newAverageRating, Long newReviewCount) {
-        this.averageRating = newAverageRating;
-        this.reviewCount = newReviewCount;
+    public void addRating(double rating) {
+        this.ratingSum += Math.round(rating * 10);
+        this.reviewCount += 1;
+    }
+
+    public void updateRating(double oldRating, double newRating) {
+        this.ratingSum = this.ratingSum - Math.round(oldRating * 10) + Math.round(newRating * 10);
+    }
+
+    public void removeRating(double rating) {
+        this.ratingSum -= Math.round(rating * 10);
+        this.reviewCount -= 1;
     }
 }

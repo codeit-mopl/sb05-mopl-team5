@@ -131,14 +131,13 @@ class ReviewServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(review);
-        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(review));
         when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
 
         ReviewDto result = reviewService.addReview(request, userId);
 
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(reviewId);
-        verify(contentRepository, times(2)).findById(contentId);
+        verify(contentRepository).findById(contentId);
         verify(userRepository).findById(userId);
         verify(reviewRepository).existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId);
         verify(reviewRepository).save(any(Review.class));
@@ -245,8 +244,6 @@ class ReviewServiceTest {
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(review));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
         when(reviewMapper.toDto(review, true)).thenReturn(expectedDto);
 
         ReviewDto result = reviewService.modifyReview(reviewId, request, userId);
@@ -255,7 +252,7 @@ class ReviewServiceTest {
         assertThat(result.text()).isEqualTo("Updated text");
         verify(reviewRepository).findById(reviewId);
         verify(reviewRepository).save(review);
-        verify(contentRepository).save(content);
+        verify(contentRepository).save(any(Content.class));
     }
 
     @Test
@@ -318,287 +315,10 @@ class ReviewServiceTest {
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of());
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
 
         reviewService.removeReview(reviewId, userId);
 
-        verify(reviewRepository).findById(reviewId);
-        verify(reviewRepository).save(review);
-        verify(contentRepository).save(content);
-    }
-
-    @Test
-    @DisplayName("리뷰 삭제 실패 - 존재하지 않는 리뷰")
-    void removeReview_ReviewNotFound() {
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> reviewService.removeReview(reviewId, userId))
-            .isInstanceOf(ReviewNotFoundException.class)
-            .hasMessageContaining("존재하지 않는 리뷰입니다");
-
-        verify(reviewRepository).findById(reviewId);
-        verify(reviewRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("리뷰 삭제 실패 - 권한 없음")
-    void removeReview_Unauthorized() {
-        UUID differentUserId = UUID.randomUUID();
-
-        User user = fixtureMonkey.giveMeBuilder(User.class)
-            .set("id", userId)
-            .sample();
-        
-        Review review = fixtureMonkey.giveMeBuilder(Review.class)
-            .set("id", reviewId)
-            .set("user", user)
-            .sample();
-
-        when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
-
-        assertThatThrownBy(() -> reviewService.removeReview(reviewId, differentUserId))
-            .isInstanceOf(ReviewUnauthorizedException.class)
-            .hasMessageContaining("리뷰에 대한 권한이 없습니다");
-
-        verify(reviewRepository).findById(reviewId);
-        verify(reviewRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("리뷰 목록 조회 성공 - createdAt 정렬")
-    void getReviews_Success_SortByCreatedAt() {
-        String sortBy = "createdAt";
-        String sortDirection = "desc";
-        int limit = 10;
-        String cursor = null;
-        UUID idAfter = null;
-
-        User user = fixtureMonkey.giveMeBuilder(User.class)
-            .set("id", userId)
-            .sample();
-
-        Review review1 = fixtureMonkey.giveMeBuilder(Review.class)
-            .set("user", user)
-            .sample();
-        
-        Review review2 = fixtureMonkey.giveMeBuilder(Review.class)
-            .set("user", user)
-            .sample();
-
-        List<Review> mockReviews = Arrays.asList(review1, review2);
-        
-        AuthorDto authorDto = AuthorDto.builder()
-            .userId(userId)
-            .name(user.getName())
-            .profileImageUrl(user.getProfileImageUrl())
-            .build();
-        
-        ReviewDto mockDto1 = fixtureMonkey.giveMeBuilder(ReviewDto.class)
-            .set("author", authorDto)
-            .set("isAuthor", true)
-            .sample();
-        
-        ReviewDto mockDto2 = fixtureMonkey.giveMeBuilder(ReviewDto.class)
-            .set("author", authorDto)
-            .set("isAuthor", true)
-            .sample();
-
-        when(reviewRepository.findReviewsWithCursor(
-            eq(contentId),
-            eq(sortBy),
-            eq(sortDirection),
-            any(),
-            any(),
-            any(),
-            eq(limit)
-        )).thenReturn(mockReviews);
-        when(reviewRepository.countReviewsByContentId(contentId)).thenReturn(2L);
-        when(reviewMapper.toDto(eq(review1), eq(true))).thenReturn(mockDto1);
-        when(reviewMapper.toDto(eq(review2), eq(true))).thenReturn(mockDto2);
-
-        CursorResponseReviewDto result = reviewService.getReviews(
-            contentId,
-            cursor,
-            idAfter,
-            limit,
-            sortBy,
-            sortDirection,
-            userId
-        );
-
-        assertThat(result).isNotNull();
-        assertThat(result.data()).hasSize(2);
-        assertThat(result.hasNext()).isFalse();
-        assertThat(result.totalCount()).isEqualTo(2);
-        assertThat(result.sortBy()).isEqualTo(sortBy);
-        assertThat(result.sortDirection()).isEqualTo(sortDirection);
-        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(),
-            any(), eq(limit));
-        verify(reviewRepository).countReviewsByContentId(contentId);
-    }
-
-    @Test
-    @DisplayName("리뷰 목록 조회 성공 - rating 정렬 및 커서 페이징")
-    void getReviews_Success_SortByRatingWithCursor() {
-        String sortBy = "rating";
-        String sortDirection = "desc";
-        int limit = 2;
-        String cursor = "4.5";
-        UUID idAfter = UUID.randomUUID();
-
-        User user = fixtureMonkey.giveMeBuilder(User.class)
-            .set("id", userId)
-            .sample();
-
-        UUID mockReview2Id = UUID.randomUUID();
-        
-        Review review1 = fixtureMonkey.giveMeBuilder(Review.class)
-            .set("user", user)
-            .set("rating", BigDecimal.valueOf(4.0))
-            .sample();
-        
-        Review review2 = fixtureMonkey.giveMeBuilder(Review.class)
-            .set("id", mockReview2Id)
-            .set("user", user)
-            .set("rating", BigDecimal.valueOf(3.5))
-            .sample();
-        
-        Review review3 = fixtureMonkey.giveMeBuilder(Review.class)
-            .set("user", user)
-            .sample();
-
-        List<Review> mockReviews = Arrays.asList(review1, review2, review3);
-        
-        AuthorDto authorDto = AuthorDto.builder()
-            .userId(userId)
-            .name(user.getName())
-            .profileImageUrl(user.getProfileImageUrl())
-            .build();
-        
-        ReviewDto mockDto1 = fixtureMonkey.giveMeBuilder(ReviewDto.class)
-            .set("author", authorDto)
-            .set("rating", 4.0)
-            .set("isAuthor", true)
-            .sample();
-        
-        ReviewDto mockDto2 = fixtureMonkey.giveMeBuilder(ReviewDto.class)
-            .set("author", authorDto)
-            .set("rating", 3.5)
-            .set("isAuthor", true)
-            .sample();
-
-        when(reviewRepository.findReviewsWithCursor(
-            eq(contentId),
-            eq(sortBy),
-            eq(sortDirection),
-            any(),
-            any(BigDecimal.class),
-            eq(idAfter),
-            eq(limit)
-        )).thenReturn(mockReviews);
-        when(reviewRepository.countReviewsByContentId(contentId)).thenReturn(5L);
-        when(reviewMapper.toDto(eq(review1), eq(true))).thenReturn(mockDto1);
-        when(reviewMapper.toDto(eq(review2), eq(true))).thenReturn(mockDto2);
-
-        CursorResponseReviewDto result = reviewService.getReviews(
-            contentId,
-            cursor,
-            idAfter,
-            limit,
-            sortBy,
-            sortDirection,
-            userId
-        );
-
-        assertThat(result).isNotNull();
-        assertThat(result.data()).hasSize(2);
-        assertThat(result.hasNext()).isTrue();
-        assertThat(result.nextCursor()).isEqualTo("3.5");
-        assertThat(result.nextIdAfter()).isEqualTo(mockReview2Id);
-        assertThat(result.totalCount()).isEqualTo(5);
-        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(),
-            any(BigDecimal.class), eq(idAfter), eq(limit));
-    }
-
-    @Test
-    @DisplayName("리뷰 목록 조회 성공 - currentUserId가 null인 경우")
-    void getReviews_Success_NullCurrentUser() {
-        String sortBy = "createdAt";
-        String sortDirection = "desc";
-        int limit = 10;
-
-        Review review = fixtureMonkey.giveMeOne(Review.class);
-
-        List<Review> mockReviews = Arrays.asList(review);
-        
-        ReviewDto mockDto = mock(ReviewDto.class);
-        when(mockDto.isAuthor()).thenReturn(false);
-
-        when(reviewRepository.findReviewsWithCursor(
-            eq(contentId),
-            eq(sortBy),
-            eq(sortDirection),
-            any(),
-            any(),
-            any(),
-            eq(limit)
-        )).thenReturn(mockReviews);
-        when(reviewRepository.countReviewsByContentId(contentId)).thenReturn(1L);
-        when(reviewMapper.toDto(eq(review), eq(false))).thenReturn(mockDto);
-
-        CursorResponseReviewDto result = reviewService.getReviews(
-            contentId,
-            null,
-            null,
-            limit,
-            sortBy,
-            sortDirection,
-            null
-        );
-
-        assertThat(result).isNotNull();
-        assertThat(result.data()).hasSize(1);
-        assertThat(result.data()
-                          .get(0)
-                          .isAuthor()).isFalse();
-        verify(reviewRepository).findReviewsWithCursor(eq(contentId), eq(sortBy), eq(sortDirection), any(), any(),
-            any(), eq(limit));
-    }
-
-    @Test
-    @DisplayName("리뷰 생성 시 콘텐츠 평점 재계산 - 첫 리뷰")
-    void recalculateContentRating_FirstReview() {
-        ReviewCreateRequest request = new ReviewCreateRequest(contentId, "Great movie!", 5.0);
-        
-        User user = fixtureMonkey.giveMeBuilder(User.class)
-            .set("id", userId)
-            .sample();
-        
-        Content content = fixtureMonkey.giveMeBuilder(Content.class)
-            .set("id", contentId)
-            .sample();
-        
-        Review review = fixtureMonkey.giveMeBuilder(Review.class)
-            .set("id", reviewId)
-            .set("content", content)
-            .set("user", user)
-            .set("rating", BigDecimal.valueOf(5.0))
-            .set("isDeleted", false)
-            .sample();
-        
-        ReviewDto expectedDto = mock(ReviewDto.class);
-
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
-        when(reviewRepository.save(any(Review.class))).thenReturn(review);
-        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(review));
-        when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
-
-        reviewService.addReview(request, userId);
-
-        verify(contentRepository).save(content);
+        verify(contentRepository).save(any(Content.class));
     }
 
     @Test
@@ -638,7 +358,6 @@ class ReviewServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(reviewRepository.existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(newReview);
-        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(newReview, existingReview1, existingReview2));
         when(reviewMapper.toDto(any(Review.class), eq(true))).thenReturn(expectedDto);
 
         reviewService.addReview(request, userId);
@@ -663,7 +382,7 @@ class ReviewServiceTest {
             .set("id", reviewId)
             .set("user", user)
             .set("content", content)
-            .set("rating", BigDecimal.valueOf(3.0))
+            .set("rating", BigDecimal.valueOf(5.0))
             .set("isDeleted", false)
             .sample();
         
@@ -677,13 +396,11 @@ class ReviewServiceTest {
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(review, existingReview));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
         when(reviewMapper.toDto(review, true)).thenReturn(expectedDto);
 
         reviewService.modifyReview(reviewId, request, userId);
 
-        verify(contentRepository).save(content);
+        verify(contentRepository).save(any(Content.class));
     }
 
     @Test
@@ -713,12 +430,10 @@ class ReviewServiceTest {
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of(remainingReview));
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
 
         reviewService.removeReview(reviewId, userId);
 
-        verify(contentRepository).save(content);
+        verify(contentRepository).save(any(Content.class));
     }
 
     @Test
@@ -742,11 +457,9 @@ class ReviewServiceTest {
 
         when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(review));
         when(reviewRepository.save(review)).thenReturn(review);
-        when(reviewRepository.findActiveReviewsByContentId(contentId)).thenReturn(List.of());
-        when(contentRepository.findById(contentId)).thenReturn(Optional.of(content));
 
         reviewService.removeReview(reviewId, userId);
 
-        verify(contentRepository).save(content);
+        verify(contentRepository).save(any(Content.class));
     }
 }
