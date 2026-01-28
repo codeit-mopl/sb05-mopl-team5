@@ -146,12 +146,18 @@ BEGIN
     DECLARE created_date DATETIME;
     DECLARE updated_date DATETIME;
     DECLARE random_subscriber_count BIGINT;
+    DECLARE users_count INT;
+    DECLARE random_offset INT;
+
+    -- 사용자 개수 사전 계산 (ORDER BY RAND() 최적화)
+    SELECT COUNT(*) INTO users_count FROM users;
 
     WHILE i < 50000 DO
             SET playlist_uuid = UNHEX(REPLACE(UUID(), '-', ''));
 
-            -- 랜덤 사용자 선택
-            SELECT id INTO random_user_id FROM users ORDER BY RAND() LIMIT 1;
+            -- 랜덤 사용자 선택 (오프셋 기반)
+            SET random_offset = FLOOR(RAND() * users_count);
+            SELECT id INTO random_user_id FROM users LIMIT random_offset, 1;
 
             -- 균등 분포 날짜 생성 (3년)
             SET random_days = FLOOR(RAND() * 1095);
