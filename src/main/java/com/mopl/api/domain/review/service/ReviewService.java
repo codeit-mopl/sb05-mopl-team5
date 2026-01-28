@@ -58,8 +58,8 @@ public class ReviewService {
 
         reviewRepository.save(review);
 
-        content.addRating(request.rating());
-        contentRepository.save(content);
+        long ratingValue = Math.round(request.rating() * 10);
+        contentRepository.incrementRating(content.getId(), ratingValue);
 
         return reviewMapper.toDto(review, true);
     }
@@ -82,9 +82,9 @@ public class ReviewService {
         review.update(request.text(), rating);
         reviewRepository.save(review);
 
-        Content content = review.getContent();
-        content.updateRating(oldRating, newRating);
-        contentRepository.save(content);
+        long oldRatingValue = Math.round(oldRating * 10);
+        long newRatingValue = Math.round(newRating * 10);
+        contentRepository.updateRating(review.getContent().getId(), oldRatingValue, newRatingValue);
 
         return reviewMapper.toDto(review, true);
     }
@@ -106,9 +106,8 @@ public class ReviewService {
         review.softDelete();
         reviewRepository.save(review);
 
-        Content content = review.getContent();
-        content.removeRating(rating);
-        contentRepository.save(content);
+        long ratingValue = Math.round(rating * 10);
+        contentRepository.decrementRating(contentId, ratingValue);
 
         Optional.ofNullable(cacheManager.getCache("reviewCount"))
                 .ifPresent(cache -> cache.evict(contentId));

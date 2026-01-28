@@ -141,7 +141,7 @@ class ReviewServiceTest {
         verify(userRepository).findById(userId);
         verify(reviewRepository).existsByContentIdAndUserIdAndIsDeletedFalse(contentId, userId);
         verify(reviewRepository).save(any(Review.class));
-        verify(contentRepository).save(content);
+        verify(contentRepository).incrementRating(eq(contentId), eq(50L));
     }
 
     @Test
@@ -252,7 +252,7 @@ class ReviewServiceTest {
         assertThat(result.text()).isEqualTo("Updated text");
         verify(reviewRepository).findById(reviewId);
         verify(reviewRepository).save(review);
-        verify(contentRepository).save(any(Content.class));
+        verify(contentRepository).updateRating(eq(contentId), eq(40L), eq(40L));
     }
 
     @Test
@@ -310,6 +310,7 @@ class ReviewServiceTest {
             .set("id", reviewId)
             .set("user", user)
             .set("content", content)
+            .set("rating", BigDecimal.valueOf(5.0))
             .set("isDeleted", false)
             .sample();
 
@@ -318,7 +319,7 @@ class ReviewServiceTest {
 
         reviewService.removeReview(reviewId, userId);
 
-        verify(contentRepository).save(any(Content.class));
+        verify(contentRepository).decrementRating(eq(contentId), eq(50L));
     }
 
     @Test
@@ -362,7 +363,7 @@ class ReviewServiceTest {
 
         reviewService.addReview(request, userId);
 
-        verify(contentRepository).save(content);
+        verify(contentRepository).incrementRating(eq(contentId), eq(40L));
     }
 
     @Test
@@ -400,7 +401,7 @@ class ReviewServiceTest {
 
         reviewService.modifyReview(reviewId, request, userId);
 
-        verify(contentRepository).save(any(Content.class));
+        verify(contentRepository).updateRating(eq(contentId), eq(50L), eq(30L));
     }
 
     @Test
@@ -433,7 +434,7 @@ class ReviewServiceTest {
 
         reviewService.removeReview(reviewId, userId);
 
-        verify(contentRepository).save(any(Content.class));
+        verify(contentRepository).decrementRating(eq(contentId), eq(50L));
     }
 
     @Test
@@ -460,6 +461,6 @@ class ReviewServiceTest {
 
         reviewService.removeReview(reviewId, userId);
 
-        verify(contentRepository).save(any(Content.class));
+        verify(contentRepository).decrementRating(eq(contentId), eq(50L));
     }
 }
