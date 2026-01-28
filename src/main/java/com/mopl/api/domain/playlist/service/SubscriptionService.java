@@ -49,6 +49,8 @@ public class SubscriptionService {
         Subscription subscription = Subscription.create(user, playlist);
         subscriptionRepository.save(subscription);
 
+        playlistRepository.incrementSubscriberCount(playlistId);
+
         // 알림
         eventPublisher.publishEvent(PlaylistSubscribedEvent.builder()
                                                            .playlistId(playlist.getId())
@@ -59,9 +61,6 @@ public class SubscriptionService {
                                                            .subscriberId(user.getId())
                                                            .subscriberName(user.getName())
                                                            .build());
-
-        playlist.incrementSubscriberCount();
-        playlistRepository.save(playlist);
     }
 
     @Transactional
@@ -75,8 +74,7 @@ public class SubscriptionService {
 
         subscriptionRepository.delete(subscription);
 
-        playlist.decrementSubscriberCount();
-        playlistRepository.save(playlist);
+        playlistRepository.decrementSubscriberCount(playlistId);
     }
 
     public boolean isUserSubscribed(UUID userId, UUID playlistId) {
