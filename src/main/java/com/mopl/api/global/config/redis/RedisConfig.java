@@ -21,7 +21,6 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
-@EnableCaching
 @RequiredArgsConstructor
 public class RedisConfig {
 
@@ -106,14 +105,8 @@ public class RedisConfig {
                                                                         serializer)
                                                                 );
 
-        Map<String, RedisCacheConfiguration> configurations = new HashMap<>();
-        configurations.put("playlistCount", config.entryTtl(Duration.ofMinutes(10)));
-        configurations.put("reviewCount", config.entryTtl(Duration.ofMinutes(10)));
-        configurations.put("playlistDetail", config.entryTtl(Duration.ofMinutes(30)));
-
         return RedisCacheManager.builder(connectionFactory)
                                 .cacheDefaults(config)
-                                .withInitialCacheConfigurations(configurations)
                                 .build();
     }
 }
