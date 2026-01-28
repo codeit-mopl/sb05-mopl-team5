@@ -47,10 +47,15 @@ BEGIN
         -- RAND() * 1095 = 0일 ~ 1095일 (3년) 균등 분포
         SET random_days = FLOOR(RAND() * 1095);
         SET created_date = DATE_SUB(NOW(), INTERVAL random_days DAY);
-        
+
+        -- 평점 데이터 생성 (0.0 ~ 5.0 사이의 평점을 10배하여 rating_sum에 저장)
+        SET @random_rating = RAND() * 5;
+        SET @rating_sum_val = ROUND(@random_rating * 10);
+        SET @review_count_val = FLOOR(RAND() * 100) + 1; -- 1~100개의 리뷰
+
         INSERT INTO contents (
             id, type, api_id, title, description, thumbnail_url, 
-            tags, average_rating, watcher_count, review_count, 
+            tags, rating_sum, review_count, watcher_count,
             created_at, updated_at, is_deleted
         ) VALUES (
             content_uuid,
@@ -60,9 +65,9 @@ BEGIN
             CONCAT('Description for content ', api_id_val, '. This is a sample description for load testing.'),
             CONCAT('https://picsum.photos/seed/', api_id_val, '/300/450'),
             CONCAT('tag', MOD(i, 10), ',tag', MOD(i, 20), ',tag', MOD(i, 30)),
-            ROUND(RAND() * 5, 1),
+            @rating_sum_val * @review_count_val,  -- 총 평점 합계
+            @review_count_val,
             FLOOR(RAND() * 1000),
-            FLOOR(RAND() * 10000),
             created_date,  -- V3: 균등 분포 날짜
             NOW(),
             FALSE

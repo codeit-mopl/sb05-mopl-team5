@@ -8,8 +8,9 @@ CREATE INDEX idx_contents_created_id
 ON contents(created_at DESC, id DESC);
 
 -- 2) Contents 평점 기준 정렬 최적화
-CREATE INDEX idx_contents_rating_id 
-ON contents(average_rating DESC, id DESC);
+-- rating_sum, review_count, id 순서로 인덱스 생성 (계산 컬럼 정렬 지원)
+CREATE INDEX idx_contents_rating_id
+ON contents(rating_sum DESC, review_count DESC, id DESC);
 
 -- 3) Contents 시청자 수 기준 정렬 최적화
 CREATE INDEX idx_contents_watcher_id 
