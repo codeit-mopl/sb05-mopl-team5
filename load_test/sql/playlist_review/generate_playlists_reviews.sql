@@ -216,55 +216,41 @@ DROP PROCEDURE IF EXISTS generate_playlists;
 -- ==========================================
 -- subscriber_count만 업데이트 (실제 subscriptions 테이블은 생성 안 함)
 -- 이유: 500만+ 레코드 생성은 너무 느림. 부하테스트는 playlists 조회만 필요
-DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
 
-DELIMITER $$
-CREATE PROCEDURE generate_subscriptions_zipf()
-BEGIN
-    DECLARE total_playlists INT;
-    
-    SELECT COUNT(*) INTO total_playlists FROM playlists;
-    SELECT '========================================' as divider;
-    SELECT CONCAT('Starting Zipf distribution for ', total_playlists, ' playlists') as status;
-    SELECT '========================================' as divider;
-    
-    -- Use a single UPDATE statement with case logic based on created_at ordering
-    -- This is much faster than cursor-based approach
-    UPDATE playlists p
-    JOIN (
-        SELECT 
-            id,
-            @row_num := @row_num + 1 as rank,
-            CASE
-                WHEN @row_num <= @total * 0.01 THEN 500 + FLOOR(RAND() * 1500)
-                WHEN @row_num <= @total * 0.05 THEN 100 + FLOOR(RAND() * 400)
-                WHEN @row_num <= @total * 0.20 THEN 20 + FLOOR(RAND() * 80)
-                ELSE FLOOR(RAND() * 20)
-            END as target_count
-        FROM playlists,
-            (SELECT @row_num := 0, @total := (SELECT COUNT(*) FROM playlists)) vars
-        ORDER BY created_at
-    ) ranked ON p.id = ranked.id
-    SET p.subscriber_count = ranked.target_count;
-    
-    COMMIT;
+SELECT '========================================' as divider;
+SELECT CONCAT('Starting Zipf distribution for playlists...') as status;
+SELECT '========================================' as divider;
 
-    SELECT '========================================' as divider;
-    SELECT 'Zipf Distribution Complete!' as status;
-    SELECT '========================================' as divider;
-
+UPDATE playlists p
+INNER JOIN (
     SELECT
-        FORMAT(SUM(subscriber_count), 0) as total_subscriptions,
-        FORMAT(COUNT(*), 0) as total_playlists,
-        ROUND(AVG(subscriber_count), 1) as avg_subs_per_playlist,
-        FORMAT(MAX(subscriber_count), 0) as max_subs
-    FROM playlists;
+        id,
+        @row_num := @row_num + 1 as row_num,
+        CASE
+            WHEN @row_num <= @total * 0.01 THEN 500 + FLOOR(RAND() * 1500)
+            WHEN @row_num <= @total * 0.05 THEN 100 + FLOOR(RAND() * 400)
+            WHEN @row_num <= @total * 0.20 THEN 20 + FLOOR(RAND() * 80)
+            ELSE FLOOR(RAND() * 20)
+        END as target_count
+    FROM playlists
+    CROSS JOIN (SELECT @row_num := 0, @total := (SELECT COUNT(*) FROM playlists WHERE title LIKE 'Load Test Playlist %')) vars
+    WHERE title LIKE 'Load Test Playlist %'
+    ORDER BY created_at
+) ranked ON p.id = ranked.id
+SET p.subscriber_count = ranked.target_count;
 
-END$$
-DELIMITER ;
+COMMIT;
 
-CALL generate_subscriptions_zipf();
-DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
+SELECT '========================================' as divider;
+SELECT 'Zipf Distribution Complete!' as status;
+SELECT '========================================' as divider;
+
+SELECT
+    FORMAT(SUM(subscriber_count), 0) as total_subscriptions,
+    FORMAT(COUNT(*), 0) as total_playlists,
+    ROUND(AVG(subscriber_count), 1) as avg_subs_per_playlist,
+    FORMAT(MAX(subscriber_count), 0) as max_subs
+FROM playlists;
 
 -- ==========================================
 -- 5. 구독 분포 검증 쿼리
@@ -390,7 +376,7 @@ BEGIN
 
             SET i = i + 1;
 
-            IF i % 5000 = 0 THEN
+            IF i % 10000 = 0 THEN
                 COMMIT;
                 SELECT CONCAT('Reviews Progress: ', i, ' / 200000 (', ROUND(i/200000*100, 1), '%)') as status;
             END IF;
