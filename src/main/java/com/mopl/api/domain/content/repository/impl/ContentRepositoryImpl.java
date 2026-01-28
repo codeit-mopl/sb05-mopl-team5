@@ -86,7 +86,7 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
                 NumberExpression<BigDecimal> avgRating = Expressions.cases()
                     .when(content.reviewCount.eq(0L))
                     .then(BigDecimal.ZERO)
-                    .otherwise(content.ratingSum.divide(content.reviewCount).castToNum(BigDecimal.class));
+                    .otherwise(content.ratingSum.castToNum(BigDecimal.class).divide(content.reviewCount.castToNum(BigDecimal.class)));
                 return isDesc ? avgRating.lt(cursorRate)
                                          .or(avgRating.eq(cursorRate)
                                                       .and(content.id.lt(request.idAfter())))
@@ -115,7 +115,7 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
                 NumberExpression<BigDecimal> avgRating = Expressions.cases()
                     .when(content.reviewCount.eq(0L))
                     .then(BigDecimal.ZERO)
-                    .otherwise(content.ratingSum.divide(content.reviewCount).castToNum(BigDecimal.class));
+                    .otherwise(content.ratingSum.castToNum(BigDecimal.class).divide(content.reviewCount.castToNum(BigDecimal.class)));
                 return new OrderSpecifier[]{new OrderSpecifier<>(order, avgRating),
                     new OrderSpecifier<>(order, content.id)};
             }
