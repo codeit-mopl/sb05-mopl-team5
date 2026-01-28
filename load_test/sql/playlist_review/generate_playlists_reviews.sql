@@ -206,9 +206,10 @@ CALL generate_playlists();
 DROP PROCEDURE IF EXISTS generate_playlists;
 
 -- ==========================================
--- 4. Subscriptions 생성 (Zipf 분포)
+-- 4. Subscriptions 생성 (Zipf 분포) - 최적화 버전
 -- ==========================================
--- 상위 5% 플레이리스트가 전체 구독의 80%를 차지하도록 설계
+-- subscriber_count만 업데이트 (실제 subscriptions 테이블은 생성 안 함)
+-- 이유: 500만+ 레코드 생성은 너무 느림. 부하테스트는 playlists 조회만 필요
 DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
 
 DELIMITER $$
@@ -218,10 +219,7 @@ BEGIN
     DECLARE playlist_id_var BINARY(16);
     DECLARE playlist_rank INT DEFAULT 0;
     DECLARE target_count INT;
-    DECLARE i INT;
-    DECLARE subscription_uuid BINARY(16);
-    DECLARE random_user_id BINARY(16);
-    DECLARE total_subscriptions INT DEFAULT 0;
+    DECLARE total_subscriptions BIGINT DEFAULT 0;
     DECLARE total_playlists INT;
 
     DECLARE playlist_cursor CURSOR FOR
@@ -229,6 +227,9 @@ BEGIN
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
     SELECT COUNT(*) INTO total_playlists FROM playlists;
+    SELECT '========================================' as separator;
+    SELECT CONCAT('Starting Zipf distribution for ', total_playlists, ' playlists') as status;
+    SELECT '========================================' as separator;
 
     OPEN playlist_cursor;
 
@@ -241,10 +242,10 @@ BEGIN
         SET playlist_rank = playlist_rank + 1;
 
         -- Zipf 분포: rank가 낮을수록 많은 구독
-        -- 상위 1% (500개): 500~2000 구독
-        -- 상위 5% (2500개): 100~500 구독
-        -- 상위 20% (10000개): 20~100 구독
-        -- 나머지 80% (40000개): 0~20 구독
+        -- 상위 1% (500개): 500~2000 구독 👑
+        -- 상위 5% (2500개): 100~500 구독 🔥
+        -- 상위 20% (10000개): 20~100 구독 📈
+        -- 나머지 80% (40000개): 0~20 구독 📉
         SET target_count = CASE
                                WHEN playlist_rank <= total_playlists * 0.01 THEN 500 + FLOOR(RAND() * 1500)
                                WHEN playlist_rank <= total_playlists * 0.05 THEN 100 + FLOOR(RAND() * 400)
@@ -252,38 +253,31 @@ BEGIN
                                ELSE FLOOR(RAND() * 20)
             END;
 
-        -- subscriber_count 업데이트
+        -- subscriber_count만 업데이트 (실제 subscriptions 레코드는 생성 안 함)
         UPDATE playlists SET subscriber_count = target_count WHERE id = playlist_id_var;
-
-        -- 실제 구독 데이터 생성
-        SET i = 0;
-        WHILE i < target_count DO
-                SET subscription_uuid = UNHEX(REPLACE(UUID(), '-', ''));
-                SELECT id INTO random_user_id FROM users ORDER BY RAND() LIMIT 1;
-
-                INSERT IGNORE INTO subscriptions (id, user_id, playlist_id, created_at)
-                VALUES (subscription_uuid, random_user_id, playlist_id_var, NOW());
-
-                SET i = i + 1;
-            END WHILE;
 
         SET total_subscriptions = total_subscriptions + target_count;
 
-        IF playlist_rank % 1000 = 0 THEN
+        IF playlist_rank % 5000 = 0 THEN
             COMMIT;
-            SELECT CONCAT('Subscriptions Progress: ', playlist_rank, ' / ', total_playlists,
-                          ' (Total subs: ', total_subscriptions, ')') as status;
+            SELECT CONCAT('Progress: ', playlist_rank, ' / ', total_playlists,
+                          ' (', ROUND(playlist_rank/total_playlists*100, 1), '%) - ',
+                          'Total subs: ', FORMAT(total_subscriptions, 0)) as status;
         END IF;
     END LOOP;
 
     CLOSE playlist_cursor;
     COMMIT;
 
+    SELECT '========================================' as separator;
+    SELECT 'Zipf Distribution Complete!' as status;
+    SELECT '========================================' as separator;
+
     SELECT
-        COUNT(*) as total_subscriptions,
-        COUNT(DISTINCT playlist_id) as playlists_with_subs,
+        FORMAT(SUM(subscriber_count), 0) as total_subscriptions,
+        FORMAT(COUNT(*), 0) as total_playlists,
         ROUND(AVG(subscriber_count), 1) as avg_subs_per_playlist,
-        MAX(subscriber_count) as max_subs
+        FORMAT(MAX(subscriber_count), 0) as max_subs
     FROM playlists;
 
 END$$
