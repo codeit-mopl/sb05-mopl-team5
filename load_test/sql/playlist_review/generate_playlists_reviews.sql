@@ -8,6 +8,7 @@
 -- • Contents: 10,000개 (자체 생성 - 기존 데이터 미활용)
 -- • Users: 10,000명 (자체 생성)
 -- • Subscriptions: Zipf 분포 (상위 5% 플레이리스트가 전체 구독의 80%)
+-- • Subscriptions 테이블   150만~250만개
 -- • 기간: 2023-01-26 ~ 2026-01-26 (약 3년)
 -- • 특징: 구독순 정렬 시 Hot Key 발생, 캐싱 필요성 입증
 
@@ -212,45 +213,114 @@ CALL generate_playlists();
 DROP PROCEDURE IF EXISTS generate_playlists;
 
 -- ==========================================
--- 4. Subscriptions 생성 (Zipf 분포) - 최적화 버전
+-- 4. Subscriptions 생성 (Zipf 분포)
 -- ==========================================
--- subscriber_count만 업데이트 (실제 subscriptions 테이블은 생성 안 함)
--- 이유: 500만+ 레코드 생성은 너무 느림. 부하테스트는 playlists 조회만 필요
+-- Zipf 분포로 실제 subscriptions 레코드 생성
+-- 목적: JOIN 쿼리 실행 계획 분석, 인덱스 효과 검증
 
 SELECT '========================================' as divider;
-SELECT CONCAT('Starting Zipf distribution for playlists...') as status;
+SELECT CONCAT('Starting Zipf distribution for subscriptions...') as status;
 SELECT '========================================' as divider;
 
-UPDATE playlists p
-INNER JOIN (
-    SELECT
-        id,
-        @row_num := @row_num + 1 as row_num,
-        CASE
-            WHEN @row_num <= @total * 0.01 THEN 500 + FLOOR(RAND() * 1500)
-            WHEN @row_num <= @total * 0.05 THEN 100 + FLOOR(RAND() * 400)
-            WHEN @row_num <= @total * 0.20 THEN 20 + FLOOR(RAND() * 80)
-            ELSE FLOOR(RAND() * 20)
-        END as target_count
-    FROM playlists
-    CROSS JOIN (SELECT @row_num := 0, @total := (SELECT COUNT(*) FROM playlists WHERE title LIKE 'Load Test Playlist %')) vars
-    WHERE title LIKE 'Load Test Playlist %'
-    ORDER BY created_at
-) ranked ON p.id = ranked.id
-SET p.subscriber_count = ranked.target_count;
+DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
 
-COMMIT;
+DELIMITER $$
+CREATE PROCEDURE generate_subscriptions_zipf()
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE playlist_id_var BINARY(16);
+    DECLARE target_subs INT;
+    DECLARE user_count INT;
+    DECLARE i INT;
+    DECLARE random_offset INT;
+    DECLARE user_id_var BINARY(16);
+    DECLARE subscription_uuid BINARY(16);
+    DECLARE created_date DATETIME;
+    DECLARE total_playlists INT;
+    DECLARE processed_playlists INT DEFAULT 0;
+    
+    DECLARE playlist_cursor CURSOR FOR
+        SELECT
+            id,
+            CASE
+                WHEN @row_num <= @total * 0.01 THEN 500 + FLOOR(RAND() * 1500)
+                WHEN @row_num <= @total * 0.05 THEN 100 + FLOOR(RAND() * 400)
+                WHEN @row_num <= @total * 0.20 THEN 20 + FLOOR(RAND() * 80)
+                ELSE FLOOR(RAND() * 20)
+            END as target_count
+        FROM playlists
+        CROSS JOIN (SELECT @row_num := 0, @total := (SELECT COUNT(*) FROM playlists WHERE title LIKE 'Load Test Playlist %')) vars
+        WHERE title LIKE 'Load Test Playlist %'
+        ORDER BY created_at;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    SELECT COUNT(*) INTO user_count FROM users;
+    SELECT COUNT(*) INTO total_playlists FROM playlists WHERE title LIKE 'Load Test Playlist %';
+    
+    OPEN playlist_cursor;
+    
+    read_loop: LOOP
+        SET @row_num = @row_num + 1;
+        
+        FETCH playlist_cursor INTO playlist_id_var, target_subs;
+        
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        SET i = 0;
+        WHILE i < target_subs DO
+            SET subscription_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            
+            SET random_offset = FLOOR(RAND() * user_count);
+            SELECT id INTO user_id_var FROM users LIMIT random_offset, 1;
+            
+            SET created_date = DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 1095) DAY);
+            
+            INSERT IGNORE INTO subscriptions (id, user_id, playlist_id, created_at)
+            VALUES (subscription_uuid, user_id_var, playlist_id_var, created_date);
+            
+            SET i = i + 1;
+        END WHILE;
+        
+        UPDATE playlists SET subscriber_count = target_subs WHERE id = playlist_id_var;
+        
+        SET processed_playlists = processed_playlists + 1;
+        
+        IF processed_playlists % 1000 = 0 THEN
+            COMMIT;
+            SELECT CONCAT('Subscriptions Progress: ', processed_playlists, ' / ', total_playlists, 
+                         ' playlists (', ROUND(processed_playlists/total_playlists*100, 1), '%)') as status;
+        END IF;
+        
+    END LOOP;
+    
+    CLOSE playlist_cursor;
+    COMMIT;
+    
+    SELECT 
+        COUNT(*) as total_subscriptions,
+        COUNT(DISTINCT playlist_id) as unique_playlists,
+        COUNT(DISTINCT user_id) as unique_users
+    FROM subscriptions;
+    
+END$$
+DELIMITER ;
+
+CALL generate_subscriptions_zipf();
+DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
 
 SELECT '========================================' as divider;
 SELECT 'Zipf Distribution Complete!' as status;
 SELECT '========================================' as divider;
 
 SELECT
-    FORMAT(SUM(subscriber_count), 0) as total_subscriptions,
-    FORMAT(COUNT(*), 0) as total_playlists,
-    ROUND(AVG(subscriber_count), 1) as avg_subs_per_playlist,
-    FORMAT(MAX(subscriber_count), 0) as max_subs
-FROM playlists;
+    FORMAT(COUNT(*), 0) as total_subscriptions,
+    FORMAT(COUNT(DISTINCT playlist_id), 0) as unique_playlists,
+    FORMAT(COUNT(DISTINCT user_id), 0) as unique_users,
+    FORMAT((SELECT SUM(subscriber_count) FROM playlists), 0) as total_subscriber_count
+FROM subscriptions;
 
 -- ==========================================
 -- 5. 구독 분포 검증 쿼리
@@ -262,13 +332,14 @@ SELECT '========================================' as divider;
 SELECT
     'Top 1%' as tier,
     COUNT(*) as playlists,
-    SUM(subscriber_count) as total_subs,
+    FORMAT(SUM(subscriber_count), 0) as total_subs,
     ROUND(AVG(subscriber_count), 1) as avg_subs,
     MIN(subscriber_count) as min_subs,
     MAX(subscriber_count) as max_subs
 FROM (
          SELECT subscriber_count
          FROM playlists
+         WHERE title LIKE 'Load Test Playlist %'
          ORDER BY subscriber_count DESC
          LIMIT 500
      ) t
@@ -276,13 +347,14 @@ UNION ALL
 SELECT
     'Top 5%' as tier,
     COUNT(*) as playlists,
-    SUM(subscriber_count) as total_subs,
+    FORMAT(SUM(subscriber_count), 0) as total_subs,
     ROUND(AVG(subscriber_count), 1) as avg_subs,
     MIN(subscriber_count) as min_subs,
     MAX(subscriber_count) as max_subs
 FROM (
          SELECT subscriber_count
          FROM playlists
+         WHERE title LIKE 'Load Test Playlist %'
          ORDER BY subscriber_count DESC
          LIMIT 2500
      ) t
@@ -290,13 +362,14 @@ UNION ALL
 SELECT
     'Bottom 80%' as tier,
     COUNT(*) as playlists,
-    SUM(subscriber_count) as total_subs,
+    FORMAT(SUM(subscriber_count), 0) as total_subs,
     ROUND(AVG(subscriber_count), 1) as avg_subs,
     MIN(subscriber_count) as min_subs,
     MAX(subscriber_count) as max_subs
 FROM (
          SELECT subscriber_count
          FROM playlists
+         WHERE title LIKE 'Load Test Playlist %'
          ORDER BY subscriber_count ASC
          LIMIT 40000
      ) t;
@@ -304,7 +377,6 @@ FROM (
 -- ==========================================
 -- 6. Subscriptions 생성 (구 버전 - 사용 안 함)
 -- ==========================================
--- (이 프로시저는 더 이상 사용하지 않음 - generate_subscriptions_zipf로 대체됨)
 
 -- ==========================================
 -- 7. Reviews 생성 (200,000개)
