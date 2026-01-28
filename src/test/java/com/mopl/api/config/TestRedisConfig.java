@@ -1,68 +1,37 @@
-package com.mopl.api.global.config.redis;
+package com.mopl.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-@Configuration
+@TestConfiguration
 @EnableCaching
-@RequiredArgsConstructor
-public class RedisConfig {
-
-    // TODO 최적화 설정 and LIMIT 설정이 필요함
-    private final ObjectMapper objectMapper;
-
-
-    // [추가] 환경변수에서 Redis 호스트와 포트를 가져옵니다. (기본값: localhost, 6379)
-    @Value("${spring.data.redis.host:localhost}")
-    private String host;
-
-    @Value("${spring.data.redis.port:6379}")
-    private int port;
-
-    @Value("${spring.data.redis.ssl.enabled:false}")
-    private boolean sslEnabled;
+public class TestRedisConfig {
 
     @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        // 1. Redis 서버 정보 설정
-        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(host, port);
-
-        // 2. 클라이언트 설정 (SSL + 타임아웃)
-        LettuceClientConfiguration clientConfig;
-
-        if (sslEnabled) {
-            clientConfig = LettuceClientConfiguration.builder()
-                                                     .commandTimeout(Duration.ofSeconds(60))
-                                                     .useSsl()                                  // AWS 암호화 켜져있으면 필수!
-                                                     .build();
-        } else {
-            clientConfig = LettuceClientConfiguration.builder().build();
-        }
-
-        // 3. 팩토리 반환
-        return new LettuceConnectionFactory(redisConfig, clientConfig);
+    @Primary
+    public RedisConnectionFactory testRedisConnectionFactory() {
+        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration("localhost", 6379);
+        return new LettuceConnectionFactory(redisConfig);
     }
 
-
     @Bean
-    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
+    @Primary
+    public RedisTemplate<String, String> testRedisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, String> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
@@ -71,8 +40,10 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, Object> redisObjectTemplate(
-        RedisConnectionFactory connectionFactory
+    @Primary
+    public RedisTemplate<String, Object> testRedisObjectTemplate(
+        RedisConnectionFactory connectionFactory,
+        ObjectMapper objectMapper
     ) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
@@ -89,14 +60,16 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-
+    @Primary
+    public RedisCacheManager testCacheManager(
+        RedisConnectionFactory connectionFactory,
+        ObjectMapper objectMapper
+    ) {
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                                                                .entryTtl(
-                                                                    Duration.ofMinutes(60)) // 기본 캐시 유지 시간 임시 60분
-                                                                .disableCachingNullValues() // null 값은 캐싱하지 않음
+                                                                .entryTtl(Duration.ofMinutes(60))
+                                                                .disableCachingNullValues()
                                                                 .serializeKeysWith(
                                                                     RedisSerializationContext.SerializationPair.fromSerializer(
                                                                         new StringRedisSerializer())

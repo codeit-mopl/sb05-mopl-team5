@@ -29,6 +29,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +50,10 @@ public class PlaylistService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "playlistCount", allEntries = true),
+        @CacheEvict(value = "playlistDetail", allEntries = true)
+    })
     public PlaylistDto addPlaylist(PlaylistCreateRequest request, UUID userId) {
 
         User user = userRepository.findById(userId)
@@ -74,6 +81,7 @@ public class PlaylistService {
     }
 
     @Transactional
+    @CacheEvict(value = "playlistDetail", allEntries = true)
     public PlaylistDto modifyPlaylist(UUID playlistId, PlaylistUpdateRequest request, UUID userId) {
         Playlist playlist = playlistRepository.findById(playlistId)
                                               .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
@@ -95,6 +103,10 @@ public class PlaylistService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "playlistCount", allEntries = true),
+        @CacheEvict(value = "playlistDetail", allEntries = true)
+    })
     public void removePlaylist(UUID playlistId, UUID userId) {
         Playlist playlist = playlistRepository.findById(playlistId)
                                               .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
@@ -109,6 +121,7 @@ public class PlaylistService {
         playlistRepository.save(playlist);
     }
 
+    @Cacheable(value = "playlistDetail", key = "#playlistId + '_' + #currentUserId")
     public PlaylistDto getPlaylist(UUID playlistId, UUID currentUserId) {
         Playlist playlist = playlistRepository.findById(playlistId)
                                               .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
@@ -227,6 +240,7 @@ public class PlaylistService {
     }
 
     @Transactional
+    @CacheEvict(value = "playlistDetail", allEntries = true)
     public void addContentToPlaylist(UUID playlistId, UUID contentId, UUID userId) {
         Playlist playlist = playlistRepository.findById(playlistId)
                                               .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
@@ -258,6 +272,7 @@ public class PlaylistService {
     }
 
     @Transactional
+    @CacheEvict(value = "playlistDetail", allEntries = true)
     public void removeContentFromPlaylist(UUID playlistId, UUID contentId, UUID userId) {
         Playlist playlist = playlistRepository.findById(playlistId)
                                               .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
