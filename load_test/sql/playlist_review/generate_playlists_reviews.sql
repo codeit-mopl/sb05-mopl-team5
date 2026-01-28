@@ -1,22 +1,87 @@
--- 균등 분포 Playlist & Review 대용량 데이터 생성 (Deep Pagination 테스트용)
--- 목적: 페이지네이션 성능 부하 테스트를 위한 대규모 데이터 생성
+-- Playlist 목록 조회 부하테스트용 대용량 데이터 생성
+-- 목적: 구독순 정렬 + 커서 페이지네이션 + 캐싱 효과 검증
 -- 실행: mysql -uroot -p mopl < load_test/sql/playlist_review/generate_playlists_reviews.sql 2>&1
 --
 -- 데이터 생성 계획:
 -- • Playlists: 50,000개
 -- • Reviews: 200,000개
--- • Users: 10,000명 (이미 존재한다고 가정, 없으면 생성)
--- • Contents: 기존 데이터 활용 (generate_contents.sql 먼저 실행 필요)
+-- • Contents: 10,000개 (자체 생성 - 기존 데이터 미활용)
+-- • Users: 10,000명 (자체 생성)
+-- • Subscriptions: Zipf 분포 (상위 5% 플레이리스트가 전체 구독의 80%)
 -- • 기간: 2023-01-26 ~ 2026-01-26 (약 3년)
--- • 분포: 균등 (최신/과거 데이터 편향 제거)
--- • Subscription 데이터: Playlist당 평균 5개 구독 생성
+-- • 특징: 구독순 정렬 시 Hot Key 발생, 캐싱 필요성 입증
 
 SET AUTOCOMMIT = 0;
 SET UNIQUE_CHECKS = 0;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ==========================================
--- 1. Users 생성 (10,000명)
+-- 1. Contents 생성 (10,000개)
+-- ==========================================
+DROP PROCEDURE IF EXISTS generate_contents;
+
+DELIMITER $$
+CREATE PROCEDURE generate_contents()
+BEGIN
+    DECLARE i INT DEFAULT 0;
+    DECLARE content_uuid BINARY(16);
+    DECLARE content_type VARCHAR(20);
+    DECLARE random_days INT;
+    DECLARE created_date DATETIME;
+    
+    WHILE i < 10000 DO
+        SET content_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+        
+        SET content_type = CASE 
+            WHEN i % 3 = 0 THEN 'movie'
+            WHEN i % 3 = 1 THEN 'tvSeries'
+            ELSE 'sport'
+        END;
+        
+        SET random_days = FLOOR(RAND() * 1095);
+        SET created_date = DATE_SUB(NOW(), INTERVAL random_days DAY);
+        
+        INSERT INTO contents (
+            id, type, api_id, title, description, thumbnail_url, tags,
+            rating_sum, review_count, watcher_count, created_at, updated_at, is_deleted
+        ) VALUES (
+            content_uuid,
+            content_type,
+            100000 + i,
+            CONCAT('Load Test Content ', i, ' - ', content_type),
+            CONCAT('This is a test content for playlist review load testing. Content type: ', content_type, ', ID: ', i),
+            CONCAT('https://picsum.photos/seed/content', i, '/400/600'),
+            CASE content_type
+                WHEN 'movie' THEN 'action,drama,thriller'
+                WHEN 'tvSeries' THEN 'comedy,romance,fantasy'
+                ELSE 'sports,live,documentary'
+            END,
+            FLOOR(RAND() * 5000),
+            FLOOR(RAND() * 100),
+            FLOOR(RAND() * 1000),
+            created_date,
+            created_date,
+            FALSE
+        );
+        
+        SET i = i + 1;
+        
+        IF i % 1000 = 0 THEN
+            COMMIT;
+            SELECT CONCAT('Contents Progress: ', i, ' / 10000') as status;
+        END IF;
+    END WHILE;
+    
+    COMMIT;
+    SELECT COUNT(*) as total_contents FROM contents;
+END$$
+DELIMITER ;
+
+CALL generate_contents();
+DROP PROCEDURE IF EXISTS generate_contents;
+
+-- ==========================================
+-- 2. Users 생성 (10,000명)
 -- ==========================================
 DROP PROCEDURE IF EXISTS generate_users;
 
@@ -67,7 +132,7 @@ CALL generate_users();
 DROP PROCEDURE IF EXISTS generate_users;
 
 -- ==========================================
--- 2. Playlists 생성 (50,000개)
+-- 3. Playlists 생성 (50,000개)
 -- ==========================================
 DROP PROCEDURE IF EXISTS generate_playlists;
 
@@ -93,15 +158,14 @@ BEGIN
         SET created_date = DATE_SUB(NOW(), INTERVAL random_days DAY);
         
         -- updated_at: created_at 이후 ~ 현재 사이 랜덤
-        SET updated_date = DATE_ADD(created_date, INTERVAL FLOOR(RAND() * DATEDIFF(NOW(), created_date)) DAY);
+        IF DATEDIFF(NOW(), created_date) > 0 THEN
+            SET updated_date = DATE_ADD(created_date, INTERVAL FLOOR(RAND() * DATEDIFF(NOW(), created_date)) DAY);
+        ELSE
+            SET updated_date = created_date;
+        END IF;
         
-        -- 구독자 수: 파레토 분포 시뮬레이션 (대부분 적고, 소수가 많음)
-        SET random_subscriber_count = CASE
-            WHEN RAND() < 0.7 THEN FLOOR(RAND() * 10)          -- 70%: 0~10명
-            WHEN RAND() < 0.9 THEN FLOOR(RAND() * 100)         -- 20%: 10~100명
-            WHEN RAND() < 0.98 THEN FLOOR(RAND() * 1000)       -- 8%: 100~1000명
-            ELSE FLOOR(RAND() * 10000)                         -- 2%: 1000~10000명
-        END;
+        -- 초기값 0으로 설정 (나중에 Zipf 분포로 재계산)
+        SET random_subscriber_count = 0;
         
         INSERT INTO playlists (
             id, user_id, title, description, subscriber_count, created_at, updated_at, is_deleted
@@ -142,39 +206,59 @@ CALL generate_playlists();
 DROP PROCEDURE IF EXISTS generate_playlists;
 
 -- ==========================================
--- 3. Subscriptions 생성 (Playlist당 실제 구독 데이터)
+-- 4. Subscriptions 생성 (Zipf 분포)
 -- ==========================================
-DROP PROCEDURE IF EXISTS generate_subscriptions;
+-- 상위 5% 플레이리스트가 전체 구독의 80%를 차지하도록 설계
+DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
 
 DELIMITER $$
-CREATE PROCEDURE generate_subscriptions()
+CREATE PROCEDURE generate_subscriptions_zipf()
 BEGIN
     DECLARE done INT DEFAULT FALSE;
     DECLARE playlist_id_var BINARY(16);
-    DECLARE target_count BIGINT;
-    DECLARE current_count INT;
+    DECLARE playlist_rank INT DEFAULT 0;
+    DECLARE target_count INT;
     DECLARE i INT;
     DECLARE subscription_uuid BINARY(16);
     DECLARE random_user_id BINARY(16);
-    DECLARE total_processed INT DEFAULT 0;
+    DECLARE total_subscriptions INT DEFAULT 0;
+    DECLARE total_playlists INT;
+    
+    SELECT COUNT(*) INTO total_playlists FROM playlists;
     
     DECLARE playlist_cursor CURSOR FOR 
-        SELECT id, subscriber_count FROM playlists WHERE subscriber_count > 0;
+        SELECT id FROM playlists ORDER BY RAND();
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
     
     OPEN playlist_cursor;
     
     read_loop: LOOP
-        FETCH playlist_cursor INTO playlist_id_var, target_count;
+        FETCH playlist_cursor INTO playlist_id_var;
         IF done THEN
             LEAVE read_loop;
         END IF;
         
+        SET playlist_rank = playlist_rank + 1;
+        
+        -- Zipf 분포: rank가 낮을수록 많은 구독
+        -- 상위 1% (500개): 500~2000 구독
+        -- 상위 5% (2500개): 100~500 구독
+        -- 상위 20% (10000개): 20~100 구독
+        -- 나머지 80% (40000개): 0~20 구독
+        SET target_count = CASE
+            WHEN playlist_rank <= total_playlists * 0.01 THEN 500 + FLOOR(RAND() * 1500)
+            WHEN playlist_rank <= total_playlists * 0.05 THEN 100 + FLOOR(RAND() * 400)
+            WHEN playlist_rank <= total_playlists * 0.20 THEN 20 + FLOOR(RAND() * 80)
+            ELSE FLOOR(RAND() * 20)
+        END;
+        
+        -- subscriber_count 업데이트
+        UPDATE playlists SET subscriber_count = target_count WHERE id = playlist_id_var;
+        
+        -- 실제 구독 데이터 생성
         SET i = 0;
         WHILE i < target_count DO
             SET subscription_uuid = UNHEX(REPLACE(UUID(), '-', ''));
-            
-            -- 랜덤 사용자 선택 (중복 방지 로직 생략, 성능 우선)
             SELECT id INTO random_user_id FROM users ORDER BY RAND() LIMIT 1;
             
             INSERT IGNORE INTO subscriptions (id, user_id, playlist_id, created_at)
@@ -183,27 +267,87 @@ BEGIN
             SET i = i + 1;
         END WHILE;
         
-        SET total_processed = total_processed + 1;
+        SET total_subscriptions = total_subscriptions + target_count;
         
-        IF total_processed % 1000 = 0 THEN
+        IF playlist_rank % 1000 = 0 THEN
             COMMIT;
-            SELECT CONCAT('Subscriptions Progress: ', total_processed, ' playlists processed') as status;
+            SELECT CONCAT('Subscriptions Progress: ', playlist_rank, ' / ', total_playlists, 
+                          ' (Total subs: ', total_subscriptions, ')') as status;
         END IF;
     END LOOP;
     
     CLOSE playlist_cursor;
     COMMIT;
     
-    SELECT COUNT(*) as total_subscriptions FROM subscriptions;
+    SELECT 
+        COUNT(*) as total_subscriptions,
+        COUNT(DISTINCT playlist_id) as playlists_with_subs,
+        ROUND(AVG(subscriber_count), 1) as avg_subs_per_playlist,
+        MAX(subscriber_count) as max_subs
+    FROM playlists;
     
 END$$
 DELIMITER ;
 
-CALL generate_subscriptions();
-DROP PROCEDURE IF EXISTS generate_subscriptions;
+CALL generate_subscriptions_zipf();
+DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
 
 -- ==========================================
--- 4. Reviews 생성 (200,000개)
+-- 5. 구독 분포 검증 쿼리
+-- ==========================================
+SELECT '========================================' as separator;
+SELECT 'Subscription Distribution Verification' as report_title;
+SELECT '========================================' as separator;
+
+SELECT 
+    'Top 1%' as tier,
+    COUNT(*) as playlists,
+    SUM(subscriber_count) as total_subs,
+    ROUND(AVG(subscriber_count), 1) as avg_subs,
+    MIN(subscriber_count) as min_subs,
+    MAX(subscriber_count) as max_subs
+FROM (
+    SELECT subscriber_count 
+    FROM playlists 
+    ORDER BY subscriber_count DESC 
+    LIMIT 500
+) t
+UNION ALL
+SELECT 
+    'Top 5%' as tier,
+    COUNT(*) as playlists,
+    SUM(subscriber_count) as total_subs,
+    ROUND(AVG(subscriber_count), 1) as avg_subs,
+    MIN(subscriber_count) as min_subs,
+    MAX(subscriber_count) as max_subs
+FROM (
+    SELECT subscriber_count 
+    FROM playlists 
+    ORDER BY subscriber_count DESC 
+    LIMIT 2500
+) t
+UNION ALL
+SELECT 
+    'Bottom 80%' as tier,
+    COUNT(*) as playlists,
+    SUM(subscriber_count) as total_subs,
+    ROUND(AVG(subscriber_count), 1) as avg_subs,
+    MIN(subscriber_count) as min_subs,
+    MAX(subscriber_count) as max_subs
+FROM (
+    SELECT subscriber_count 
+    FROM playlists 
+    ORDER BY subscriber_count ASC 
+    LIMIT 40000
+) t;
+
+-- ==========================================
+-- 6. Subscriptions 생성 (구 버전 - 사용 안 함)
+-- ==========================================
+-- (이 프로시저는 더 이상 사용하지 않음 - generate_subscriptions_zipf로 대체됨)
+
+-- ==========================================
+-- 7. Reviews 생성 (200,000개)
 -- ==========================================
 DROP PROCEDURE IF EXISTS generate_reviews;
 
@@ -217,14 +361,7 @@ BEGIN
     DECLARE random_days INT;
     DECLARE created_date DATETIME;
     DECLARE random_rating DECIMAL(2,1);
-    DECLARE content_exists INT;
-    
-    -- Contents 데이터 존재 확인
-    SELECT COUNT(*) INTO content_exists FROM contents;
-    IF content_exists < 1000 THEN
-        SELECT 'ERROR: Contents 테이블에 최소 1000개 이상의 데이터가 필요합니다. generate_contents.sql을 먼저 실행하세요.' as error_message;
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient contents data';
-    END IF;
+    DECLARE rand_val DOUBLE;
     
     WHILE i < 200000 DO
         SET review_uuid = UNHEX(REPLACE(UUID(), '-', ''));
@@ -240,10 +377,11 @@ BEGIN
         SET created_date = DATE_SUB(NOW(), INTERVAL random_days DAY);
         
         -- 평점: 정규분포 시뮬레이션 (평균 3.5, 대부분 3~5점)
+        SET rand_val = RAND();
         SET random_rating = CASE
-            WHEN RAND() < 0.05 THEN ROUND(RAND() * 2, 1)           -- 5%: 0~2점
-            WHEN RAND() < 0.15 THEN ROUND(2 + RAND() * 1, 1)       -- 10%: 2~3점
-            WHEN RAND() < 0.50 THEN ROUND(3 + RAND() * 1, 1)       -- 35%: 3~4점
+            WHEN rand_val < 0.05 THEN ROUND(RAND() * 2, 1)         -- 5%: 0~2점
+            WHEN rand_val < 0.15 THEN ROUND(2 + RAND() * 1, 1)     -- 10%: 2~3점
+            WHEN rand_val < 0.50 THEN ROUND(3 + RAND() * 1, 1)     -- 35%: 3~4점
             ELSE ROUND(4 + RAND() * 1, 1)                          -- 50%: 4~5점
         END;
         
@@ -369,7 +507,11 @@ SELECT '========================================' as separator;
 
 SELECT 
     (SELECT COUNT(*) FROM users) as total_users,
+    (SELECT COUNT(*) FROM contents) as total_contents,
     (SELECT COUNT(*) FROM playlists) as total_playlists,
     (SELECT COUNT(*) FROM reviews) as total_reviews,
-    (SELECT COUNT(*) FROM subscriptions) as total_subscriptions,
-    (SELECT COUNT(*) FROM contents) as total_contents;
+    (SELECT COUNT(*) FROM subscriptions) as total_subscriptions;
+
+SELECT '========================================' as separator;
+SELECT '✅ Data Generation Complete!' as status;
+SELECT '========================================' as separator;
