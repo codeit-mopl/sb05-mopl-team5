@@ -9,6 +9,7 @@ import com.mopl.api.domain.content.exception.detail.InvalidSortByException;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.math.BigDecimal;
@@ -82,7 +83,10 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
             }
             case "rate" -> {
                 BigDecimal cursorRate = new BigDecimal(request.cursor());
-                NumberExpression<BigDecimal> avgRating = content.ratingSum.divide(content.reviewCount).castToNum(BigDecimal.class);
+                NumberExpression<BigDecimal> avgRating = Expressions.cases()
+                    .when(content.reviewCount.eq(0L))
+                    .then(BigDecimal.ZERO)
+                    .otherwise(content.ratingSum.divide(content.reviewCount).castToNum(BigDecimal.class));
                 return isDesc ? avgRating.lt(cursorRate)
                                          .or(avgRating.eq(cursorRate)
                                                       .and(content.id.lt(request.idAfter())))
@@ -108,7 +112,10 @@ public class ContentRepositoryImpl implements ContentRepositoryCustom {
                     new OrderSpecifier<>(order, content.id)};
             }
             case "rate" -> {
-                NumberExpression<BigDecimal> avgRating = content.ratingSum.divide(content.reviewCount).castToNum(BigDecimal.class);
+                NumberExpression<BigDecimal> avgRating = Expressions.cases()
+                    .when(content.reviewCount.eq(0L))
+                    .then(BigDecimal.ZERO)
+                    .otherwise(content.ratingSum.divide(content.reviewCount).castToNum(BigDecimal.class));
                 return new OrderSpecifier[]{new OrderSpecifier<>(order, avgRating),
                     new OrderSpecifier<>(order, content.id)};
             }
