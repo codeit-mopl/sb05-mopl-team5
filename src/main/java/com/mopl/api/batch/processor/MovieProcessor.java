@@ -29,6 +29,6 @@ public class MovieProcessor implements ItemProcessor<MovieResponse, Content> {
 
         return new Content(ContentType.MOVIE, item.apiId(), item.title(), item.description(), thumbnail,
             String.join("|", genres),
-            BigDecimal.ZERO, 0L, 0L);
+            0L, 0L, 0L);
     }
 }

@@ -29,6 +29,6 @@ public class TvSeriesProcessor implements ItemProcessor<TvSeriesResponse, Conten
 
         return new Content(ContentType.TV_SERIES, item.apiId(), item.title(), item.description(), thumbnail,
             String.join("|", genres),
-            BigDecimal.ZERO, 0L, 0L);
+            0L, 0L, 0L);
     }
 }

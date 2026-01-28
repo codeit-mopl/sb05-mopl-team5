@@ -88,7 +88,7 @@ public class ContentServiceImpl implements ContentService {
 
         Content content = new Content(ContentType.findByValue(request.type()), null, request.title(),
             request.description(),
-            thumbnail, tags, BigDecimal.ZERO, 0L, 0L);
+            thumbnail, tags, 0L, 0L, 0L);
 
         return contentMapper.toDto(contentRepository.save(content));
     }

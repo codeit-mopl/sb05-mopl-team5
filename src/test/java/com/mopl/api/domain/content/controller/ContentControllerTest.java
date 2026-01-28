@@ -65,7 +65,7 @@ public class ContentControllerTest {
             "desc",
             "uploaded.png",
             "tag1|tag2",
-            BigDecimal.ZERO,
+            0L,
             0L,
             0L
         );

@@ -17,7 +17,6 @@ import com.mopl.api.domain.user.entity.User;
 import com.mopl.api.domain.user.exception.user.detail.UserNotFoundException;
 import com.mopl.api.domain.user.repository.UserRepository;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -59,7 +58,8 @@ public class ReviewService {
 
         reviewRepository.save(review);
 
-        recalculateContentRating(content.getId());
+        long ratingValue = Math.round(request.rating() * 10);
+        contentRepository.incrementRating(content.getId(), ratingValue);
 
         return reviewMapper.toDto(review, true);
     }
@@ -75,14 +75,16 @@ public class ReviewService {
             throw ReviewUnauthorizedException.withDetails(reviewId, userId);
         }
 
-        BigDecimal rating = BigDecimal.valueOf(request.rating());
+        double oldRating = review.getRating().doubleValue();
+        double newRating = request.rating();
+        BigDecimal rating = BigDecimal.valueOf(newRating);
 
         review.update(request.text(), rating);
-
         reviewRepository.save(review);
 
-        recalculateContentRating(review.getContent()
-                                       .getId());
+        long oldRatingValue = Math.round(oldRating * 10);
+        long newRatingValue = Math.round(newRating * 10);
+        contentRepository.updateRating(review.getContent().getId(), oldRatingValue, newRatingValue);
 
         return reviewMapper.toDto(review, true);
     }
@@ -99,12 +101,13 @@ public class ReviewService {
         }
 
         UUID contentId = review.getContent().getId();
+        double rating = review.getRating().doubleValue();
 
         review.softDelete();
-
         reviewRepository.save(review);
 
-        recalculateContentRating(contentId);
+        long ratingValue = Math.round(rating * 10);
+        contentRepository.decrementRating(contentId, ratingValue);
 
         Optional.ofNullable(cacheManager.getCache("reviewCount"))
                 .ifPresent(cache -> cache.evict(contentId));
@@ -189,26 +192,5 @@ public class ReviewService {
             sortBy,
             sortDirection
         );
-    }
-
-    private void recalculateContentRating(UUID contentId) {
-        Content content = contentRepository.findById(contentId)
-                                           .orElseThrow(() -> ContentNotFoundException.withContentId(contentId));
-
-        List<Review> activeReviews = reviewRepository.findActiveReviewsByContentId(contentId);
-
-        if (activeReviews.isEmpty()) {
-            content.updateRatingStats(BigDecimal.ZERO, 0L);
-        } else {
-            BigDecimal sum = activeReviews.stream()
-                                          .map(Review::getRating)
-                                          .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            BigDecimal average = sum.divide(BigDecimal.valueOf(activeReviews.size()), 1, RoundingMode.HALF_UP);
-
-            content.updateRatingStats(average, (long) activeReviews.size());
-        }
-
-        contentRepository.save(content);
     }
 }
