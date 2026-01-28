@@ -221,58 +221,32 @@ DROP PROCEDURE IF EXISTS generate_subscriptions_zipf;
 DELIMITER $$
 CREATE PROCEDURE generate_subscriptions_zipf()
 BEGIN
-    DECLARE done INT DEFAULT FALSE;
-    DECLARE playlist_id_var BINARY(16);
-    DECLARE playlist_rank INT DEFAULT 0;
-    DECLARE target_count INT;
-    DECLARE total_subscriptions BIGINT DEFAULT 0;
     DECLARE total_playlists INT;
-
-    DECLARE playlist_cursor CURSOR FOR
-        SELECT id FROM playlists ORDER BY RAND();
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-
+    
     SELECT COUNT(*) INTO total_playlists FROM playlists;
     SELECT '========================================' as divider;
     SELECT CONCAT('Starting Zipf distribution for ', total_playlists, ' playlists') as status;
     SELECT '========================================' as divider;
-
-    OPEN playlist_cursor;
-
-    read_loop: LOOP
-        FETCH playlist_cursor INTO playlist_id_var;
-        IF done THEN
-            LEAVE read_loop;
-        END IF;
-
-        SET playlist_rank = playlist_rank + 1;
-
-        -- Zipf 분포: rank가 낮을수록 많은 구독
-        -- 상위 1% (500개): 500~2000 구독 👑
-        -- 상위 5% (2500개): 100~500 구독 🔥
-        -- 상위 20% (10000개): 20~100 구독 📈
-        -- 나머지 80% (40000개): 0~20 구독 📉
-        SET target_count = CASE
-                               WHEN playlist_rank <= total_playlists * 0.01 THEN 500 + FLOOR(RAND() * 1500)
-                               WHEN playlist_rank <= total_playlists * 0.05 THEN 100 + FLOOR(RAND() * 400)
-                               WHEN playlist_rank <= total_playlists * 0.20 THEN 20 + FLOOR(RAND() * 80)
-                               ELSE FLOOR(RAND() * 20)
-            END;
-
-        -- subscriber_count만 업데이트 (실제 subscriptions 레코드는 생성 안 함)
-        UPDATE playlists SET subscriber_count = target_count WHERE id = playlist_id_var;
-
-        SET total_subscriptions = total_subscriptions + target_count;
-
-        IF playlist_rank % 5000 = 0 THEN
-            COMMIT;
-            SELECT CONCAT('Progress: ', playlist_rank, ' / ', total_playlists,
-                          ' (', ROUND(playlist_rank/total_playlists*100, 1), '%) - ',
-                          'Total subs: ', FORMAT(total_subscriptions, 0)) as status;
-        END IF;
-    END LOOP;
-
-    CLOSE playlist_cursor;
+    
+    -- Use a single UPDATE statement with case logic based on created_at ordering
+    -- This is much faster than cursor-based approach
+    UPDATE playlists p
+    JOIN (
+        SELECT 
+            id,
+            @row_num := @row_num + 1 as rank,
+            CASE
+                WHEN @row_num <= @total * 0.01 THEN 500 + FLOOR(RAND() * 1500)
+                WHEN @row_num <= @total * 0.05 THEN 100 + FLOOR(RAND() * 400)
+                WHEN @row_num <= @total * 0.20 THEN 20 + FLOOR(RAND() * 80)
+                ELSE FLOOR(RAND() * 20)
+            END as target_count
+        FROM playlists,
+            (SELECT @row_num := 0, @total := (SELECT COUNT(*) FROM playlists)) vars
+        ORDER BY created_at
+    ) ranked ON p.id = ranked.id
+    SET p.subscriber_count = ranked.target_count;
+    
     COMMIT;
 
     SELECT '========================================' as divider;
@@ -511,5 +485,5 @@ SELECT
     (SELECT SUM(subscriber_count) FROM playlists) as total_subscriber_count;
 
 SELECT '========================================' as divider;
-SELECT '✅ Data Generation Complete!' as status;
+SELECT 'Data Generation Complete!' as status;
 SELECT '========================================' as divider;

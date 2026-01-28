@@ -70,9 +70,9 @@ SET AUTOCOMMIT = 1;
 -- ==========================================
 -- 초기화 완료 확인
 -- ==========================================
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT 'Remaining Data Count' as report_title;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 
 SELECT 
     (SELECT COUNT(*) FROM users) as total_users,
@@ -81,6 +81,6 @@ SELECT
     (SELECT COUNT(*) FROM subscriptions) as total_subscriptions,
     (SELECT COUNT(*) FROM playlist_contents) as total_playlist_contents;
 
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
 SELECT '✅ Playlist & Review test data reset successfully!' as status;
-SELECT '========================================' as separator;
+SELECT '========================================' as divider;
