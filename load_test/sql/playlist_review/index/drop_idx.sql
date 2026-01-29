@@ -29,7 +29,7 @@ ORDER BY TABLE_NAME, INDEX_NAME;
 -- ==========================================
 
 -- 1. Subscriptions 인덱스 삭제
--- 주의: idx_subscriptions_user_playlist는 FK 제약조건 때문에 삭제 불가 (스킵)
+-- 주의: idx_subscriptions_user_playlist는 구독 조회 성능 유지를 위해 유지 (테스트 대상 아님)
 
 -- 2. Playlists 인덱스 삭제 (3개) - 삭제 가능
 DROP INDEX idx_playlists_updated_id ON playlists;
@@ -37,7 +37,7 @@ DROP INDEX idx_playlists_subscriber_id ON playlists;
 DROP INDEX idx_playlists_deleted_created_id ON playlists;
 
 -- 3. Reviews 인덱스 삭제 (2개)
--- 주의: FK 제약조건 때문에 삭제 불가 (스킵)
+-- 주의: Reviews 테이블은 이번 테스트 대상이 아니므로 인덱스 유지 (스킵)
 -- DROP INDEX idx_reviews_content_created ON reviews;
 -- DROP INDEX idx_reviews_user_created ON reviews;
 

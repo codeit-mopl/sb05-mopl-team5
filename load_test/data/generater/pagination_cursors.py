@@ -11,11 +11,11 @@ import random
 
 # MySQL 연결 설정
 config = {
-    'host': '',
-    'port': ,
-    'user': '',
-    'password': '',
-    'database': ''
+    'host': 'localhost',
+    'port': 3306,
+    'user': 'root',
+    'password': '12345678',
+    'database': 'mopl'
 }
 
 def generate_cursors_uniform_distribution():

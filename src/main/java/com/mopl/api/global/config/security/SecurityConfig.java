@@ -56,90 +56,16 @@ public class SecurityConfig {
         OAuth2UserSuccessHandler oAuth2UserSuccessHandler
     ) throws Exception {
         http
-            .csrf(csrf -> csrf
-                // 쿠키에 CSRF 토큰 저장 : 쿠키명:XSRF-TOKEN 헤더명:X-XSRF-TOKEN
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
-                .ignoringRequestMatchers("/actuator/**")
-            )
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .dispatcherTypeMatchers(DispatcherType.ASYNC)
-                .permitAll()
-                .requestMatchers("/api/sse")
-                .authenticated()
-                .requestMatchers("/api/auth/csrf-token")
-                .permitAll()
-                .requestMatchers("/api/auth/sign-in")
-                .permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/users")
-                .permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/conversations/**").authenticated()
-                .requestMatchers("/api/auth/refresh")
-                .permitAll()
-                .requestMatchers("/api/auth/reset-password")
-                .permitAll()
-                .requestMatchers("/contents/**", "/static/thumbnail.png")
-                .permitAll()
-                .requestMatchers("/actuator/**")
-                .permitAll()
-                .requestMatchers("*", "/swagger-resource/**"
-                    , "/swagger-ui.html", "/swagger-ui/**", "/v3/**",
-                    "/assets/**", "/h2/**")
-                .permitAll()
-                // 어드민 권한
-                .requestMatchers(HttpMethod.GET, "/api/users")
-                .hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/users/{userId}/role",
-                    "/api/users/{userId}/locked")
-                .hasRole("ADMIN")
-                // 웹 소켓 handshake는 허용, stomp 시 사용자 검사
-                .requestMatchers("/ws/**")
-                .permitAll()
-                .requestMatchers("/ws")
-                .permitAll()
-
-                .anyRequest()
-                .authenticated()
-            )
-            .formLogin(form -> form
-                .loginProcessingUrl("/api/auth/sign-in")
-                .successHandler(loginSuccessHandler)
-                .failureHandler(loginFailureHandler)
-            )
-            .logout(logout -> logout
-                .logoutUrl("/api/auth/sign-out")
-                .addLogoutHandler(logoutHandler)
-                .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT))
-            )
-            .cors(cors -> cors.configurationSource(request -> {
-                CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOriginPatterns(List.of("http://localhost:*"));
-                config.addAllowedHeader("*");
-                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-                config.setAllowCredentials(true);
-                config.setExposedHeaders(List.of("LastEventId"));
-                return config;
-            }))
-            // 예외처리
-//            .exceptionHandling(ex -> ex
-//                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-//                .accessDeniedHandler(accessDeniedHandlerImpl)
-//            )
-
-            // 매 요청마다 Authorization 헤더의 JWT 검증하는 필터
-            .addFilterBefore(
-                jwtAuthenticationFilter,
-                UsernamePasswordAuthenticationFilter.class
+                .anyRequest().permitAll()
             )
             .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 안씀
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            .oauth2Login(oauth -> oauth
-                .loginPage("/api/auth/sign-in")
-                .userInfoEndpoint(userInfo -> userInfo
-                    .userService(oAuth2UserService))
-                .successHandler(oAuth2UserSuccessHandler))
-            .httpBasic(basic -> basic.disable());
+            .httpBasic(basic -> basic.disable())
+            .formLogin(form -> form.disable())
+            .oauth2Login(oauth2 -> oauth2.disable());
 
         // 임시 비밀번호 검증
         AuthenticationManagerBuilder authBuilder =

@@ -15,7 +15,7 @@ config = {
     'host': 'localhost',
     'port': 3306,
     'user': 'root',
-    'password': 'your_password',
+    'password': '12345678',
     'database': 'mopl'
 }
 
@@ -68,7 +68,7 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
         print("Recent Pages (0-30일) 생성 중...")
         recent_date = max_value_dt - timedelta(days=30)
         query = f"""
-            SELECT DATE_FORMAT({sort_column}, '%Y-%m-%dT%H:%i:%s'), HEX(id)
+            SELECT {sort_column}, HEX(id)
             FROM playlists
             WHERE {sort_column} >= %s AND is_deleted = FALSE
             ORDER BY RAND()
@@ -77,7 +77,8 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
         cur.execute(query, (recent_date,))
         
         for value, hex_id in cur.fetchall():
-            cursors.append(f"{value}_{hex_id}")
+            formatted_value = value.strftime('%Y-%m-%dT%H:%M:%S') if isinstance(value, datetime) else value
+            cursors.append(f"{formatted_value}_{hex_id}")
         
         print(f"  생성: {len(cursors)}개")
         
@@ -85,7 +86,7 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
         middle_start = max_value_dt - timedelta(days=180)
         middle_end = max_value_dt - timedelta(days=30)
         query = f"""
-            SELECT DATE_FORMAT({sort_column}, '%Y-%m-%dT%H:%i:%s'), HEX(id)
+            SELECT {sort_column}, HEX(id)
             FROM playlists
             WHERE {sort_column} >= %s AND {sort_column} < %s AND is_deleted = FALSE
             ORDER BY RAND()
@@ -95,7 +96,8 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
         
         middle_count = 0
         for value, hex_id in cur.fetchall():
-            cursors.append(f"{value}_{hex_id}")
+            formatted_value = value.strftime('%Y-%m-%dT%H:%M:%S') if isinstance(value, datetime) else value
+            cursors.append(f"{formatted_value}_{hex_id}")
             middle_count += 1
         
         print(f"  생성: {middle_count}개")
@@ -103,7 +105,7 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
         print("Deep Pages (180일+) 생성 중...")
         deep_end = max_value_dt - timedelta(days=180)
         query = f"""
-            SELECT DATE_FORMAT({sort_column}, '%Y-%m-%dT%H:%i:%s'), HEX(id)
+            SELECT {sort_column}, HEX(id)
             FROM playlists
             WHERE {sort_column} < %s AND is_deleted = FALSE
             ORDER BY RAND()
@@ -113,7 +115,8 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
         
         deep_count = 0
         for value, hex_id in cur.fetchall():
-            cursors.append(f"{value}_{hex_id}")
+            formatted_value = value.strftime('%Y-%m-%dT%H:%M:%S') if isinstance(value, datetime) else value
+            cursors.append(f"{formatted_value}_{hex_id}")
             deep_count += 1
         
         print(f"  생성: {deep_count}개")
