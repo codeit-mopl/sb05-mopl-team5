@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -22,12 +21,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 @EnableCaching
-@RequiredArgsConstructor
 public class RedisConfig {
-
-    // TODO 최적화 설정 and LIMIT 설정이 필요함
-    private final ObjectMapper objectMapper;
-
 
     // [추가] 환경변수에서 Redis 호스트와 포트를 가져옵니다. (기본값: localhost, 6379)
     @Value("${spring.data.redis.host:localhost}")
@@ -72,7 +66,8 @@ public class RedisConfig {
 
     @Bean
     public RedisTemplate<String, Object> redisObjectTemplate(
-        RedisConnectionFactory connectionFactory
+        RedisConnectionFactory connectionFactory,
+        ObjectMapper objectMapper
     ) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
@@ -89,7 +84,10 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+    public RedisCacheManager cacheManager(
+        RedisConnectionFactory connectionFactory,
+        ObjectMapper objectMapper
+    ) {
 
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 

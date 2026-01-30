@@ -1,7 +1,5 @@
 package com.mopl.api.domain.content.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 import lombok.Builder;
 
@@ -11,9 +9,19 @@ public record ContentSearchRequest(
     String keywordLike,
     String cursor,
     UUID idAfter,
-    @NotNull int limit,
-    @NotBlank String sortDirection,
-    @NotBlank String sortBy
+    Integer limit,
+    String sortDirection,
+    String sortBy
 ) {
-
+    public ContentSearchRequest {
+        if (limit == null || limit <= 0) {
+            limit = 20;
+        }
+        if (sortDirection == null || sortDirection.isBlank()) {
+            sortDirection = "DESCENDING";
+        }
+        if (sortBy == null || sortBy.isBlank()) {
+            sortBy = "watcherCount";
+        }
+    }
 }

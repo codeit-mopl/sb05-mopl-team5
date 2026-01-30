@@ -1,5 +1,7 @@
 package com.mopl.api.domain.content.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -12,6 +14,12 @@ public enum ContentType {
 
     private final String value;
 
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
+
+    @JsonCreator
     public static ContentType findByValue(String value) {
         if (value == null) {
             return null;
