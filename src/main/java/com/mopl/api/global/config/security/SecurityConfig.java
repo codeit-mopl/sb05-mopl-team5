@@ -1,5 +1,6 @@
 package com.mopl.api.global.config.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mopl.api.domain.user.entity.UserRole;
 import com.mopl.api.global.config.oauth.handler.OAuth2UserSuccessHandler;
 import com.mopl.api.global.config.oauth.service.CustomOAuth2UserService;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -82,9 +84,9 @@ public class SecurityConfig {
                 .permitAll()
                 .requestMatchers("/actuator/**")
                 .permitAll()
-                .requestMatchers("*", "/swagger-resource/**"
+                .requestMatchers("/", "/*.html", "/*.js", "/*.css", "/swagger-resource/**"
                     , "/swagger-ui.html", "/swagger-ui/**", "/v3/**",
-                    "/assets/**", "/h2/**")
+                    "/assets/**", "/h2/**", "/favicon.svg")
                 .permitAll()
                 // 어드민 권한
                 .requestMatchers(HttpMethod.GET, "/api/users")
@@ -103,6 +105,8 @@ public class SecurityConfig {
             )
             .formLogin(form -> form
                 .loginProcessingUrl("/api/auth/sign-in")
+                .usernameParameter("username")
+                .passwordParameter("password")
                 .successHandler(loginSuccessHandler)
                 .failureHandler(loginFailureHandler)
             )
