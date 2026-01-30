@@ -2,9 +2,8 @@ package com.mopl.api.domain.content.entity;
 
 import com.mopl.api.global.common.entity.BaseDeletableEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.persistence.UniqueConstraint;
@@ -27,6 +26,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Content extends BaseDeletableEntity {
 
+    @Convert(converter = ContentTypeConverter.class)
     @Column(nullable = false, length = 20)
     private ContentType type;
 
