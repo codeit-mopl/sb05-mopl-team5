@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 
 @RequiredArgsConstructor
 public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
@@ -79,6 +80,10 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
     }
 
     @Override
+    @Cacheable(
+        value = "playlistCount",
+        key = "T(java.util.Objects).hash(#keywordLike, #ownerIdEqual, #subscriberIdEqual)"
+    )
     public long countPlaylists(
         String keywordLike,
         UUID ownerIdEqual,
