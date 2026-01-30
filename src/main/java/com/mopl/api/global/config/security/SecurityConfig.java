@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mopl.api.domain.user.entity.UserRole;
 import com.mopl.api.global.config.oauth.handler.OAuth2UserSuccessHandler;
 import com.mopl.api.global.config.oauth.service.CustomOAuth2UserService;
-import com.mopl.api.global.config.security.filter.JsonUsernamePasswordAuthenticationFilter;
 import com.mopl.api.global.config.security.filter.JwtAuthenticationFilter;
 import com.mopl.api.global.config.security.handler.AccessDeniedHandlerImpl;
 import com.mopl.api.global.config.security.handler.JwtAuthenticationEntryPoint;
