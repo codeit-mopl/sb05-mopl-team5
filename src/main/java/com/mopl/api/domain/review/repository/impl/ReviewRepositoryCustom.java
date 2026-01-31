@@ -19,7 +19,7 @@ public interface ReviewRepositoryCustom {
         int limit
     );
 
-    @Cacheable(value = "reviewCount", key = "#contentId")
+    // @Cacheable(value = "reviewCount", key = "#contentId")
     long countReviewsByContentId(UUID contentId);
 
     List<Review> findActiveReviewsByContentId(UUID contentId);

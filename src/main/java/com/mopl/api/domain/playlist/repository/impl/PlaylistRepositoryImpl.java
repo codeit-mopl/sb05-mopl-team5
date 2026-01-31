@@ -80,10 +80,10 @@ public class PlaylistRepositoryImpl implements PlaylistRepositoryCustom {
     }
 
     @Override
-    @Cacheable(
-        value = "playlistCount",
-        key = "T(java.util.Objects).hash(#keywordLike, #ownerIdEqual, #subscriberIdEqual)"
-    )
+    // @Cacheable(
+    //     value = "playlistCount",
+    //     key = "T(java.util.Objects).hash(#keywordLike, #ownerIdEqual, #subscriberIdEqual)"
+    // )
     public long countPlaylists(
         String keywordLike,
         UUID ownerIdEqual,

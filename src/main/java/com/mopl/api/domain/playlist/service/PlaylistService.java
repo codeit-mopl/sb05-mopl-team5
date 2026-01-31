@@ -121,7 +121,7 @@ public class PlaylistService {
         playlistRepository.save(playlist);
     }
 
-    @Cacheable(value = "playlistDetail", key = "#playlistId + '_' + #currentUserId")
+    // @Cacheable(value = "playlistDetail", key = "#playlistId + '_' + #currentUserId")
     public PlaylistDto getPlaylist(UUID playlistId, UUID currentUserId) {
         Playlist playlist = playlistRepository.findById(playlistId)
                                               .orElseThrow(() -> PlaylistNotFoundException.withPlaylistId(playlistId));
