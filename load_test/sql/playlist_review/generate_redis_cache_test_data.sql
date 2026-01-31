@@ -31,7 +31,7 @@ BEGIN
             user_uuid,
             CONCAT('CacheTestUser', i),
             CONCAT('cachetest', i, '@mopl.test'),
-            '$2a$10$dummyPasswordHashForCacheTest',
+            '$2a$10$N9qo8uLOickgx2ZMRZoMye7GvSakAeXM4Q8bPLBHrSc9SRCxUIXBy',
             CONCAT('https://picsum.photos/seed/cacheuser', i, '/200/200'),
             'USER',
             FALSE,

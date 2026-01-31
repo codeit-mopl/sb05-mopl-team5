@@ -15,7 +15,7 @@ config = {
     'host': 'localhost',
     'port': 3306,
     'user': 'root',
-    'password': 'your_password',
+    'password': '',
     'database': 'mopl'
 }
 
@@ -70,11 +70,11 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
         query = f"""
             SELECT DATE_FORMAT({sort_column}, '%Y-%m-%dT%H:%i:%s'), HEX(id)
             FROM playlists
-            WHERE {sort_column} >= %s AND is_deleted = FALSE
+            WHERE {sort_column} >= '{recent_date}' AND is_deleted = FALSE
             ORDER BY RAND()
             LIMIT 1200
         """
-        cur.execute(query, (recent_date,))
+        cur.execute(query)
         
         for value, hex_id in cur.fetchall():
             cursors.append(f"{value}_{hex_id}")
@@ -87,11 +87,11 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
         query = f"""
             SELECT DATE_FORMAT({sort_column}, '%Y-%m-%dT%H:%i:%s'), HEX(id)
             FROM playlists
-            WHERE {sort_column} >= %s AND {sort_column} < %s AND is_deleted = FALSE
+            WHERE {sort_column} >= '{middle_start}' AND {sort_column} < '{middle_end}' AND is_deleted = FALSE
             ORDER BY RAND()
             LIMIT 900
         """
-        cur.execute(query, (middle_start, middle_end))
+        cur.execute(query)
         
         middle_count = 0
         for value, hex_id in cur.fetchall():
@@ -105,11 +105,11 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
         query = f"""
             SELECT DATE_FORMAT({sort_column}, '%Y-%m-%dT%H:%i:%s'), HEX(id)
             FROM playlists
-            WHERE {sort_column} < %s AND is_deleted = FALSE
+            WHERE {sort_column} < '{deep_end}' AND is_deleted = FALSE
             ORDER BY RAND()
             LIMIT 900
         """
-        cur.execute(query, (deep_end,))
+        cur.execute(query)
         
         deep_count = 0
         for value, hex_id in cur.fetchall():
@@ -204,7 +204,7 @@ def generate_playlist_cursors(sort_by: str = 'updated_at') -> None:
     
     random.shuffle(cursors)
     
-    output_file = f'playlist_pagination_cursors_{sort_by}.csv'
+    output_file = f'../../jmeter/cursor/playlist_pagination_cursors_{sort_by}.csv'
     with open(output_file, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['cursor'])
@@ -230,9 +230,9 @@ def main() -> None:
         print("✅ 모든 커서 파일 생성 완료!")
         print("=" * 60)
         print("\n생성된 파일:")
-        print("  - playlist_pagination_cursors_updated_at.csv")
-        print("  - playlist_pagination_cursors_created_at.csv")
-        print("  - playlist_pagination_cursors_subscriber_count.csv")
+        print("  - ../../jmeter/cursor/playlist_pagination_cursors_updated_at.csv")
+        print("  - ../../jmeter/cursor/playlist_pagination_cursors_created_at.csv")
+        print("  - ../../jmeter/cursor/playlist_pagination_cursors_subscriber_count.csv")
         
     except mysql.connector.Error as err:
         print(f"\n❌ MySQL 에러: {err}")

@@ -1,6 +1,10 @@
 package com.mopl.api.global.config.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +27,6 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @EnableCaching
 public class RedisConfig {
 
-    // [추가] 환경변수에서 Redis 호스트와 포트를 가져옵니다. (기본값: localhost, 6379)
     @Value("${spring.data.redis.host:localhost}")
     private String host;
 
@@ -35,22 +38,19 @@ public class RedisConfig {
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        // 1. Redis 서버 정보 설정
         RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(host, port);
 
-        // 2. 클라이언트 설정 (SSL + 타임아웃)
         LettuceClientConfiguration clientConfig;
 
         if (sslEnabled) {
             clientConfig = LettuceClientConfiguration.builder()
                                                      .commandTimeout(Duration.ofSeconds(60))
-                                                     .useSsl()                                  // AWS 암호화 켜져있으면 필수!
+                                                     .useSsl()
                                                      .build();
         } else {
             clientConfig = LettuceClientConfiguration.builder().build();
         }
 
-        // 3. 팩토리 반환
         return new LettuceConnectionFactory(redisConfig, clientConfig);
     }
 
@@ -65,14 +65,29 @@ public class RedisConfig {
     }
 
     @Bean
+    public ObjectMapper redisObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        
+        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+            .allowIfSubType("com.mopl.api.")
+            .allowIfSubType("java.util.")
+            .allowIfSubType("java.time.")
+            .build();
+        mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.EVERYTHING);
+        
+        return mapper;
+    }
+
+    @Bean
     public RedisTemplate<String, Object> redisObjectTemplate(
-        RedisConnectionFactory connectionFactory,
-        ObjectMapper objectMapper
+        RedisConnectionFactory connectionFactory
     ) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(redisObjectMapper());
 
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(serializer);
@@ -85,16 +100,15 @@ public class RedisConfig {
 
     @Bean
     public RedisCacheManager cacheManager(
-        RedisConnectionFactory connectionFactory,
-        ObjectMapper objectMapper
+        RedisConnectionFactory connectionFactory
     ) {
 
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(redisObjectMapper());
 
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                                                                 .entryTtl(
-                                                                    Duration.ofMinutes(60)) // 기본 캐시 유지 시간 임시 60분
-                                                                .disableCachingNullValues() // null 값은 캐싱하지 않음
+                                                                    Duration.ofMinutes(60))
+                                                                .disableCachingNullValues()
                                                                 .serializeKeysWith(
                                                                     RedisSerializationContext.SerializationPair.fromSerializer(
                                                                         new StringRedisSerializer())
