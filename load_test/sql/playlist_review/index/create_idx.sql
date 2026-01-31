@@ -60,9 +60,6 @@ ON reviews(user_id, created_at DESC, is_deleted);
 -- ==========================================
 -- 인덱스 생성 확인
 -- ==========================================
-SELECT '========================================' as separator;
-SELECT 'Created Indexes for Playlist & Review' as report_title;
-SELECT '========================================' as separator;
 
 SELECT 
     TABLE_NAME,
@@ -77,9 +74,7 @@ WHERE TABLE_SCHEMA = DATABASE()
 GROUP BY TABLE_NAME, INDEX_NAME, INDEX_TYPE, NON_UNIQUE
 ORDER BY TABLE_NAME, INDEX_NAME;
 
-SELECT '========================================' as separator;
-SELECT '✅ Indexes created successfully!' as status;
-SELECT '========================================' as separator;
+
 
 -- ==========================================
 -- 인덱스 크기 확인
