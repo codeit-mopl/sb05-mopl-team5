@@ -36,7 +36,7 @@
           <stringProp name="delimiter">,</stringProp>
           <stringProp name="fileEncoding">UTF-8</stringProp>
           <stringProp name="filename">${__P(PLAYLIST_IDS_CSV,../../sql/playlist_review/playlist_ids.csv)}</stringProp>
-          <boolProp name="ignoreFirstLine">true</boolProp>
+          <boolProp name="ignoreFirstLine">false</boolProp>
           <boolProp name="quotedData">false</boolProp>
           <boolProp name="recycle">true</boolProp>
           <stringProp name="shareMode">shareMode.all</stringProp>
@@ -48,7 +48,7 @@
           <stringProp name="delimiter">,</stringProp>
           <stringProp name="fileEncoding">UTF-8</stringProp>
           <stringProp name="filename">${__P(USER_TOKENS_CSV,../../sql/playlist_review/user_tokens.csv)}</stringProp>
-          <boolProp name="ignoreFirstLine">true</boolProp>
+          <boolProp name="ignoreFirstLine">false</boolProp>
           <boolProp name="quotedData">false</boolProp>
           <boolProp name="recycle">true</boolProp>
           <stringProp name="shareMode">shareMode.all</stringProp>
@@ -57,9 +57,11 @@
         </CSVDataSet>
         <hashTree/>
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Playlist Detail (Cached)">
+          <stringProp name="HTTPSampler.domain">localhost</stringProp>
+          <stringProp name="HTTPSampler.port">8080</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-          <stringProp name="HTTPSampler.path">${BASE_URL}/api/playlists/${playlist_id}</stringProp>
+          <stringProp name="HTTPSampler.path">/api/playlists/${playlist_id}</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -74,10 +76,6 @@
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Accept</stringProp>
                 <stringProp name="Header.value">application/json</stringProp>
-              </elementProp>
-              <elementProp name="" elementType="Header">
-                <stringProp name="Header.name">Authorization</stringProp>
-                <stringProp name="Header.value">Bearer ${user_token}</stringProp>
               </elementProp>
             </collectionProp>
           </HeaderManager>
@@ -97,7 +95,7 @@
           </DurationAssertion>
           <hashTree/>
           <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="JSON Content Assertion">
-            <stringProp name="JSON_PATH">$.data.id</stringProp>
+            <stringProp name="JSON_PATH">$.id</stringProp>
             <stringProp name="EXPECTED_VALUE"></stringProp>
             <boolProp name="JSONVALIDATION">false</boolProp>
             <boolProp name="EXPECT_NULL">false</boolProp>

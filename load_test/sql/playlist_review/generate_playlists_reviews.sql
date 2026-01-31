@@ -104,7 +104,7 @@ BEGIN
                              user_uuid,
                              CONCAT('LoadTestUser', i),
                              CONCAT('loadtest', i, '@mopl.test'),
-                             '$2a$10$dummyPasswordHashForLoadTest',
+                             '$2a$10$N9qo8uLOickgx2ZMRZoMye7GvSakAeXM4Q8bPLBHrSc9SRCxUIXBy',
                              CONCAT('https://picsum.photos/seed/user', i, '/200/200'),
                              'USER',
                              FALSE,

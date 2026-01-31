@@ -11,11 +11,11 @@ import random
 
 # MySQL 연결 설정
 config = {
-    'host': '',
-    'port': ,
-    'user': '',
-    'password': '',
-    'database': ''
+    'host': 'localhost',
+    'port': 3306,
+    'user': 'root',
+    'password': '12345678',
+    'database': 'mopl'
 }
 
 def generate_cursors_uniform_distribution():
@@ -104,7 +104,7 @@ def generate_cursors_uniform_distribution():
     random.shuffle(cursors)
     
     # 6. CSV 저장
-    output_file = 'pagination_cursors.csv'
+    output_file = '../../jmeter/cursor/pagination_cursors.csv'
     with open(output_file, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['cursor'])  # 헤더
@@ -112,7 +112,7 @@ def generate_cursors_uniform_distribution():
             writer.writerow([c])
     
     print(f"\n총 생성: {len(cursors):,}개")
-    print(f"저장: {output_file}")
+    print(f"저장: {output_file}  (from load_test/data/generater/)")
     
     # 7. 분포 통계
     recent = sum(1 for c in cursors if (max_date - datetime.strptime(c.split('_')[0], '%Y-%m-%dT%H:%M:%S')).days <= 30)

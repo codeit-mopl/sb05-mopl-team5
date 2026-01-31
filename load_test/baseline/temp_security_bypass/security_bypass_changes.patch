@@ -1,0 +1,60 @@
+diff --git a/src/main/java/com/mopl/api/domain/playlist/controller/PlaylistController.java b/src/main/java/com/mopl/api/domain/playlist/controller/PlaylistController.java
+index c412efa..6ab6caf 100644
+--- a/src/main/java/com/mopl/api/domain/playlist/controller/PlaylistController.java
++++ b/src/main/java/com/mopl/api/domain/playlist/controller/PlaylistController.java
+@@ -69,9 +69,10 @@ public class PlaylistController {
+     @GetMapping("/{playlistId}")
+     public ResponseEntity<PlaylistDto> playlistDetails(
+         @PathVariable UUID playlistId,
+-        @AuthenticationPrincipal CustomUserDetails user
++        @AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails user
+     ) {
+-        return ResponseEntity.ok(playlistService.getPlaylist(playlistId, user.getUserDto().id()));
++        UUID userId = (user != null) ? user.getUserDto().id() : null;
++        return ResponseEntity.ok(playlistService.getPlaylist(playlistId, userId));
+     }
+ 
+     @Operation(summary = "플레이리스트 목록 조회 (커서 페이지네이션)", description = "플레이리스트 목록을 커서 기반 페이징으로 조회합니다.")
+@@ -124,9 +125,10 @@ public class PlaylistController {
+     @PostMapping("/{playlistId}/subscription")
+     public ResponseEntity<Void> playlistSubscribe(
+         @PathVariable UUID playlistId,
+-        @AuthenticationPrincipal CustomUserDetails user
++        @AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails user
+     ) {
+-        subscriptionService.subscribeToPlaylist(playlistId, user.getUserDto().id());
++        UUID userId = (user != null) ? user.getUserDto().id() : UUID.randomUUID();
++        subscriptionService.subscribeToPlaylist(playlistId, userId);
+         return ResponseEntity.status(HttpStatus.CREATED)
+                              .build();
+     }
+@@ -135,9 +137,10 @@ public class PlaylistController {
+     @DeleteMapping("/{playlistId}/subscription")
+     public ResponseEntity<Void> playlistUnsubscribe(
+         @PathVariable UUID playlistId,
+-        @AuthenticationPrincipal CustomUserDetails user
++        @AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails user
+     ) {
+-        subscriptionService.unsubscribeFromPlaylist(playlistId, user.getUserDto().id());
++        UUID userId = (user != null) ? user.getUserDto().id() : UUID.randomUUID();
++        subscriptionService.unsubscribeFromPlaylist(playlistId, userId);
+         return ResponseEntity.noContent()
+                              .build();
+     }
+diff --git a/src/main/java/com/mopl/api/global/config/security/SecurityConfig.java b/src/main/java/com/mopl/api/global/config/security/SecurityConfig.java
+index fc170d4..23db8ac 100644
+--- a/src/main/java/com/mopl/api/global/config/security/SecurityConfig.java
++++ b/src/main/java/com/mopl/api/global/config/security/SecurityConfig.java
+@@ -88,6 +88,12 @@ public class SecurityConfig {
+                     , "/swagger-ui.html", "/swagger-ui/**", "/v3/**",
+                     "/assets/**", "/h2/**", "/favicon.svg")
+                 .permitAll()
++                .requestMatchers(HttpMethod.GET, "/api/playlists", "/api/playlists/*")
++                .permitAll()
++                .requestMatchers(HttpMethod.POST, "/api/playlists/*/subscription")
++                .permitAll()
++                .requestMatchers(HttpMethod.DELETE, "/api/playlists/*/subscription")
++                .permitAll()
+                 // 어드민 권한
+                 .requestMatchers(HttpMethod.GET, "/api/users")
+                 .hasRole("ADMIN")

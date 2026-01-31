@@ -10,6 +10,12 @@ Requirements:
     pip install requests
 """
 
+""""
+남은 작업: 서버 실행 후:
+
+python3 load_test/sql/playlist_review/generate_jwt_tokens.py --count 1000 --output user_tokens.csv
+""""
+
 import requests
 import sys
 import argparse
@@ -67,7 +73,7 @@ def login_user(base_url: str, email: str, password: str, session: requests.Sessi
         if response.status_code == 200:
             try:
                 json_data = response.json()
-                token = json_data.get('token')
+                token = json_data.get('accessToken')
                 if token:
                     return True, token
                 else:
